@@ -58,7 +58,7 @@ const RowaDictionary: React.FC = () => {
           تراجم الرواة (Kamus Biografi Perawi)
         </h2>
         
-        <form onSubmit={handleSearch} className="flex gap-4">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
           <input 
             type="text" 
             value={query}
@@ -69,7 +69,7 @@ const RowaDictionary: React.FC = () => {
           <button 
             type="submit" 
             disabled={loading}
-            className="bg-[#6d4c41] text-white px-8 py-4 rounded-lg font-bold text-xl hover:bg-[#5d4037] transition-colors disabled:opacity-50 shadow-md"
+            className="bg-[#6d4c41] text-white px-8 py-4 rounded-lg font-bold text-xl hover:bg-[#5d4037] transition-colors disabled:opacity-50 shadow-md w-full sm:w-auto"
           >
             {loading ? '...' : 'ابحث (Cari)'}
           </button>
@@ -79,8 +79,8 @@ const RowaDictionary: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-4">
         {results.map((r, i) => (
-          <div key={i} className="bg-white p-5 rounded-lg shadow border border-[#e0e0e0] flex justify-between items-center hover:bg-gray-50 transition-colors">
-            <div className="flex-1">
+          <div key={i} className="bg-white p-5 rounded-lg shadow border border-[#e0e0e0] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-gray-50 transition-colors">
+            <div className="flex-1 w-full">
               <h3 className="text-2xl font-bold text-[#4e342e] mb-2">{r.Name}</h3>
               <p className="text-[#795548] text-lg">
                 <span className="font-bold">Derajat: </span> 
@@ -92,7 +92,7 @@ const RowaDictionary: React.FC = () => {
             </div>
             <button 
               onClick={() => openProfile(r.id)}
-              className="bg-[#8d6e63] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#5d4037] transition-colors"
+              className="bg-[#8d6e63] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#5d4037] transition-colors w-full sm:w-auto mt-2 sm:mt-0"
             >
               Lihat Profil
             </button>
