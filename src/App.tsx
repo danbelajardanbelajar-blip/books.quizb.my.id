@@ -86,67 +86,67 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#f4ebd0] text-[#3e2723] font-serif" dir="rtl">
-      <header className="bg-[#5d4037] text-white p-6 shadow-md">
-        <h1 className="text-3xl font-bold text-center">المكتبة الشاملة الذهبية</h1>
-        <div className="flex justify-center gap-4 mt-6 font-sans">
+      <header className="bg-[#5d4037] text-white p-4 md:p-6 shadow-md">
+        <h1 className="text-2xl md:text-3xl font-bold text-center">المكتبة الشاملة الذهبية</h1>
+        <div className="flex flex-col md:flex-row justify-center gap-2 md:gap-4 mt-4 md:mt-6 font-sans">
           <button 
             onClick={() => setActiveTab('search')}
-            className={`px-8 py-3 rounded-lg font-bold text-lg transition-colors ${activeTab === 'search' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'search' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             📚 البحث (Pencarian Kitab)
           </button>
           <button 
             onClick={() => setActiveTab('quran')}
-            className={`px-8 py-3 rounded-lg font-bold text-lg transition-colors ${activeTab === 'quran' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'quran' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             📖 القرآن الكريم (Al-Qur'an)
           </button>
           <button 
             onClick={() => setActiveTab('rowa')}
-            className={`px-8 py-3 rounded-lg font-bold text-lg transition-colors ${activeTab === 'rowa' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'rowa' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             👤 تراجم الرواة (Kamus Perawi)
           </button>
         </div>
       </header>
       
-      <main className="container mx-auto p-6 max-w-6xl relative">
+      <main className="container mx-auto p-4 md:p-6 max-w-6xl relative">
         {activeTab === 'quran' ? (
           <QuranReader />
         ) : activeTab === 'rowa' ? (
           <RowaDictionary />
         ) : (
           <div className="max-w-4xl mx-auto">
-            <form onSubmit={handleSearch} className="mb-8 flex gap-4">
+            <form onSubmit={handleSearch} className="mb-8 flex flex-col md:flex-row gap-2 md:gap-4">
               <input 
                 type="text" 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="ابحث هنا... (Cari di sini...)" 
-                className="flex-1 p-4 rounded-lg border-2 border-[#8d6e63] text-xl focus:outline-none focus:border-[#4e342e] bg-white shadow-inner"
+                className="flex-1 p-3 md:p-4 rounded-lg border-2 border-[#8d6e63] text-lg md:text-xl focus:outline-none focus:border-[#4e342e] bg-white shadow-inner"
               />
               <button 
                 type="submit" 
                 disabled={loading}
-                className="bg-[#6d4c41] text-white px-8 py-4 rounded-lg font-bold text-xl hover:bg-[#5d4037] transition-colors disabled:opacity-50 shadow-md"
+                className="bg-[#6d4c41] text-white px-6 md:px-8 py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl hover:bg-[#5d4037] transition-colors disabled:opacity-50 shadow-md"
               >
                 {loading ? '...' : 'ابحث'}
               </button>
             </form>
 
-            {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+            {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm md:text-base">{error}</div>}
 
             {totalResults > 0 && (
-              <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow border border-[#d7ccc8]">
-                <span className="font-bold">Total Hasil: {totalResults.toLocaleString()}</span>
-                <span>Halaman {currentPage} dari {totalPages}</span>
+              <div className="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-4 rounded-lg shadow border border-[#d7ccc8] gap-2">
+                <span className="font-bold text-sm md:text-base">Total Hasil: {totalResults.toLocaleString()}</span>
+                <span className="text-sm md:text-base">Halaman {currentPage} dari {totalPages}</span>
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {results.map((r, i) => (
-                <div key={i} className="bg-white p-6 rounded-lg shadow-md border border-[#d7ccc8]">
-                  <div className="text-sm text-[#795548] mb-3 font-sans flex justify-between border-b pb-2">
+                <div key={i} className="bg-white p-4 md:p-6 rounded-lg shadow-md border border-[#d7ccc8]">
+                  <div className="text-xs md:text-sm text-[#795548] mb-3 font-sans flex flex-col sm:flex-row sm:justify-between border-b pb-2 gap-2">
                     <div className="flex gap-4">
                       <button 
                         onClick={() => openBookInfo(r.book_id)}
