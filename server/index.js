@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import 'dotenv/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +16,8 @@ app.use(cors());
 app.use(express.json());
 
 let db;
-const dbPath = "D:\\database_maktabah_golden\\maktabah.db";
+// Gunakan variabel environment DB_PATH, atau fallback ke alamat PC
+const dbPath = process.env.DB_PATH || "D:\\database_maktabah_golden\\maktabah.db";
 
 try {
   if (fs.existsSync(dbPath)) {
