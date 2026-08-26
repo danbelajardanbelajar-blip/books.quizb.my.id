@@ -19,7 +19,7 @@ export const webAPI = {
     return fetchAPI(`/toc/${bookId}`);
   },
   getPage: async (bookId: number, pageId?: number) => {
-    return fetchAPI(`/book/${bookId}/page/${pageId || ''}`);
+    return fetchAPI(`/book/${bookId}/page${pageId ? `/${pageId}` : ''}`);
   },
   getNextPage: async (bookId: number, currentPageId: number) => {
     return fetchAPI(`/book/${bookId}/next/${currentPageId}`);
