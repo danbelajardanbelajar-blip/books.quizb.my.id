@@ -26,7 +26,7 @@ function App() {
   const [loadingBook, setLoadingBook] = useState(false);
 
   // States for Reader Modal
-  const [readingConfig, setReadingConfig] = useState<{ bookId: number, pageId?: number } | null>(null);
+  const [readingConfig, setReadingConfig] = useState<{ bookId: number, pageId?: number, highlightQuery?: string } | null>(null);
 
   const executeSearch = async (searchQuery: string, page: number) => {
     if (!searchQuery.trim()) return;
@@ -184,7 +184,7 @@ function App() {
                         ℹ️ Detail Kitab
                       </button>
                       <button 
-                        onClick={() => setReadingConfig({ bookId: r.book_id, pageId: r.page_id })}
+                        onClick={() => setReadingConfig({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
                         className="font-bold text-green-700 hover:text-green-900 hover:underline flex items-center gap-1"
                       >
                         📖 Baca Kitab
@@ -246,7 +246,10 @@ function App() {
                     <button 
                       onClick={() => {
                         setSelectedBook(null);
-                        setReadingConfig({ bookId: selectedBook });
+                        setReadingConfig({ 
+                          bookId: selectedBook as number,
+                          highlightQuery: activeTab === 'search' ? query : undefined
+                        });
                       }}
                       className="bg-green-700 text-white px-8 py-3 rounded-lg font-bold text-xl hover:bg-green-800 transition-colors shadow-md"
                     >
@@ -297,7 +300,11 @@ function App() {
                               <button
                                 onClick={() => {
                                   setSelectedBook(null);
-                                  setReadingConfig({ bookId: selectedBook as number, pageId: item.id });
+                                  setReadingConfig({ 
+                                    bookId: selectedBook as number, 
+                                    pageId: item.id,
+                                    highlightQuery: activeTab === 'search' ? query : undefined 
+                                  });
                                 }}
                                 className="text-[#5d4037] hover:text-[#3e2723] hover:underline text-right w-full flex text-lg"
                               >
@@ -324,7 +331,8 @@ function App() {
       {readingConfig && (
         <ReaderModal 
           bookId={readingConfig.bookId} 
-          initialPageId={readingConfig.pageId} 
+          initialPageId={readingConfig.pageId}
+          highlightQuery={readingConfig.highlightQuery}
           onClose={() => setReadingConfig(null)} 
         />
       )}

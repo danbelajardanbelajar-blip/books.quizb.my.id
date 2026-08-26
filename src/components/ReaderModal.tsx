@@ -1,13 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { webAPI } from '../api';
 
-interface ReaderModalProps {
+export interface ReaderModalProps {
   bookId: number;
   initialPageId?: number;
+  highlightQuery?: string;
   onClose: () => void;
 }
 
-const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClose }) => {
+const buildArabicRegex = (word: string) => {
+  const harakat = '[\\u064B-\\u065F\\u0670\\u0654\\u0655]*';
+  let regexStr = '';
+  const safeWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (let i = 0; i < safeWord.length; i++) {
+    let char = safeWord[i];
+    if (/[أإآا]/.test(char)) char = '[أإآا]';
+    else if (/[ةه]/.test(char)) char = '[ةه]';
+    else if (/[يى]/.test(char)) char = '[يى]';
+    else if (char === 'ؤ') char = '[ؤو]';
+    else if (char === 'ئ') char = '[ئي]';
+    regexStr += char + harakat;
+  }
+  return regexStr;
+};
+
+const highlightText = (text: string, query?: string) => {
+  if (!query || !text) return text;
+  
+  // Clean query from its own diacritics
+  const cleanQuery = query.replace(/[\u064B-\u065F\u0670\u0654\u0655]/g, '').trim();
+  if (!cleanQuery) return text;
+
+  const words = cleanQuery.split(/\s+/).filter(w => w.length > 0);
+  
+  let highlighted = text;
+  words.forEach(word => {
+    const regexStr = buildArabicRegex(word);
+    try {
+      // Use word boundaries/lookarounds if needed, but for simple Arabic search, global match is fine.
+      const regex = new RegExp(`(${regexStr})`, 'g');
+      highlighted = highlighted.replace(regex, '<mark class="bg-yellow-300 text-black px-1 rounded">$1</mark>');
+    } catch (e) {
+      // Ignore invalid regex
+    }
+  });
+  
+  return highlighted;
+};
+
+const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highlightQuery, onClose }) => {
   const [bookInfo, setBookInfo] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState<any>(null);
   const [currentPageId, setCurrentPageId] = useState<number | undefined>(initialPageId);
@@ -176,7 +217,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
                 <div 
                   className="text-justify text-[#2b1810] whitespace-pre-wrap" 
                   style={{ fontSize: `${fontSize}px`, lineHeight: '2.2' }}
-                  dangerouslySetInnerHTML={{ __html: currentPage?.text || '' }} 
+                  dangerouslySetInnerHTML={{ __html: highlightText(currentPage?.text || '', highlightQuery) }} 
                 />
               )}
             </div>
@@ -203,7 +244,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
                   <div 
                     className="text-justify text-[#1b5e20] whitespace-pre-wrap" 
                     style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2' }}
-                    dangerouslySetInnerHTML={{ __html: relatedPage?.text || '' }} 
+                    dangerouslySetInnerHTML={{ __html: highlightText(relatedPage?.text || '', highlightQuery) }} 
                   />
                 )}
               </div>
