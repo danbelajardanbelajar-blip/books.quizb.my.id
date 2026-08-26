@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { webAPI } from '../api';
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, BookOpen } from 'lucide-react';
 
 export interface ReaderModalProps {
   bookId: number;
@@ -171,7 +172,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
             className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full hover:bg-gray-200 transition-colors text-xl md:text-2xl text-gray-600"
             title="Tutup (Kembali)"
           >
-            ✖
+            <X size={24} />
           </button>
           <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
             <button 
@@ -231,7 +232,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
             <div className="w-full max-w-4xl mx-auto md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-gray-300 flex flex-col min-h-full" style={{ backgroundColor: 'var(--reader-paper)' }}>
               <div className="px-4 md:px-8 py-3 md:py-4 border-b border-gray-300 flex justify-between items-center text-gray-600 font-sans text-xs md:text-sm bg-black/5">
                 <span className="font-bold flex items-center gap-1 md:gap-2 truncate max-w-[50%]">
-                  <span className="text-base md:text-lg">🔗</span> <span style={{ fontFamily: 'var(--arabic-font)' }}>{relatedBookInfo?.bk}</span>
+                  <BookOpen size={18} /> <span style={{ fontFamily: 'var(--arabic-font)' }}>{relatedBookInfo?.bk}</span>
                 </span>
                 <span>Jilid: {relatedPage?.part} • Hal: {relatedPage?.page}</span>
               </div>
@@ -257,25 +258,27 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
 
       {/* Floating Bottom Navigation */}
       <div className="absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 flex items-center bg-white/95 backdrop-blur-lg shadow-2xl rounded-full p-1 md:p-2 border border-[#e0e0e0] z-30 font-sans w-[95%] md:w-auto justify-between md:justify-center">
+        {/* Previous is on the right visually in RTL */}
         <button 
-          onClick={nextPage} 
+          onClick={prevPage} 
           disabled={loading}
-          className="bg-[#5d4037] text-white hover:bg-[#3e2723] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
+          className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
         >
-          <span className="text-lg md:text-xl">◀</span> <span>Selanjutnya</span>
+          <ChevronRight size={24} /> <span>Sebelumnya</span>
         </button>
         
-        <div className="px-2 md:px-6 font-bold text-[#4e342e] flex flex-col items-center">
+        <div className="px-2 md:px-6 font-bold text-[var(--app-primary)] flex flex-col items-center">
           <span className="text-[10px] md:text-sm text-gray-500 uppercase tracking-widest">Posisi</span>
           <span className="text-sm md:text-base">Hal {currentPage?.page || '-'}</span>
         </div>
         
+        {/* Next is on the left visually in RTL */}
         <button 
-          onClick={prevPage} 
+          onClick={nextPage} 
           disabled={loading}
-          className="bg-[#5d4037] text-white hover:bg-[#3e2723] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
+          className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
         >
-          <span>Sebelumnya</span> <span className="text-lg md:text-xl">▶</span>
+          <span>Selanjutnya</span> <ChevronLeft size={24} />
         </button>
       </div>
 
