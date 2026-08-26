@@ -36,22 +36,48 @@ app.get('/api/search', (req, res) => {
     const query = req.query.q;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
+    const cat_id = req.query.cat_id ? parseInt(req.query.cat_id) : null;
     const offset = (page - 1) * limit;
 
-    const countStmt = db.prepare(`SELECT COUNT(*) as total FROM pages_fts WHERE pages_fts MATCH ?`);
-    const totalRow = countStmt.get(query);
-    const total = totalRow ? totalRow.total : 0;
+    let total = 0;
+    let results = [];
 
-    const stmt = db.prepare(`
-      SELECT p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet 
-      FROM pages_fts f
-      JOIN pages p ON f.rowid = p.rowid
-      LEFT JOIN books_meta b ON p.book_id = b.bkid
-      WHERE pages_fts MATCH ?
-      LIMIT ? OFFSET ?;
-    `);
+    if (cat_id) {
+      const countStmt = db.prepare(`
+        SELECT COUNT(*) as total 
+        FROM pages_fts f
+        JOIN pages p ON f.rowid = p.rowid
+        JOIN books_meta b ON p.book_id = b.bkid
+        WHERE pages_fts MATCH ? AND b.cat = ?
+      `);
+      const totalRow = countStmt.get(query, cat_id);
+      total = totalRow ? totalRow.total : 0;
+
+      const stmt = db.prepare(`
+        SELECT p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet 
+        FROM pages_fts f
+        JOIN pages p ON f.rowid = p.rowid
+        JOIN books_meta b ON p.book_id = b.bkid
+        WHERE pages_fts MATCH ? AND b.cat = ?
+        LIMIT ? OFFSET ?;
+      `);
+      results = stmt.all(query, cat_id, limit, offset);
+    } else {
+      const countStmt = db.prepare(`SELECT COUNT(*) as total FROM pages_fts WHERE pages_fts MATCH ?`);
+      const totalRow = countStmt.get(query);
+      total = totalRow ? totalRow.total : 0;
+
+      const stmt = db.prepare(`
+        SELECT p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet 
+        FROM pages_fts f
+        JOIN pages p ON f.rowid = p.rowid
+        LEFT JOIN books_meta b ON p.book_id = b.bkid
+        WHERE pages_fts MATCH ?
+        LIMIT ? OFFSET ?;
+      `);
+      results = stmt.all(query, limit, offset);
+    }
     
-    const results = stmt.all(query, limit, offset);
     res.json({ results, total, error: null });
   } catch (error) {
     res.status(500).json({ error: error.message });

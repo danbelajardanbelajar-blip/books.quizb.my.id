@@ -11,8 +11,7 @@ import Settings, { THEMES } from './components/Settings';
 import { useEffect } from 'react';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings'>('search');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more'>('search');
 
   // Search States
   const [query, setQuery] = useState('');
@@ -23,6 +22,10 @@ function App() {
   const [error, setError] = useState('');
   const limit = 50;
   
+  // Advanced Search States
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | ''>('');
+
   // States for Book Modal
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
   const [bookInfo, setBookInfo] = useState<any>(null);
@@ -55,13 +58,20 @@ function App() {
     root.style.setProperty('--latin-font', `"${settings.latinFont}", sans-serif`);
   }, [settings]);
 
+  useEffect(() => {
+    // @ts-ignore
+    webAPI.getCategories().then(res => {
+      if (res.data) setCategories(res.data);
+    }).catch(console.error);
+  }, []);
+
   const executeSearch = async (searchQuery: string, page: number) => {
     if (!searchQuery.trim()) return;
     setLoading(true);
     setError('');
     try {
       // @ts-ignore
-      const res = await webAPI.search(searchQuery, page, limit);
+      const res = await webAPI.search(searchQuery, page, limit, selectedCategory === '' ? undefined : selectedCategory);
       if (res.error) {
         setError(res.error);
       } else {
@@ -114,7 +124,7 @@ function App() {
   const totalPages = Math.ceil(totalResults / limit);
 
   return (
-    <div className="flex flex-col min-h-screen font-sans" dir="rtl" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
+    <div className="flex flex-col min-h-screen font-sans pb-[70px] md:pb-0" dir="rtl" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
       <header className="bg-[#5d4037] text-white shadow-md relative z-40" style={{ fontFamily: 'var(--latin-font)' }}>
         <div className="flex justify-between items-center p-4 md:px-8 md:py-0 max-w-7xl mx-auto md:h-[80px]">
           {/* Logo & Title */}
@@ -123,42 +133,40 @@ function App() {
             <h1 className="text-xl md:text-2xl font-bold" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h1>
           </div>
 
-          {/* Mobile Hamburger Button */}
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)} 
-            className="md:hidden text-2xl px-2 py-1 bg-[#6d4c41] rounded-lg hover:bg-[#795548] transition-colors"
-          >
-            {isMenuOpen ? '✖' : '☰'}
-          </button>
-
-          {/* Navigation Menu */}
-          <nav className={`${isMenuOpen ? 'flex' : 'hidden'} md:flex flex-col md:flex-row gap-0 md:gap-4 lg:gap-6 absolute md:static top-full left-0 w-full md:w-auto bg-[#5d4037] md:bg-transparent shadow-lg md:shadow-none font-sans md:h-full`}>
+          {/* Navigation Menu (Hidden on mobile, uses bottom tabs instead) */}
+          <nav className="hidden md:flex flex-row gap-4 lg:gap-6 font-sans h-full">
             <button 
-              onClick={() => { setActiveTab('search'); setIsMenuOpen(false); }}
+              onClick={() => { setActiveTab('search'); }}
               className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'search' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
               📚 Pencarian
             </button>
             <button 
-              onClick={() => { setActiveTab('catalog'); setIsMenuOpen(false); }}
+              onClick={() => { setActiveTab('advanced_search'); }}
+              className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'advanced_search' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              🔍 Cari Lanjut
+            </button>
+            <button 
+              onClick={() => { setActiveTab('catalog'); }}
               className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'catalog' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
               🗂️ Katalog
             </button>
             <button 
-              onClick={() => { setActiveTab('quran'); setIsMenuOpen(false); }}
+              onClick={() => { setActiveTab('quran'); }}
               className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'quran' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
               📖 Al-Qur'an
             </button>
             <button 
-              onClick={() => { setActiveTab('rowa'); setIsMenuOpen(false); }}
+              onClick={() => { setActiveTab('rowa'); }}
               className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'rowa' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
               👤 Kamus Perawi
             </button>
             <button 
-              onClick={() => { setActiveTab('settings'); setIsMenuOpen(false); }}
+              onClick={() => { setActiveTab('settings'); }}
               className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'settings' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
               ⚙️ Pengaturan
@@ -180,8 +188,49 @@ function App() {
           <Settings settings={settings} setSettings={setSettings} />
         ) : activeTab === 'catalog' ? (
           <Catalog openBook={openBookInfo} readBook={(bookId) => setReadingConfig({ bookId })} />
+        ) : activeTab === 'more' ? (
+          <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-[#d7ccc8] my-4">
+            <h2 className="text-2xl font-bold mb-6 text-[#5d4037] border-b pb-2">Lainnya</h2>
+            <div className="flex flex-col gap-4">
+              <button onClick={() => setActiveTab('quran')} className="text-right p-4 bg-gray-50 rounded-lg font-bold text-lg border border-gray-200 hover:bg-gray-100 flex justify-between items-center">
+                <span>📖 Al-Qur'an</span>
+                <span className="text-gray-400">❯</span>
+              </button>
+              <button onClick={() => setActiveTab('rowa')} className="text-right p-4 bg-gray-50 rounded-lg font-bold text-lg border border-gray-200 hover:bg-gray-100 flex justify-between items-center">
+                <span>👤 Kamus Perawi</span>
+                <span className="text-gray-400">❯</span>
+              </button>
+              <button onClick={() => setActiveTab('settings')} className="text-right p-4 bg-gray-50 rounded-lg font-bold text-lg border border-gray-200 hover:bg-gray-100 flex justify-between items-center">
+                <span>⚙️ Pengaturan</span>
+                <span className="text-gray-400">❯</span>
+              </button>
+              <button onClick={() => setActiveTab('about')} className="text-right p-4 bg-gray-50 rounded-lg font-bold text-lg border border-gray-200 hover:bg-gray-100 flex justify-between items-center">
+                <span>ℹ️ Tentang</span>
+                <span className="text-gray-400">❯</span>
+              </button>
+              <button onClick={() => setActiveTab('privacy')} className="text-right p-4 bg-gray-50 rounded-lg font-bold text-lg border border-gray-200 hover:bg-gray-100 flex justify-between items-center">
+                <span>🔒 Privasi</span>
+                <span className="text-gray-400">❯</span>
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="w-full">
+            {activeTab === 'advanced_search' && (
+              <div className="mb-4 bg-[#f4ebd0] p-4 rounded-lg border border-[#d7ccc8]">
+                <h3 className="font-bold text-[#4e342e] mb-2">Cari Lanjut (Berdasarkan Kategori)</h3>
+                <select 
+                  value={selectedCategory} 
+                  onChange={(e) => setSelectedCategory(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full p-3 rounded-lg border-2 border-[#8d6e63] focus:outline-none focus:border-[#4e342e] bg-white text-lg"
+                >
+                  <option value="">-- Semua Kategori --</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <form onSubmit={handleSearch} className="mb-8 flex flex-col md:flex-row gap-2 md:gap-4">
               <input 
                 type="text" 
@@ -295,6 +344,38 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#5d4037] text-white flex justify-around items-center border-t border-[#4e342e] shadow-[0_-2px_10px_rgba(0,0,0,0.2)] z-50 h-[70px] pb-safe">
+        <button 
+          onClick={() => { setActiveTab('search'); window.scrollTo(0,0); }} 
+          className={`flex flex-col items-center justify-center w-1/4 h-full transition-colors ${activeTab === 'search' ? 'text-[#f4ebd0]' : 'text-white/60 hover:text-white/80'}`}
+        >
+          <span className="text-2xl mb-1">🏠</span>
+          <span className="text-[10px] font-bold">Home</span>
+        </button>
+        <button 
+          onClick={() => { setActiveTab('advanced_search'); window.scrollTo(0,0); }} 
+          className={`flex flex-col items-center justify-center w-1/4 h-full transition-colors ${activeTab === 'advanced_search' ? 'text-[#f4ebd0]' : 'text-white/60 hover:text-white/80'}`}
+        >
+          <span className="text-2xl mb-1">🔍</span>
+          <span className="text-[10px] font-bold">Cari Lanjut</span>
+        </button>
+        <button 
+          onClick={() => { setActiveTab('catalog'); window.scrollTo(0,0); }} 
+          className={`flex flex-col items-center justify-center w-1/4 h-full transition-colors ${activeTab === 'catalog' ? 'text-[#f4ebd0]' : 'text-white/60 hover:text-white/80'}`}
+        >
+          <span className="text-2xl mb-1">🗂️</span>
+          <span className="text-[10px] font-bold">Katalog</span>
+        </button>
+        <button 
+          onClick={() => { setActiveTab('more'); window.scrollTo(0,0); }} 
+          className={`flex flex-col items-center justify-center w-1/4 h-full transition-colors ${activeTab === 'more' ? 'text-[#f4ebd0]' : 'text-white/60 hover:text-white/80'}`}
+        >
+          <span className="text-2xl mb-1">☰</span>
+          <span className="text-[10px] font-bold">Lainnya</span>
+        </button>
+      </div>
 
       {/* Book Info Modal */}
       {selectedBook && (

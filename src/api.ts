@@ -9,8 +9,10 @@ async function fetchAPI(endpoint: string) {
 }
 
 export const webAPI = {
-  search: async (query: string, page = 1, limit = 50) => {
-    return fetchAPI(`/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
+  search: async (query: string, page = 1, limit = 50, cat_id?: number) => {
+    let url = `/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
+    if (cat_id) url += `&cat_id=${cat_id}`;
+    return fetchAPI(url);
   },
   getBookInfo: async (bookId: number) => {
     return fetchAPI(`/book/${bookId}`);
