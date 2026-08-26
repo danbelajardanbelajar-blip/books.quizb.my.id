@@ -55,7 +55,7 @@ const RowaDictionary: React.FC = () => {
     <div className="max-w-5xl mx-auto font-serif" dir="rtl">
       <div className="bg-[#fffdf7] p-8 rounded-xl shadow-md border border-[#d7ccc8] mb-8">
         <h2 className="text-3xl font-bold text-[#3e2723] mb-6 text-center border-b pb-4">
-          تراجم الرواة (Kamus Biografi Perawi)
+          Kamus Biografi Perawi
         </h2>
         
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
@@ -69,9 +69,9 @@ const RowaDictionary: React.FC = () => {
           <button 
             type="submit" 
             disabled={loading}
-            className="bg-[#6d4c41] text-white px-8 py-4 rounded-lg font-bold text-xl hover:bg-[#5d4037] transition-colors disabled:opacity-50 shadow-md w-full sm:w-auto"
+            className="bg-[#5d4037] text-white px-8 py-4 rounded-lg text-xl font-bold hover:bg-[#4e342e] transition-colors whitespace-nowrap shadow-md disabled:bg-gray-400"
           >
-            {loading ? '...' : 'ابحث (Cari)'}
+            {loading ? '...' : 'Cari'}
           </button>
         </form>
         {error && <div className="mt-4 text-red-600 bg-red-100 p-3 rounded">{error}</div>}
@@ -138,11 +138,11 @@ const RowaDictionary: React.FC = () => {
               {/* Derajat */}
               <div className="space-y-4">
                 <div className="bg-white p-5 rounded-lg border-l-4 border-[#4CAF50] shadow-sm">
-                  <span className="block text-lg text-[#2E7D32] font-bold mb-2">الرتبة (Derajat Perawi - Ibnu Hajar/Taqrib):</span>
+                  <span className="block text-lg text-[#2E7D32] font-bold mb-2">Derajat Perawi (Ibnu Hajar/Taqrib):</span>
                   <p className="text-2xl text-[#1b5e20] leading-relaxed">{selectedRowa.ROTBA || '-'}</p>
                 </div>
                 <div className="bg-white p-5 rounded-lg border-l-4 border-[#2196F3] shadow-sm">
-                  <span className="block text-lg text-[#1565C0] font-bold mb-2">رتبة الذهبي (Derajat menurut Adh-Dhahabi):</span>
+                  <span className="block text-lg text-[#1565C0] font-bold mb-2">Derajat (menurut Adh-Dhahabi):</span>
                   <p className="text-2xl text-[#0d47a1] leading-relaxed">{selectedRowa.R_ZAHBI || '-'}</p>
                 </div>
               </div>
@@ -150,7 +150,7 @@ const RowaDictionary: React.FC = () => {
               {/* Guru dan Murid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
                 <div>
-                  <h3 className="text-2xl font-bold text-[#4e342e] mb-4 border-b pb-2">شيوخه (Guru-gurunya)</h3>
+                  <h3 className="text-2xl font-bold text-[#4e342e] mb-4 border-b pb-2">Guru-gurunya</h3>
                   <div className="bg-white border border-[#e0e0e0] rounded-lg p-4 max-h-80 overflow-y-auto">
                     <ul className="list-disc list-inside space-y-2">
                       {parseList(selectedRowa.sheok).map((g, idx) => (
@@ -162,7 +162,7 @@ const RowaDictionary: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-2xl font-bold text-[#4e342e] mb-4 border-b pb-2">تلاميذه (Murid-muridnya)</h3>
+                  <h3 className="text-2xl font-bold text-[#4e342e] mb-4 border-b pb-2">Murid-muridnya</h3>
                   <div className="bg-white border border-[#e0e0e0] rounded-lg p-4 max-h-80 overflow-y-auto">
                     <ul className="list-disc list-inside space-y-2">
                       {parseList(selectedRowa.telmez).map((m, idx) => (

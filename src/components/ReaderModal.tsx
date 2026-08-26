@@ -262,7 +262,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
           disabled={loading}
           className="bg-[#5d4037] text-white hover:bg-[#3e2723] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
         >
-          <span className="text-lg md:text-xl">◀</span> <span className="hidden md:inline">التالي (Selanjutnya)</span><span className="md:hidden">السابق</span>
+          <span className="text-lg md:text-xl">◀</span> <span>Selanjutnya</span>
         </button>
         
         <div className="px-2 md:px-6 font-bold text-[#4e342e] flex flex-col items-center">
@@ -275,7 +275,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
           disabled={loading}
           className="bg-[#5d4037] text-white hover:bg-[#3e2723] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
         >
-          <span className="hidden md:inline">(Sebelumnya) السابق</span><span className="md:hidden">التالي</span> <span className="text-lg md:text-xl">▶</span>
+          <span>Sebelumnya</span> <span className="text-lg md:text-xl">▶</span>
         </button>
       </div>
 

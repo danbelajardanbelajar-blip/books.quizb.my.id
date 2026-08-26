@@ -58,7 +58,7 @@ const QuranReader: React.FC = () => {
       {/* Sidebar: Surah List */}
       <div className="w-1/4 bg-[#f4ebd0] border-l border-[#d7ccc8] flex flex-col overflow-y-auto custom-scrollbar">
         <div className="bg-[#5d4037] text-white p-4 font-bold text-xl text-center sticky top-0 shadow-md">
-          فهرس السور (Daftar Surah)
+          Daftar Surah
         </div>
         <div className="flex-1 overflow-y-auto">
           {surahs.map(s => (
@@ -72,7 +72,7 @@ const QuranReader: React.FC = () => {
               <span className="inline-block w-8 text-center bg-black/10 rounded-full mr-2 ml-2 text-sm py-1">
                 {s.id}
               </span>
-              سورة {s.name}
+              Surah {s.name}
             </button>
           ))}
         </div>

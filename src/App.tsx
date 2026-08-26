@@ -199,7 +199,7 @@ function App() {
                 type="text" 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="ابحث هنا... (Cari di sini...)" 
+                placeholder="Cari di sini..." 
                 className="flex-1 p-3 md:p-4 rounded-lg border-2 border-[#8d6e63] text-lg md:text-xl focus:outline-none focus:border-[#4e342e] bg-white shadow-inner"
               />
               <button 

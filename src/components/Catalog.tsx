@@ -34,7 +34,7 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
     <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
       {/* Sidebar Kategori */}
       <div className="w-full md:w-1/3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col max-h-[35vh] md:max-h-none md:h-[80vh]">
-        <h2 className="text-lg md:text-xl font-bold text-[#5d4037] mb-3 border-b pb-2">فهرس الأقسام (Kategori)</h2>
+        <h2 className="text-lg md:text-xl font-bold text-[#5d4037] mb-3 border-b pb-2">Kategori</h2>
         <input 
           type="text" 
           placeholder="Cari kategori..." 
