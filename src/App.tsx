@@ -98,37 +98,37 @@ function App() {
             onClick={() => setActiveTab('search')}
             className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'search' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
-            📚 البحث (Pencarian)
+            📚 Pencarian
           </button>
           <button 
             onClick={() => setActiveTab('catalog')}
             className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'catalog' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
-            🗂️ الفهرس (Katalog)
+            🗂️ Katalog
           </button>
           <button 
             onClick={() => setActiveTab('quran')}
             className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'quran' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
-            📖 القرآن الكريم (Al-Qur'an)
+            📖 Al-Qur'an
           </button>
           <button 
             onClick={() => setActiveTab('rowa')}
             className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'rowa' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
-            👤 تراجم الرواة (Kamus Perawi)
+            👤 Kamus Perawi
           </button>
           <button 
             onClick={() => setActiveTab('about')}
             className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'about' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
-            ℹ️ حول (Tentang)
+            ℹ️ Tentang
           </button>
           <button 
             onClick={() => setActiveTab('privacy')}
             className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'privacy' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
-            🔒 الخصوصية (Privasi)
+            🔒 Privasi
           </button>
         </div>
       </header>
