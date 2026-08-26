@@ -15,12 +15,12 @@ import { useEffect } from 'react';
 const getLineConfig = (line: string) => {
   const match = line.match(/[a-zA-Z\u0600-\u06FF]/);
   if (match && /[\u0600-\u06FF]/.test(match[0])) {
-    return { dir: 'rtl', align: 'text-justify' };
+    return { dir: 'rtl', align: 'text-right' };
   }
   if (match) {
     return { dir: 'ltr', align: 'text-left' };
   }
-  return { dir: 'auto', align: 'text-justify' };
+  return { dir: 'auto', align: 'text-left' };
 };
 
 function App() {
