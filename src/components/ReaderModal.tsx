@@ -192,7 +192,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
           </div>
         </div>
         
-        <h2 className="text-lg md:text-2xl font-bold flex-1 text-center truncate px-2" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo.bk}</h2>
+        <h2 className="text-lg md:text-2xl font-bold flex-1 text-center truncate px-2" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo.bk}</h2>
         
         <div className="hidden md:flex w-1/3 justify-end text-sm font-sans text-gray-500 font-medium truncate">
           {bookInfo.author_inf ? bookInfo.auth : 'al Maktabah As Sunniyyah'}
@@ -206,7 +206,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
         <div className="flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar pb-24 md:pb-8">
           <div className="w-full max-w-4xl mx-auto md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-gray-200 flex flex-col min-h-full" style={{ backgroundColor: 'var(--reader-paper)' }}>
             <div className="px-4 md:px-8 py-3 md:py-4 border-b border-gray-200 flex justify-between items-center text-gray-600 font-sans text-xs md:text-sm">
-              <span className="font-bold truncate max-w-[50%]" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo?.bk}</span>
+              <span className="font-bold truncate max-w-[50%]" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo?.bk}</span>
               <span>Jilid: {currentPage?.part} • Hal: {currentPage?.page}</span>
             </div>
             
@@ -218,7 +218,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
               ) : (
                 <div 
                   className="text-justify whitespace-pre-wrap" 
-                  style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}
+                  dir="rtl" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}
                   dangerouslySetInnerHTML={{ __html: highlightText(currentPage?.text || '', highlightQuery) }} 
                 />
               )}
@@ -232,7 +232,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
             <div className="w-full max-w-4xl mx-auto md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-gray-300 flex flex-col min-h-full" style={{ backgroundColor: 'var(--reader-paper)' }}>
               <div className="px-4 md:px-8 py-3 md:py-4 border-b border-gray-300 flex justify-between items-center text-gray-600 font-sans text-xs md:text-sm bg-black/5">
                 <span className="font-bold flex items-center gap-1 md:gap-2 truncate max-w-[50%]">
-                  <BookOpen size={18} /> <span style={{ fontFamily: 'var(--arabic-font)' }}>{relatedBookInfo?.bk}</span>
+                  <BookOpen size={18} /> <span dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{relatedBookInfo?.bk}</span>
                 </span>
                 <span>Jilid: {relatedPage?.part} • Hal: {relatedPage?.page}</span>
               </div>
@@ -245,7 +245,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                 ) : (
                   <div 
                     className="text-justify whitespace-pre-wrap" 
-                    style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}
+                    dir="rtl" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}
                     dangerouslySetInnerHTML={{ __html: highlightText(relatedPage?.text || '', highlightQuery) }} 
                   />
                 )}

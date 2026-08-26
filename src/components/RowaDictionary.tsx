@@ -81,8 +81,8 @@ const RowaDictionary: React.FC = () => {
         {results.map((r, i) => (
           <div key={i} className="bg-white p-5 rounded-lg shadow border border-[#e0e0e0] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-gray-50 transition-colors">
             <div className="flex-1 w-full">
-              <h3 className="text-2xl font-bold text-[#4e342e] mb-2" style={{ fontFamily: 'var(--arabic-font)' }}>{r.Name}</h3>
-              <p className="text-[#795548] text-lg" style={{ fontFamily: 'var(--arabic-font)' }}>
+              <h3 className="text-2xl font-bold text-[#4e342e] mb-2" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{r.Name}</h3>
+              <p className="text-[#795548] text-lg" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
                 <span className="font-bold" style={{ fontFamily: 'var(--latin-font)' }}>Derajat: </span> 
                 {r.ROTBA || r.R_ZAHBI || 'Tidak ada info derajat'}
               </p>
@@ -119,15 +119,15 @@ const RowaDictionary: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#f4ebd0] p-6 rounded-lg border border-[#e0d6b8]">
                 <div>
                   <span className="block text-sm text-[#795548] font-bold mb-1">Nama Lengkap (Esm):</span>
-                  <div className="text-xl font-bold text-[#3e2723]" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_esm || '-'}</div>
+                  <div className="text-xl font-bold text-[#3e2723]" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_esm || '-'}</div>
                 </div>
                 <div>
                   <span className="block text-sm text-[#795548] font-bold mb-1">Nasab:</span>
-                  <div className="text-xl font-bold text-[#3e2723]" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_nasab || '-'}</div>
+                  <div className="text-xl font-bold text-[#3e2723]" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_nasab || '-'}</div>
                 </div>
                 <div>
                   <span className="block text-sm text-[#795548] font-bold mb-1">Kunyah:</span>
-                  <div className="text-xl font-bold text-[#3e2723]" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_kona || '-'}</div>
+                  <div className="text-xl font-bold text-[#3e2723]" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_kona || '-'}</div>
                 </div>
                 <div>
                   <span className="block text-sm text-[#795548] font-bold mb-1">Lahir - Wafat:</span>
@@ -139,11 +139,11 @@ const RowaDictionary: React.FC = () => {
               <div className="space-y-4">
                 <div className="bg-white p-5 rounded-lg border-l-4 border-[#4CAF50] shadow-sm">
                   <span className="block text-lg text-[#2E7D32] font-bold mb-2">Derajat Perawi (Ibnu Hajar/Taqrib):</span>
-                  <p className="text-2xl text-[#1b5e20] leading-relaxed" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.ROTBA || '-'}</p>
+                  <p className="text-2xl text-[#1b5e20] leading-relaxed" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.ROTBA || '-'}</p>
                 </div>
                 <div className="bg-white p-5 rounded-lg border-l-4 border-[#2196F3] shadow-sm">
                   <span className="block text-lg text-[#1565C0] font-bold mb-2">Derajat (menurut Adh-Dhahabi):</span>
-                  <p className="text-2xl text-[#0d47a1] leading-relaxed" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.R_ZAHBI || '-'}</p>
+                  <p className="text-2xl text-[#0d47a1] leading-relaxed" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.R_ZAHBI || '-'}</p>
                 </div>
               </div>
 
@@ -154,7 +154,7 @@ const RowaDictionary: React.FC = () => {
                   <div className="bg-white border border-[#e0e0e0] rounded-lg p-4 max-h-80 overflow-y-auto">
                     <ul className="list-disc list-inside space-y-2">
                       {parseList(selectedRowa.sheok).map((g, idx) => (
-                        <li key={idx} className="text-lg text-[#5d4037] pb-1 border-b border-gray-100 last:border-0" style={{ fontFamily: 'var(--arabic-font)' }}>{g}</li>
+                        <li key={idx} className="text-lg text-[#5d4037] pb-1 border-b border-gray-100 last:border-0" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{g}</li>
                       ))}
                     </ul>
                     {parseList(selectedRowa.sheok).length === 0 && <span className="text-gray-400">Tidak ada data.</span>}
@@ -165,7 +165,7 @@ const RowaDictionary: React.FC = () => {
                   <div className="bg-white border border-[#e0e0e0] rounded-lg p-4 max-h-80 overflow-y-auto">
                     <ul className="list-disc list-inside space-y-2">
                       {parseList(selectedRowa.telmez).map((m, idx) => (
-                        <li key={idx} className="text-lg text-[#5d4037] pb-1 border-b border-gray-100 last:border-0" style={{ fontFamily: 'var(--arabic-font)' }}>{m}</li>
+                        <li key={idx} className="text-lg text-[#5d4037] pb-1 border-b border-gray-100 last:border-0" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{m}</li>
                       ))}
                     </ul>
                     {parseList(selectedRowa.telmez).length === 0 && <span className="text-gray-400">Tidak ada data.</span>}

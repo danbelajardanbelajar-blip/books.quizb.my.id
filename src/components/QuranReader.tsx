@@ -82,7 +82,7 @@ const QuranReader: React.FC = () => {
       <div className="w-3/4 flex flex-col bg-[#fffdf7] relative overflow-hidden">
         {/* Bismillah Header (Except for At-Tawbah) */}
         {selectedSurah !== 9 && (
-          <div className="text-center py-8 text-3xl text-[var(--app-text)] font-bold bg-[var(--reader-bg)] border-b border-gray-200" style={{ fontFamily: 'var(--arabic-font)' }}>
+          <div className="text-center py-8 text-3xl text-[var(--app-text)] font-bold bg-[var(--reader-bg)] border-b border-gray-200" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </div>
         )}
@@ -93,7 +93,7 @@ const QuranReader: React.FC = () => {
               Memuat ayat...
             </div>
           ) : (
-            <div className="text-justify leading-[3] text-[var(--app-text)]" style={{ fontSize: 'calc(var(--app-font-size) + 8px)', fontFamily: 'var(--arabic-font)' }}>
+            <div className="text-justify leading-[3] text-[var(--app-text)]" dir="rtl" style={{ fontSize: 'calc(var(--app-font-size) + 8px)', fontFamily: 'var(--arabic-font)' }}>
               {ayahs.map(a => (
                 <span key={a.id} className="inline">
                   {/* Skip rendering Bismillah as part of ayah 1 for Al-Fatiha if it's already in the text, or handle normally.

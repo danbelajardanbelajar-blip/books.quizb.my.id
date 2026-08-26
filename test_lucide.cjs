@@ -1,0 +1,1 @@
+const lucide = require('lucide-react'); console.log(Object.keys(lucide).filter(k => ['Search', 'FolderSearch', 'Library', 'BookOpen', 'UserCircle', 'Settings', 'Menu', 'Info', 'Shield', 'ChevronRight', 'ChevronLeft', 'BookMarked'].includes(k)));

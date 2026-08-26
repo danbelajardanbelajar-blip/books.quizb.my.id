@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Jangan rewrite jika request ditujukan ke /api (biarkan Node.js/Passenger yang menangani)
+  RewriteCond %{REQUEST_URI} !^/api
+
+  # Jangan rewrite jika request sudah mengarah ke /dist
+  RewriteCond %{REQUEST_URI} !^/dist
+
+  # Rewrite semua request lainnya ke dalam folder dist/
+  RewriteRule ^(.*)$ /dist/$1 [L]
+</IfModule>
