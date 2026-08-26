@@ -174,7 +174,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
                 </div>
               ) : (
                 <div 
-                  className="text-justify text-[#2b1810]" 
+                  className="text-justify text-[#2b1810] whitespace-pre-wrap" 
                   style={{ fontSize: `${fontSize}px`, lineHeight: '2.2' }}
                   dangerouslySetInnerHTML={{ __html: currentPage?.text || '' }} 
                 />
@@ -201,7 +201,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
                   </div>
                 ) : (
                   <div 
-                    className="text-justify text-[#1b5e20]" 
+                    className="text-justify text-[#1b5e20] whitespace-pre-wrap" 
                     style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2' }}
                     dangerouslySetInnerHTML={{ __html: relatedPage?.text || '' }} 
                   />
