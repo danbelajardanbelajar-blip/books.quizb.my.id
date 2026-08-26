@@ -54,7 +54,7 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
                 className="flex items-center gap-3 bg-[var(--reader-paper)] p-4 rounded-xl border border-black/10 hover:border-[var(--app-primary)] hover:bg-[var(--app-primary)] hover:text-white transition-all group text-right shadow-sm"
               >
                 <Folder className="text-[var(--app-primary)] group-hover:text-white shrink-0" size={24} />
-                <span className="font-bold text-lg w-full text-right" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{cat.name}</span>
+                <span className="font-bold text-lg w-full text-right" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{cat.name}</span>
               </button>
             ))}
           </div>
@@ -74,7 +74,7 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
               <ChevronLeft size={20} /> Kembali
             </button>
             <div className="text-right">
-              <h2 className="text-xl md:text-2xl font-bold text-[var(--app-text)]" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+              <h2 className="text-xl md:text-2xl font-bold text-[var(--app-text)]" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>
                 {categories.find(c => c.id === selectedCat)?.name}
               </h2>
               <p className="text-sm opacity-70 mt-1">{books.length} Kitab</p>
@@ -98,12 +98,12 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
                   title="Klik untuk membaca kitab"
                 >
                   <div className="flex-1 w-full text-right">
-                    <h3 className="font-bold text-[var(--app-text)] text-xl mb-2 group-hover:text-[var(--app-primary)] transition-colors flex justify-start items-start gap-2" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                    <h3 className="font-bold text-[var(--app-text)] text-xl mb-2 group-hover:text-[var(--app-primary)] transition-colors flex justify-start items-start gap-2" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>
                       <BookOpen className="shrink-0 mt-1 opacity-70" size={20} />
                       <span className="break-words">{book.bk}</span>
                     </h3>
                     {book.author_name && (
-                      <p className="text-sm opacity-70 font-sans flex justify-start items-center gap-2" dir="rtl">
+                      <p className="text-sm opacity-70 font-sans flex justify-start items-center gap-2" dir="auto">
                         <User size={14} />
                         <span className="break-words mr-1">{book.author_name}</span>
                       </p>

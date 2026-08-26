@@ -147,7 +147,7 @@ function App() {
           {/* Logo & Title */}
           <div className="flex items-center gap-3 shrink-0">
             <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
-            <h1 className="text-xl md:text-2xl font-bold" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة الشاملة</h1>
+            <h1 className="text-xl md:text-2xl font-bold" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة الشاملة</h1>
           </div>
 
           {/* Navigation Menu (Hidden on mobile, uses bottom tabs instead) */}
@@ -327,7 +327,7 @@ function App() {
                   {r.book_name && (
                     <div className="mb-4">
                       <span className="bg-[var(--app-primary)]/10 text-[var(--app-primary)] px-3 py-1.5 rounded-lg text-sm md:text-base font-semibold inline-flex items-center gap-2">
-                        <BookMarked size={16} /> <span dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{r.book_name}</span>
+                        <BookMarked size={16} /> <span dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{r.book_name}</span>
                       </span>
                     </div>
                   )}
@@ -435,7 +435,7 @@ function App() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4 z-40 transition-opacity">
           <div className="bg-[var(--reader-paper)] rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-[var(--app-primary)]/20 animate-in fade-in zoom-in duration-200">
             <div className="bg-[var(--app-primary)] text-white p-5 flex justify-between items-center shadow-md z-10">
-              <h2 className="text-2xl font-bold flex items-center gap-2"><BookOpen size={24} /> <span dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo ? bookInfo.bk : 'Memuat...'}</span></h2>
+              <h2 className="text-2xl font-bold flex items-center gap-2"><BookOpen size={24} /> <span dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo ? bookInfo.bk : 'Memuat...'}</span></h2>
               <button onClick={() => setSelectedBook(null)} className="text-white/80 hover:text-white hover:bg-white/20 rounded-full p-1 transition-all"><ChevronRight size={28} /></button>
             </div>
             
@@ -479,26 +479,26 @@ function App() {
                     {bookInfo.betaka && (
                       <div className="mt-4 pt-4 border-t border-[#e0e0e0]">
                         <span className="font-bold text-[#795548] block mb-2" style={{ fontFamily: 'var(--latin-font)' }}>Penerbit (Betaka):</span>
-                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" dir="rtl" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.betaka}</p>
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" dir="auto" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.betaka}</p>
                       </div>
                     )}
                     {bookInfo.book_inf && (
                       <div className="mt-4 pt-4 border-t border-[#e0e0e0]">
                         <span className="font-bold text-[#795548] block mb-2" style={{ fontFamily: 'var(--latin-font)' }}>Info Kitab:</span>
-                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" dir="rtl" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.book_inf}</p>
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" dir="auto" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.book_inf}</p>
                       </div>
                     )}
                     {bookInfo.author_inf && (
                       <div className="mt-4 pt-4 border-t border-[#e0e0e0]">
                         <span className="font-bold text-[#795548] block mb-2" style={{ fontFamily: 'var(--latin-font)' }}>Biografi Penulis:</span>
-                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" dir="rtl" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.author_inf}</p>
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" dir="auto" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.author_inf}</p>
                       </div>
                     )}
                   </div>
 
                   {/* Daftar Isi (TOC) */}
                   <div>
-                    <h3 className="text-xl font-bold mb-4 text-[#4e342e] border-b pb-2 flex justify-between"><span dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>الفهرس</span> <span>(Daftar Isi)</span></h3>
+                    <h3 className="text-xl font-bold mb-4 text-[#4e342e] border-b pb-2 flex justify-between"><span dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>الفهرس</span> <span>(Daftar Isi)</span></h3>
                     {toc.length > 0 ? (
                       <div className="bg-white border border-[#e0e0e0] rounded-lg p-4 max-h-64 overflow-y-auto">
                         <ul className="space-y-2">
