@@ -107,7 +107,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
     setLoading(false);
   };
 
-  if (!bookInfo || (!currentPage && !loading)) {
+  if (!bookInfo || !currentPage) {
     return (
       <div className="fixed inset-0 bg-[#fbf8f1] flex justify-center items-center z-50">
         <div className="flex flex-col items-center gap-4">
@@ -163,8 +163,8 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
         <div className="flex-1 flex justify-center p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar pb-24 md:pb-8">
           <div className="w-full max-w-4xl bg-[#fffdf7] md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-[#e0d6b8] flex flex-col min-h-full">
             <div className="px-4 md:px-8 py-3 md:py-4 border-b border-[#f0e8d0] flex justify-between items-center text-[#8d6e63] font-sans text-xs md:text-sm">
-              <span className="font-bold truncate max-w-[50%]">{bookInfo.bk}</span>
-              <span>Jilid: {currentPage.part} • Hal: {currentPage.page}</span>
+              <span className="font-bold truncate max-w-[50%]">{bookInfo?.bk}</span>
+              <span>Jilid: {currentPage?.part} • Hal: {currentPage?.page}</span>
             </div>
             
             <div className="p-4 md:p-8 lg:p-12 flex-1">
@@ -176,7 +176,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
                 <div 
                   className="text-justify text-[#2b1810]" 
                   style={{ fontSize: `${fontSize}px`, lineHeight: '2.2' }}
-                  dangerouslySetInnerHTML={{ __html: currentPage.text }} 
+                  dangerouslySetInnerHTML={{ __html: currentPage?.text || '' }} 
                 />
               )}
             </div>
@@ -189,9 +189,9 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
             <div className="w-full max-w-4xl bg-[#fcfffa] md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-[#c5e1a5] flex flex-col min-h-full">
               <div className="px-4 md:px-8 py-3 md:py-4 border-b border-[#e1f0c4] flex justify-between items-center text-[#558b2f] font-sans text-xs md:text-sm bg-[#f1f8e9]">
                 <span className="font-bold flex items-center gap-1 md:gap-2 truncate max-w-[50%]">
-                  <span className="text-base md:text-lg">🔗</span> {relatedBookInfo.bk}
+                  <span className="text-base md:text-lg">🔗</span> {relatedBookInfo?.bk}
                 </span>
-                <span>Jilid: {relatedPage.part} • Hal: {relatedPage.page}</span>
+                <span>Jilid: {relatedPage?.part} • Hal: {relatedPage?.page}</span>
               </div>
               
               <div className="p-4 md:p-8 lg:p-12 flex-1">
@@ -203,7 +203,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, onClos
                   <div 
                     className="text-justify text-[#1b5e20]" 
                     style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2' }}
-                    dangerouslySetInnerHTML={{ __html: relatedPage.text }} 
+                    dangerouslySetInnerHTML={{ __html: relatedPage?.text || '' }} 
                   />
                 )}
               </div>
