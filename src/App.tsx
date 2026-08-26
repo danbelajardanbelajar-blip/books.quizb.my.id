@@ -192,6 +192,13 @@ function App() {
                     </div>
                     <span>Jilid: {r.part} | Halaman: {r.page}</span>
                   </div>
+                  {r.book_name && (
+                    <div className="mb-4">
+                      <span className="bg-[#f0e8d0] text-[#4e342e] px-3 py-1 rounded-md text-sm md:text-base font-bold">
+                        📚 {r.book_name}
+                      </span>
+                    </div>
+                  )}
                   <div 
                     className="text-2xl leading-loose"
                     dangerouslySetInnerHTML={{ __html: r.snippet }} 

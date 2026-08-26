@@ -43,10 +43,11 @@ app.get('/api/search', (req, res) => {
     const total = totalRow ? totalRow.total : 0;
 
     const stmt = db.prepare(`
-      SELECT p.id as page_id, p.book_id, p.part, p.page, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet 
+      SELECT p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet 
       FROM pages_fts f
       JOIN pages p ON f.rowid = p.rowid
-      WHERE pages_fts MATCH ? 
+      LEFT JOIN books_meta b ON p.book_id = b.bkid
+      WHERE pages_fts MATCH ?
       LIMIT ? OFFSET ?;
     `);
     
