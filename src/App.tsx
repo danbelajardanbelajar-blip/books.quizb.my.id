@@ -119,46 +119,46 @@ function App() {
           <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
           <h1 className="text-2xl md:text-3xl font-bold" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h1>
         </div>
-        <div className="flex flex-col md:flex-row flex-wrap justify-center gap-2 md:gap-4 mt-4 md:mt-6 font-sans">
+        <div className="flex overflow-x-auto md:flex-wrap md:justify-center gap-2 md:gap-4 mt-4 md:mt-6 font-sans pb-2 custom-scrollbar px-2 md:px-0">
           <button 
             onClick={() => setActiveTab('search')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'search' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'search' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             📚 Pencarian
           </button>
           <button 
             onClick={() => setActiveTab('catalog')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'catalog' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'catalog' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             🗂️ Katalog
           </button>
           <button 
             onClick={() => setActiveTab('quran')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'quran' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'quran' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             📖 Al-Qur'an
           </button>
           <button 
             onClick={() => setActiveTab('rowa')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'rowa' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'rowa' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             👤 Kamus Perawi
           </button>
           <button 
             onClick={() => setActiveTab('about')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'about' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'about' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             ℹ️ Tentang
           </button>
           <button 
             onClick={() => setActiveTab('privacy')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'privacy' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'privacy' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             🔒 Privasi
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'settings' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'settings' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             ⚙️ Pengaturan
           </button>

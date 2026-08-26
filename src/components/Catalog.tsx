@@ -33,21 +33,21 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
   return (
     <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
       {/* Sidebar Kategori */}
-      <div className="md:w-1/3 bg-white p-4 rounded-xl shadow-md border border-[#d7ccc8] flex flex-col h-[80vh]">
-        <h2 className="text-xl font-bold text-[#5d4037] mb-4 border-b pb-2">فهرس الأقسام (Kategori)</h2>
+      <div className="w-full md:w-1/3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col max-h-[35vh] md:max-h-none md:h-[80vh]">
+        <h2 className="text-lg md:text-xl font-bold text-[#5d4037] mb-3 border-b pb-2">فهرس الأقسام (Kategori)</h2>
         <input 
           type="text" 
           placeholder="Cari kategori..." 
           value={searchCat}
           onChange={(e) => setSearchCat(e.target.value)}
-          className="w-full p-2 mb-4 border border-[#8d6e63] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#5d4037]"
+          className="w-full p-2 mb-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#5d4037] text-sm md:text-base"
         />
-        <div className="overflow-y-auto flex-1 pr-2 space-y-1">
+        <div className="overflow-y-auto flex-1 pr-2 space-y-1 custom-scrollbar">
           {filteredCategories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCat(cat.id)}
-              className={`w-full text-right px-3 py-2 rounded-lg text-sm transition-colors font-bold ${selectedCat === cat.id ? 'bg-[#5d4037] text-white' : 'hover:bg-[#f4ebd0] text-[#795548]'}`}
+              className={`w-full text-right px-3 py-2.5 rounded-lg text-sm transition-all font-bold border-b border-gray-50 last:border-0 ${selectedCat === cat.id ? 'bg-[#5d4037] text-white shadow-sm' : 'hover:bg-[#f4ebd0] text-gray-700'}`}
             >
               {cat.name}
             </button>
@@ -59,7 +59,7 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
       </div>
 
       {/* Main Content (Buku) */}
-      <div className="md:w-2/3 bg-white p-4 rounded-xl shadow-md border border-[#d7ccc8] h-[80vh] flex flex-col">
+      <div className="w-full md:w-2/3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col h-[65vh] md:h-[80vh]">
         {!selectedCat ? (
           <div className="flex-1 flex items-center justify-center text-[#795548] flex-col opacity-60">
             <span className="text-4xl mb-4">📚</span>
