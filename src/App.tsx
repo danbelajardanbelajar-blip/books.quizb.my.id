@@ -42,7 +42,7 @@ function App() {
     return saved ? JSON.parse(saved) : {
       arabicFont: 'Amiri',
       latinFont: 'Inter',
-      theme: 'sepia',
+      theme: 'green',
       fontSize: 24
     };
   });
