@@ -334,16 +334,20 @@ function App() {
                   )}
                   <div 
                       onClick={() => setReadingConfig({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
-                      className="text-2xl leading-loose cursor-pointer hover:bg-[var(--app-primary)]/5 active:bg-[var(--app-primary)]/10 p-4 rounded-xl border border-transparent hover:border-[var(--app-primary)]/20 transition-all whitespace-pre-wrap text-justify"
+                      className="text-2xl leading-loose cursor-pointer hover:bg-[var(--app-primary)]/5 active:bg-[var(--app-primary)]/10 p-4 rounded-xl border border-transparent hover:border-[var(--app-primary)]/20 transition-all flex flex-col gap-1"
                       title="Klik teks untuk membaca halaman ini"
-                      dir="auto"
-                      style={{ 
-                        fontFamily: 'var(--arabic-font)',
-                        unicodeBidi: 'plaintext',
-                        wordBreak: 'break-word'
-                      }}
-                      dangerouslySetInnerHTML={{ __html: (r.snippet || '').replace(/<br\s*\/?>/gi, '\n') }} 
-                    />
+                      style={{ fontFamily: 'var(--arabic-font)' }}
+                    >
+                      {(r.snippet || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => (
+                        <div 
+                          key={i} 
+                          dir="auto" 
+                          className="whitespace-pre-wrap text-justify" 
+                          style={{ wordBreak: 'break-word' }}
+                          dangerouslySetInnerHTML={{ __html: line }} 
+                        />
+                      ))}
+                    </div>
                 </div>
               ))}
               {!loading && results.length === 0 && query && !error && (

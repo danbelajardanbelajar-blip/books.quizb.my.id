@@ -217,18 +217,17 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                   <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : (
-                <div 
-                    className="whitespace-pre-wrap text-justify" 
-                    dir="auto" 
-                    style={{ 
-                      fontSize: `${fontSize}px`, 
-                      lineHeight: '2.2', 
-                      fontFamily: 'var(--arabic-font)',
-                      unicodeBidi: 'plaintext',
-                      wordBreak: 'break-word'
-                    }}
-                    dangerouslySetInnerHTML={{ __html: highlightText(currentPage?.text?.replace(/<br\s*\/?>/gi, '\n') || '', highlightQuery) }} 
-                  />
+                <div className="flex flex-col" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}>
+                    {(currentPage?.text || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => (
+                      <div 
+                        key={i} 
+                        dir="auto" 
+                        className="whitespace-pre-wrap text-justify" 
+                        style={{ minHeight: line.trim() === '' ? '1.5em' : 'auto', wordBreak: 'break-word' }}
+                        dangerouslySetInnerHTML={{ __html: highlightText(line, highlightQuery) }} 
+                      />
+                    ))}
+                  </div>
               )}
             </div>
           </div>
@@ -251,19 +250,17 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                     <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  <div 
-                      className="whitespace-pre-wrap text-justify" 
-                      dir="auto" 
-                      style={{ 
-                        fontSize: `${Math.max(fontSize - 4, 16)}px`, 
-                        lineHeight: '2.2', 
-                        fontFamily: 'var(--arabic-font)', 
-                        color: 'var(--app-text)',
-                        unicodeBidi: 'plaintext',
-                        wordBreak: 'break-word'
-                      }}
-                      dangerouslySetInnerHTML={{ __html: highlightText(relatedPage?.text?.replace(/<br\s*\/?>/gi, '\n') || '', highlightQuery) }} 
-                    />
+                  <div className="flex flex-col" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}>
+                      {(relatedPage?.text || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => (
+                        <div 
+                          key={i} 
+                          dir="auto" 
+                          className="whitespace-pre-wrap text-justify" 
+                          style={{ minHeight: line.trim() === '' ? '1.5em' : 'auto', wordBreak: 'break-word' }}
+                          dangerouslySetInnerHTML={{ __html: highlightText(line, highlightQuery) }} 
+                        />
+                      ))}
+                    </div>
                 )}
               </div>
             </div>
