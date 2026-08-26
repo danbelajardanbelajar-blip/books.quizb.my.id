@@ -79,18 +79,11 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
               {books.map(book => (
                 <div 
                   key={book.bkid} 
-                  onClick={() => openBook(book.bkid)}
+                  onClick={() => readBook(book.bkid)}
                   className="border border-[#e0e0e0] p-3 rounded-lg hover:border-[#8d6e63] hover:bg-[#fbf8f1] transition-colors bg-[#fffdf7] cursor-pointer"
-                  title="Klik untuk melihat Detail Kitab"
+                  title="Klik untuk langsung membaca kitab"
                 >
-                  <h3 
-                    className="font-bold text-[#4e342e] text-lg mb-1 cursor-pointer hover:text-green-700 hover:underline inline-block"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      readBook(book.bkid);
-                    }}
-                    title="Klik untuk langsung membaca"
-                  >
+                  <h3 className="font-bold text-[#4e342e] text-lg mb-1 hover:text-green-700 hover:underline inline-block">
                     📖 {book.bk}
                   </h3>
                   {book.author_name && (
