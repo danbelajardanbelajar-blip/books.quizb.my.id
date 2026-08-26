@@ -207,7 +207,7 @@ function App() {
                 disabled={loading}
                 className="bg-[#6d4c41] text-white px-6 md:px-8 py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl hover:bg-[#5d4037] transition-colors disabled:opacity-50 shadow-md"
               >
-                {loading ? '...' : 'ابحث'}
+                {loading ? '...' : 'Cari'}
               </button>
             </form>
 
