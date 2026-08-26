@@ -114,7 +114,7 @@ function App() {
   const totalPages = Math.ceil(totalResults / limit);
 
   return (
-    <div className="min-h-screen font-sans" dir="rtl" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
+    <div className="flex flex-col min-h-screen font-sans" dir="rtl" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
       <header className="bg-[#5d4037] text-white shadow-md relative z-40" style={{ fontFamily: 'var(--latin-font)' }}>
         <div className="flex justify-between items-center p-4 md:px-8 md:py-0 max-w-7xl mx-auto md:h-[80px]">
           {/* Logo & Title */}
@@ -158,18 +158,6 @@ function App() {
               👤 Kamus Perawi
             </button>
             <button 
-              onClick={() => { setActiveTab('about'); setIsMenuOpen(false); }}
-              className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'about' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-            >
-              ℹ️ Tentang
-            </button>
-            <button 
-              onClick={() => { setActiveTab('privacy'); setIsMenuOpen(false); }}
-              className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'privacy' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-            >
-              🔒 Privasi
-            </button>
-            <button 
               onClick={() => { setActiveTab('settings'); setIsMenuOpen(false); }}
               className={`text-right md:text-center px-6 md:px-0 py-4 md:py-0 transition-all font-bold text-sm lg:text-base md:h-full md:flex md:items-center border-b border-white/5 md:border-b-4 ${activeTab === 'settings' ? 'bg-white/10 md:bg-transparent text-white md:border-b-white' : 'text-white/70 hover:text-white md:border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
@@ -179,7 +167,7 @@ function App() {
         </div>
       </header>
       
-      <main className="container mx-auto p-4 md:p-6 max-w-6xl relative">
+      <main className="flex-1 w-full container mx-auto p-4 md:p-6 max-w-6xl relative">
         {activeTab === 'quran' ? (
           <QuranReader />
         ) : activeTab === 'rowa' ? (
@@ -284,6 +272,29 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="bg-[#4e342e] text-[#f4ebd0] py-6 md:py-8 mt-auto shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="text-sm md:text-base font-medium opacity-90">
+            &copy; {new Date().getFullYear()} Maktabah Syamilah Golden.
+          </div>
+          <div className="flex gap-6 text-sm md:text-base font-bold">
+            <button 
+              onClick={() => { setActiveTab('about'); window.scrollTo(0,0); }}
+              className={`hover:text-white transition-colors pb-1 ${activeTab === 'about' ? 'text-white border-b-2 border-white' : 'border-b-2 border-transparent'}`}
+            >
+              ℹ️ Tentang Kami
+            </button>
+            <button 
+              onClick={() => { setActiveTab('privacy'); window.scrollTo(0,0); }}
+              className={`hover:text-white transition-colors pb-1 ${activeTab === 'privacy' ? 'text-white border-b-2 border-white' : 'border-b-2 border-transparent'}`}
+            >
+              🔒 Kebijakan Privasi
+            </button>
+          </div>
+        </div>
+      </footer>
 
       {/* Book Info Modal */}
       {selectedBook && (
