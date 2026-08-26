@@ -30,7 +30,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
   };
 
   return (
-    <div className="bg-white p-6 md:p-10 rounded-xl shadow-lg border border-[#d7ccc8] max-w-3xl mx-auto my-8">
+    <div className="bg-white p-6 md:p-10 rounded-xl shadow-lg border border-[#d7ccc8] w-full my-4">
       <h2 className="text-3xl font-bold mb-8 text-center text-[#4e342e]">⚙️ Pengaturan Tampilan</h2>
       
       <div className="space-y-8">

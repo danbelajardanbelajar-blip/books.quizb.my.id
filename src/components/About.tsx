@@ -2,7 +2,7 @@ import React from 'react';
 
 const About: React.FC = () => {
   return (
-    <div className="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-md text-slate-700 leading-relaxed">
+    <div className="w-full bg-white p-6 md:p-10 rounded-2xl shadow-md text-slate-700 leading-relaxed my-4">
       <h2 className="text-2xl font-bold text-[#5d4037] mb-4 border-b pb-2">Tentang Kami</h2>
       <p className="mb-6">
         <strong>المكتبة السنية</strong> adalah perpustakaan digital Islam yang hadir untuk memudahkan umat dalam mengakses khazanah ilmu Islam, khususnya kitab-kitab dari para ulama salaf. Kami mengumpulkan, menata, dan menyajikan ribuan kitab dalam format digital yang mudah diakses oleh siapa saja, di mana saja, kapan saja — secara <em>gratis</em>.

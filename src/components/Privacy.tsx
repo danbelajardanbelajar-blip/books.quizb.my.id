@@ -6,7 +6,7 @@ const Privacy: React.FC = () => {
   const CONTACT      = 'akhmadzaeni535@gmail.com';
 
   return (
-    <div className="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-2xl shadow-md text-slate-700 leading-relaxed">
+    <div className="w-full bg-white p-6 md:p-10 rounded-2xl shadow-md text-slate-700 leading-relaxed my-4">
       <div className="mb-8 border-b border-[#d7ccc8] pb-6">
         <h1 className="text-3xl font-bold text-[#5d4037] mb-2">Kebijakan Privasi</h1>
         <p className="text-sm font-semibold text-[#795548]">Al-Maktabah As-Sunniyyah</p>

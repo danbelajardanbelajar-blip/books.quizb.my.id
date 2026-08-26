@@ -167,7 +167,7 @@ function App() {
         </div>
       </header>
       
-      <main className="flex-1 w-full container mx-auto p-4 md:p-6 max-w-6xl relative">
+      <main className="flex-1 w-full mx-auto p-4 md:px-8 md:py-6 max-w-7xl relative">
         {activeTab === 'quran' ? (
           <QuranReader />
         ) : activeTab === 'rowa' ? (
@@ -181,7 +181,7 @@ function App() {
         ) : activeTab === 'catalog' ? (
           <Catalog openBook={openBookInfo} readBook={(bookId) => setReadingConfig({ bookId })} />
         ) : (
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full">
             <form onSubmit={handleSearch} className="mb-8 flex flex-col md:flex-row gap-2 md:gap-4">
               <input 
                 type="text" 

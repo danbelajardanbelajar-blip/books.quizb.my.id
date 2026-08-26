@@ -52,7 +52,7 @@ const RowaDictionary: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto font-serif" dir="rtl">
+    <div className="w-full font-serif" dir="rtl">
       <div className="bg-[#fffdf7] p-8 rounded-xl shadow-md border border-[#d7ccc8] mb-8">
         <h2 className="text-3xl font-bold text-[#3e2723] mb-6 text-center border-b pb-4">
           Kamus Biografi Perawi
