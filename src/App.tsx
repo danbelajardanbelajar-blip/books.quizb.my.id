@@ -93,7 +93,18 @@ function App() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    executeSearch(query, 1);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    executeSearch(query, 1).then(() => {
+      setTimeout(() => {
+        const resultsEl = document.getElementById('search-results');
+        if (resultsEl) {
+          const y = resultsEl.getBoundingClientRect().top + window.scrollY - 100;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 100);
+    });
   };
 
   const handleNextPage = () => {
@@ -230,7 +241,7 @@ function App() {
                   <FolderSearch size={20}/> Cari Lanjut (Berdasarkan Kategori)
                 </h3>
                 
-                <div className="max-h-48 overflow-y-auto p-4 bg-white/50 border-2 border-black/5 rounded-xl flex flex-col gap-2 custom-scrollbar">
+                <div className="max-h-80 md:max-h-[60vh] overflow-y-auto p-4 bg-white/50 border-2 border-black/5 rounded-xl flex flex-col gap-2 custom-scrollbar">
                   <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-black/5 rounded-lg transition-colors border border-transparent hover:border-black/5">
                     <input 
                       type="checkbox" 
@@ -283,7 +294,8 @@ function App() {
               </button>
             </form>
 
-            {error && <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 shadow-sm">{error}</div>}
+            <div id="search-results">
+              {error && <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 shadow-sm">{error}</div>}
 
             {totalResults > 0 && (
               <div className="flex flex-col md:flex-row justify-between items-center mb-6 bg-[var(--reader-bg)] p-4 rounded-xl shadow-sm border border-black/5 gap-2">
@@ -333,6 +345,7 @@ function App() {
                   <p className="text-[var(--app-text)] opacity-60 text-lg">Tidak ada hasil ditemukan.</p>
                 </div>
               )}
+            </div>
             </div>
 
             {totalResults > 0 && (
