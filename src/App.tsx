@@ -11,6 +11,18 @@ import Catalog from './components/Catalog';
 import Settings, { THEMES } from './components/Settings';
 import { useEffect } from 'react';
 
+
+const getLineConfig = (line: string) => {
+  const match = line.match(/[a-zA-Z\u0600-\u06FF]/);
+  if (match && /[\u0600-\u06FF]/.test(match[0])) {
+    return { dir: 'rtl', align: 'text-justify' };
+  }
+  if (match) {
+    return { dir: 'ltr', align: 'text-left' };
+  }
+  return { dir: 'auto', align: 'text-justify' };
+};
+
 function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more'>('search');
 
@@ -332,13 +344,23 @@ function App() {
                     </div>
                   )}
                   <div 
-                    onClick={() => setReadingConfig({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
-                    className="text-2xl leading-loose cursor-pointer hover:bg-[var(--app-primary)]/5 active:bg-[var(--app-primary)]/10 p-4 rounded-xl border border-transparent hover:border-[var(--app-primary)]/20 transition-all text-justify"
-                    title="Klik teks untuk membaca halaman ini"
-                      dir="auto"
+                      onClick={() => setReadingConfig({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
+                      className={`text-2xl leading-loose cursor-pointer hover:bg-[var(--app-primary)]/5 active:bg-[var(--app-primary)]/10 p-4 rounded-xl border border-transparent hover:border-[var(--app-primary)]/20 transition-all flex flex-col gap-1`}
+                      title="Klik teks untuk membaca halaman ini"
                       style={{ fontFamily: 'var(--arabic-font)' }}
-                      dangerouslySetInnerHTML={{ __html: r.snippet }} 
-                    />
+                    >
+                      {(r.snippet || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => {
+                        const { dir, align } = getLineConfig(line);
+                        return (
+                          <div 
+                            key={i} 
+                            dir={dir} 
+                            className={`whitespace-pre-wrap ${align}`} 
+                            dangerouslySetInnerHTML={{ __html: line }} 
+                          />
+                        );
+                      })}
+                    </div>
                 </div>
               ))}
               {!loading && results.length === 0 && query && !error && (
