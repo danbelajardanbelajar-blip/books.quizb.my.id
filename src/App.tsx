@@ -61,6 +61,7 @@ function App() {
     root.style.setProperty('--app-primary-hover', theme.primaryHover || '#1e293b');
     root.style.setProperty('--arabic-font', `"${settings.arabicFont}", serif`);
     root.style.setProperty('--latin-font', `"${settings.latinFont}", sans-serif`);
+    root.style.setProperty('--app-font-size', `${settings.fontSize}px`);
   }, [settings]);
 
   useEffect(() => {
@@ -444,20 +445,20 @@ function App() {
                     </div>
                     {bookInfo.betaka && (
                       <div className="mt-4 pt-4 border-t border-[#e0e0e0]">
-                        <span className="font-bold text-[#795548] block mb-2">Penerbit (Betaka):</span>
-                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{bookInfo.betaka}</p>
+                        <span className="font-bold text-[#795548] block mb-2" style={{ fontFamily: 'var(--latin-font)' }}>Penerbit (Betaka):</span>
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.betaka}</p>
                       </div>
                     )}
                     {bookInfo.book_inf && (
                       <div className="mt-4 pt-4 border-t border-[#e0e0e0]">
-                        <span className="font-bold text-[#795548] block mb-2">Info Kitab:</span>
-                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{bookInfo.book_inf}</p>
+                        <span className="font-bold text-[#795548] block mb-2" style={{ fontFamily: 'var(--latin-font)' }}>Info Kitab:</span>
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.book_inf}</p>
                       </div>
                     )}
                     {bookInfo.author_inf && (
                       <div className="mt-4 pt-4 border-t border-[#e0e0e0]">
-                        <span className="font-bold text-[#795548] block mb-2">Biografi Penulis:</span>
-                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{bookInfo.author_inf}</p>
+                        <span className="font-bold text-[#795548] block mb-2" style={{ fontFamily: 'var(--latin-font)' }}>Biografi Penulis:</span>
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'var(--arabic-font)', fontSize: 'var(--app-font-size)' }}>{bookInfo.author_inf}</p>
                       </div>
                     )}
                   </div>

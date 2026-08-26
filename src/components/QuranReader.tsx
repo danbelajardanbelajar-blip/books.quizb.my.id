@@ -82,23 +82,23 @@ const QuranReader: React.FC = () => {
       <div className="w-3/4 flex flex-col bg-[#fffdf7] relative overflow-hidden">
         {/* Bismillah Header (Except for At-Tawbah) */}
         {selectedSurah !== 9 && (
-          <div className="text-center py-8 text-3xl text-[#3e2723] font-bold bg-[#fffdf7] border-b border-gray-200">
+          <div className="text-center py-8 text-3xl text-[var(--app-text)] font-bold bg-[var(--reader-bg)] border-b border-gray-200" style={{ fontFamily: 'var(--arabic-font)' }}>
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </div>
         )}
         
-        <div className="flex-1 overflow-y-auto p-10">
+        <div className="flex-1 overflow-y-auto p-10 bg-[var(--reader-paper)]">
           {loading ? (
             <div className="flex justify-center items-center h-full text-2xl text-gray-400">
               Memuat ayat...
             </div>
           ) : (
-            <div className="text-justify leading-[3] text-[#2b1810]" style={{ fontSize: '2.5rem' }}>
+            <div className="text-justify leading-[3] text-[var(--app-text)]" style={{ fontSize: 'calc(var(--app-font-size) + 8px)', fontFamily: 'var(--arabic-font)' }}>
               {ayahs.map(a => (
                 <span key={a.id} className="inline">
                   {/* Skip rendering Bismillah as part of ayah 1 for Al-Fatiha if it's already in the text, or handle normally.
                       Syamilah usually includes it in Ayah 1 of Al-Fatiha. We'll just render whatever is in the DB. */}
-                  {a.text} <span className="text-[#8d6e63] font-sans px-2">﴿{toArabicNumber(a.ayah_no)}﴾</span>{' '}
+                  {a.text} <span className="text-[#8d6e63] px-2" style={{ fontFamily: 'var(--latin-font)', fontSize: '0.7em' }}>﴿{toArabicNumber(a.ayah_no)}﴾</span>{' '}
                 </span>
               ))}
             </div>
