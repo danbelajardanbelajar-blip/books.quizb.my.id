@@ -194,7 +194,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
         <h2 className="text-lg md:text-2xl font-bold flex-1 text-center truncate px-2" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo.bk}</h2>
         
         <div className="hidden md:flex w-1/3 justify-end text-sm font-sans text-gray-500 font-medium truncate">
-          {bookInfo.author_inf ? bookInfo.auth : 'Maktabah Syamilah Golden'}
+          {bookInfo.author_inf ? bookInfo.auth : 'al Maktabah As Sunniyyah'}
         </div>
       </div>
 

@@ -9,10 +9,10 @@ const Privacy: React.FC = () => {
     <div className="w-full bg-white p-6 md:p-10 rounded-2xl shadow-md text-slate-700 leading-relaxed my-4">
       <div className="mb-8 border-b border-[#d7ccc8] pb-6">
         <h1 className="text-3xl font-bold text-[#5d4037] mb-2">Kebijakan Privasi</h1>
-        <p className="text-sm font-semibold text-[#795548]">Al-Maktabah As-Sunniyyah</p>
+        <p className="text-sm font-semibold text-[#795548]">al Maktabah As Sunniyyah</p>
         <p className="text-sm text-gray-500 mt-2">Terakhir diperbarui: <span className="font-bold text-[#5d4037]">{LAST_UPDATED}</span></p>
         <p className="mt-4 text-base">
-          Kebijakan Privasi ini menjelaskan bagaimana Al-Maktabah As-Sunniyyah (<a href={SITE_URL} className="text-amber-700 hover:underline font-medium">{SITE_URL}</a>) mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda ketika menggunakan layanan kami.
+          Kebijakan Privasi ini menjelaskan bagaimana al Maktabah As Sunniyyah (<a href={SITE_URL} className="text-amber-700 hover:underline font-medium">{SITE_URL}</a>) mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda ketika menggunakan layanan kami.
         </p>
       </div>
 
