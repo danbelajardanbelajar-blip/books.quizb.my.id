@@ -322,8 +322,8 @@ function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#4e342e] text-[#f4ebd0] py-6 md:py-8 mt-auto shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
+      {/* Footer (Hidden on mobile because it's replaced by Lainnya menu) */}
+      <footer className="hidden md:block bg-[#4e342e] text-[#f4ebd0] py-6 md:py-8 mt-auto shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm md:text-base font-medium opacity-90">
             &copy; {new Date().getFullYear()} al Maktabah As Sunniyyah.
@@ -346,7 +346,7 @@ function App() {
       </footer>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#5d4037] text-white flex justify-around items-center border-t border-[#4e342e] shadow-[0_-2px_10px_rgba(0,0,0,0.2)] z-50 h-[70px] pb-safe">
+      <div dir="ltr" className="md:hidden fixed bottom-0 left-0 w-full bg-[#5d4037] text-white flex justify-around items-center border-t border-[#4e342e] shadow-[0_-2px_10px_rgba(0,0,0,0.2)] z-50 h-[70px] pb-safe">
         <button 
           onClick={() => { setActiveTab('search'); window.scrollTo(0,0); }} 
           className={`flex flex-col items-center justify-center w-1/4 h-full transition-colors ${activeTab === 'search' ? 'text-[#f4ebd0]' : 'text-white/60 hover:text-white/80'}`}
