@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { webAPI } from '../api';
-import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, BookOpen } from 'lucide-react';
 
 export interface ReaderModalProps {
   bookId: number;
