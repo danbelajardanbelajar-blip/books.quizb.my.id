@@ -88,7 +88,10 @@ function App() {
   return (
     <div className="min-h-screen bg-[#f4ebd0] text-[#3e2723] font-serif" dir="rtl">
       <header className="bg-[#5d4037] text-white p-4 md:p-6 shadow-md">
-        <h1 className="text-2xl md:text-3xl font-bold text-center">المكتبة السنية</h1>
+        <div className="flex justify-center items-center gap-3 md:gap-4">
+          <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
+          <h1 className="text-2xl md:text-3xl font-bold">المكتبة السنية</h1>
+        </div>
         <div className="flex flex-col md:flex-row justify-center gap-2 md:gap-4 mt-4 md:mt-6 font-sans">
           <button 
             onClick={() => setActiveTab('search')}
