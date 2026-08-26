@@ -80,23 +80,28 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
                 <div 
                   key={book.bkid} 
                   onClick={() => readBook(book.bkid)}
-                  className="border border-[#e0e0e0] p-3 rounded-lg hover:border-[#8d6e63] hover:bg-[#fbf8f1] transition-colors bg-[#fffdf7] cursor-pointer"
+                  className="border border-[#e0e0e0] p-4 rounded-xl shadow-sm hover:shadow-md hover:border-[#8d6e63] hover:bg-[#fbf8f1] transition-all bg-white cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group relative overflow-hidden"
                   title="Klik untuk langsung membaca kitab"
                 >
-                  <h3 className="font-bold text-[#4e342e] text-lg mb-1 hover:text-green-700 hover:underline inline-block">
-                    📖 {book.bk}
-                  </h3>
-                  {book.author_name && (
-                    <p className="text-sm text-[#795548] mb-3">Penulis: {book.author_name}</p>
-                  )}
+                  <div className="flex-1">
+                    <h3 className="font-bold text-[#4e342e] text-lg sm:text-xl mb-1 group-hover:text-green-700 transition-colors flex items-center gap-2" style={{ fontFamily: 'var(--arabic-font)' }}>
+                      <span className="text-xl">📖</span>
+                      {book.bk}
+                    </h3>
+                    {book.author_name && (
+                      <p className="text-sm text-gray-500 font-sans flex items-center gap-1">
+                        <span className="text-xs">👤</span> Penulis: {book.author_name}
+                      </p>
+                    )}
+                  </div>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       openBook(book.bkid);
                     }}
-                    className="bg-[#6d4c41] text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-[#5d4037] transition-colors"
+                    className="bg-gray-100 text-[#5d4037] border border-gray-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#6d4c41] hover:text-white hover:border-[#6d4c41] transition-all shrink-0 flex items-center gap-2 shadow-sm"
                   >
-                    ℹ️ Detail Kitab
+                    ℹ️ Detail
                   </button>
                 </div>
               ))}
