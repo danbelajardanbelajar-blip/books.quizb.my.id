@@ -51,17 +51,6 @@ const highlightText = (text: string, query?: string) => {
 };
 
 
-const getLineConfig = (line: string) => {
-  const match = line.match(/[a-zA-Z\u0600-\u06FF]/);
-  if (match && /[\u0600-\u06FF]/.test(match[0])) {
-    return { dir: 'rtl', align: 'text-right' };
-  }
-  if (match) {
-    return { dir: 'ltr', align: 'text-left' };
-  }
-  return { dir: 'auto', align: 'text-left' };
-};
-
 const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highlightQuery, settings, onClose }) => {
   const [bookInfo, setBookInfo] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState<any>(null);
@@ -228,20 +217,18 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                   <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : (
-                <div className="flex flex-col" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}>
-                    {(currentPage?.text || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => {
-                      const { dir, align } = getLineConfig(line);
-                      return (
-                        <div 
-                          key={i} 
-                          dir={dir} 
-                          className={`whitespace-pre-wrap ${align}`} 
-                          style={{ minHeight: line.trim() === '' ? '1.5em' : 'auto' }}
-                          dangerouslySetInnerHTML={{ __html: highlightText(line, highlightQuery) }} 
-                        />
-                      );
-                    })}
-                  </div>
+                <div 
+                    className="whitespace-pre-wrap text-justify" 
+                    dir="auto" 
+                    style={{ 
+                      fontSize: `${fontSize}px`, 
+                      lineHeight: '2.2', 
+                      fontFamily: 'var(--arabic-font)',
+                      unicodeBidi: 'plaintext',
+                      wordBreak: 'break-word'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: highlightText(currentPage?.text?.replace(/<br\s*\/?>/gi, '\n') || '', highlightQuery) }} 
+                  />
               )}
             </div>
           </div>
@@ -264,20 +251,19 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                     <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  <div className="flex flex-col" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}>
-                      {(relatedPage?.text || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => {
-                        const { dir, align } = getLineConfig(line);
-                        return (
-                          <div 
-                            key={i} 
-                            dir={dir} 
-                            className={`whitespace-pre-wrap ${align}`} 
-                            style={{ minHeight: line.trim() === '' ? '1.5em' : 'auto' }}
-                            dangerouslySetInnerHTML={{ __html: highlightText(line, highlightQuery) }} 
-                          />
-                        );
-                      })}
-                    </div>
+                  <div 
+                      className="whitespace-pre-wrap text-justify" 
+                      dir="auto" 
+                      style={{ 
+                        fontSize: `${Math.max(fontSize - 4, 16)}px`, 
+                        lineHeight: '2.2', 
+                        fontFamily: 'var(--arabic-font)', 
+                        color: 'var(--app-text)',
+                        unicodeBidi: 'plaintext',
+                        wordBreak: 'break-word'
+                      }}
+                      dangerouslySetInnerHTML={{ __html: highlightText(relatedPage?.text?.replace(/<br\s*\/?>/gi, '\n') || '', highlightQuery) }} 
+                    />
                 )}
               </div>
             </div>
