@@ -216,9 +216,15 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                   <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : (
-                <div className="text-justify flex flex-col gap-2" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}>
-                    {highlightText(currentPage?.text || '', highlightQuery).split('\n').map((line, i) => (
-                      <div key={i} dir="auto" className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: line }} />
+                <div className="text-justify flex flex-col" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}>
+                    {(currentPage?.text || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => (
+                      <div 
+                        key={i} 
+                        dir="auto" 
+                        className="whitespace-pre-wrap" 
+                        style={{ minHeight: line.trim() === '' ? '1.5em' : 'auto' }}
+                        dangerouslySetInnerHTML={{ __html: highlightText(line, highlightQuery) }} 
+                      />
                     ))}
                   </div>
               )}
@@ -243,9 +249,15 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                     <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  <div className="text-justify flex flex-col gap-2" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}>
-                      {highlightText(relatedPage?.text || '', highlightQuery).split('\n').map((line, i) => (
-                        <div key={i} dir="auto" className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: line }} />
+                  <div className="text-justify flex flex-col" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}>
+                      {(relatedPage?.text || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => (
+                        <div 
+                          key={i} 
+                          dir="auto" 
+                          className="whitespace-pre-wrap" 
+                          style={{ minHeight: line.trim() === '' ? '1.5em' : 'auto' }}
+                          dangerouslySetInnerHTML={{ __html: highlightText(line, highlightQuery) }} 
+                        />
                       ))}
                     </div>
                 )}
