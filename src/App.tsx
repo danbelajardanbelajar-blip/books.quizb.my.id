@@ -87,7 +87,7 @@ function App() {
   return (
     <div className="min-h-screen bg-[#f4ebd0] text-[#3e2723] font-serif" dir="rtl">
       <header className="bg-[#5d4037] text-white p-4 md:p-6 shadow-md">
-        <h1 className="text-2xl md:text-3xl font-bold text-center">المكتبة الشاملة الذهبية</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-center">المكتبة السنية</h1>
         <div className="flex flex-col md:flex-row justify-center gap-2 md:gap-4 mt-4 md:mt-6 font-sans">
           <button 
             onClick={() => setActiveTab('search')}
