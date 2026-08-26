@@ -7,8 +7,11 @@ import RowaDictionary from './components/RowaDictionary';
 import About from './components/About';
 import Privacy from './components/Privacy';
 import Catalog from './components/Catalog';
+import Settings, { THEMES } from './components/Settings';
+import { useEffect } from 'react';
+
 function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings'>('search');
 
   // Search States
   const [query, setQuery] = useState('');
@@ -27,6 +30,29 @@ function App() {
 
   // States for Reader Modal
   const [readingConfig, setReadingConfig] = useState<{ bookId: number, pageId?: number, highlightQuery?: string } | null>(null);
+
+  // Settings State
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('maktabah_settings');
+    return saved ? JSON.parse(saved) : {
+      arabicFont: 'Amiri',
+      latinFont: 'Inter',
+      theme: 'sepia',
+      fontSize: 24
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('maktabah_settings', JSON.stringify(settings));
+    const theme = THEMES.find(t => t.id === settings.theme) || THEMES[0];
+    const root = document.documentElement;
+    root.style.setProperty('--app-bg', theme.bg);
+    root.style.setProperty('--app-text', theme.text);
+    root.style.setProperty('--reader-bg', theme.readerBg);
+    root.style.setProperty('--reader-paper', theme.readerPaper);
+    root.style.setProperty('--arabic-font', `"${settings.arabicFont}", serif`);
+    root.style.setProperty('--latin-font', `"${settings.latinFont}", sans-serif`);
+  }, [settings]);
 
   const executeSearch = async (searchQuery: string, page: number) => {
     if (!searchQuery.trim()) return;
@@ -87,48 +113,54 @@ function App() {
   const totalPages = Math.ceil(totalResults / limit);
 
   return (
-    <div className="min-h-screen bg-[#f4ebd0] text-[#3e2723] font-serif" dir="rtl">
-      <header className="bg-[#5d4037] text-white p-4 md:p-6 shadow-md">
+    <div className="min-h-screen font-sans" dir="rtl" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
+      <header className="bg-[#5d4037] text-white p-4 md:p-6 shadow-md" style={{ fontFamily: 'var(--latin-font)' }}>
         <div className="flex justify-center items-center gap-3 md:gap-4">
           <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
-          <h1 className="text-2xl md:text-3xl font-bold">المكتبة السنية</h1>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h1>
         </div>
-        <div className="flex flex-col md:flex-row justify-center gap-2 md:gap-4 mt-4 md:mt-6 font-sans">
+        <div className="flex flex-col md:flex-row flex-wrap justify-center gap-2 md:gap-4 mt-4 md:mt-6 font-sans">
           <button 
             onClick={() => setActiveTab('search')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'search' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'search' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             📚 Pencarian
           </button>
           <button 
             onClick={() => setActiveTab('catalog')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'catalog' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'catalog' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             🗂️ Katalog
           </button>
           <button 
             onClick={() => setActiveTab('quran')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'quran' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'quran' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             📖 Al-Qur'an
           </button>
           <button 
             onClick={() => setActiveTab('rowa')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'rowa' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'rowa' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             👤 Kamus Perawi
           </button>
           <button 
             onClick={() => setActiveTab('about')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'about' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'about' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             ℹ️ Tentang
           </button>
           <button 
             onClick={() => setActiveTab('privacy')}
-            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'privacy' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'privacy' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
             🔒 Privasi
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'settings' ? 'bg-white/20' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+          >
+            ⚙️ Pengaturan
           </button>
         </div>
       </header>
@@ -142,6 +174,8 @@ function App() {
           <About />
         ) : activeTab === 'privacy' ? (
           <Privacy />
+        ) : activeTab === 'settings' ? (
+          <Settings settings={settings} setSettings={setSettings} />
         ) : activeTab === 'catalog' ? (
           <Catalog openBook={openBookInfo} />
         ) : (
@@ -342,6 +376,7 @@ function App() {
           bookId={readingConfig.bookId} 
           initialPageId={readingConfig.pageId}
           highlightQuery={readingConfig.highlightQuery}
+          settings={settings}
           onClose={() => setReadingConfig(null)} 
         />
       )}

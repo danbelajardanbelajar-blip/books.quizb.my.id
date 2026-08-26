@@ -5,6 +5,7 @@ export interface ReaderModalProps {
   bookId: number;
   initialPageId?: number;
   highlightQuery?: string;
+  settings?: any;
   onClose: () => void;
 }
 
@@ -48,14 +49,14 @@ const highlightText = (text: string, query?: string) => {
   return highlighted;
 };
 
-const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highlightQuery, onClose }) => {
+const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highlightQuery, settings, onClose }) => {
   const [bookInfo, setBookInfo] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState<any>(null);
   const [currentPageId, setCurrentPageId] = useState<number | undefined>(initialPageId);
   const [loading, setLoading] = useState(true);
   
   // Customization states
-  const [fontSize, setFontSize] = useState(32); // Default 32px
+  const [fontSize, setFontSize] = useState(settings?.fontSize || 32);
 
   // Split screen states
   const [relatedPage, setRelatedPage] = useState<any>(null);
@@ -160,7 +161,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
   }
 
   return (
-    <div className="fixed inset-0 bg-[#ece6d9] flex flex-col z-50 font-serif shadow-2xl" dir="rtl">
+    <div className="fixed inset-0 flex flex-col z-50 shadow-2xl" dir="rtl" style={{ backgroundColor: 'var(--reader-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
       
       {/* Sleek Header */}
       <div className="bg-white/80 backdrop-blur-md text-[#3e2723] h-auto min-h-16 flex justify-between items-center px-2 md:px-6 py-2 shadow-sm border-b border-[#d7ccc8] z-20">
@@ -174,15 +175,15 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
           </button>
           <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
             <button 
-              onClick={() => setFontSize(f => Math.min(f + 4, 64))}
+              onClick={() => setFontSize((f: number) => Math.min(f + 4, 64))}
               className="px-2 md:px-3 py-1 hover:bg-white rounded shadow-sm text-base md:text-lg font-bold"
               title="Perbesar Huruf"
             >
               A+
             </button>
             <button 
-              onClick={() => setFontSize(f => Math.max(f - 4, 16))}
-              className="px-2 md:px-3 py-1 hover:bg-white rounded shadow-sm text-xs md:text-sm font-bold"
+              onClick={() => setFontSize((f: number) => Math.max(f - 4, 16))}
+              className="px-2 md:px-3 py-1 hover:bg-white rounded shadow-sm text-base md:text-lg font-bold"
               title="Perkecil Huruf"
             >
               A-
@@ -190,7 +191,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
           </div>
         </div>
         
-        <h2 className="text-lg md:text-2xl font-bold flex-1 text-center truncate px-2">{bookInfo.bk}</h2>
+        <h2 className="text-lg md:text-2xl font-bold flex-1 text-center truncate px-2" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo.bk}</h2>
         
         <div className="hidden md:flex w-1/3 justify-end text-sm font-sans text-gray-500 font-medium truncate">
           {bookInfo.author_inf ? bookInfo.auth : 'Maktabah Syamilah Golden'}
@@ -202,21 +203,21 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
         
         {/* Main Book Page */}
         <div className="flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar pb-24 md:pb-8">
-          <div className="w-full max-w-4xl mx-auto bg-[#fffdf7] md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-[#e0d6b8] flex flex-col min-h-full">
-            <div className="px-4 md:px-8 py-3 md:py-4 border-b border-[#f0e8d0] flex justify-between items-center text-[#8d6e63] font-sans text-xs md:text-sm">
-              <span className="font-bold truncate max-w-[50%]">{bookInfo?.bk}</span>
+          <div className="w-full max-w-4xl mx-auto md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-gray-200 flex flex-col min-h-full" style={{ backgroundColor: 'var(--reader-paper)' }}>
+            <div className="px-4 md:px-8 py-3 md:py-4 border-b border-gray-200 flex justify-between items-center text-gray-600 font-sans text-xs md:text-sm">
+              <span className="font-bold truncate max-w-[50%]" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo?.bk}</span>
               <span>Jilid: {currentPage?.part} • Hal: {currentPage?.page}</span>
             </div>
             
             <div className="p-4 md:p-8 lg:p-12 flex-1">
               {loading ? (
                 <div className="flex h-full items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-[#8d6e63] border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : (
                 <div 
-                  className="text-justify text-[#2b1810] whitespace-pre-wrap" 
-                  style={{ fontSize: `${fontSize}px`, lineHeight: '2.2' }}
+                  className="text-justify whitespace-pre-wrap" 
+                  style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}
                   dangerouslySetInnerHTML={{ __html: highlightText(currentPage?.text || '', highlightQuery) }} 
                 />
               )}
@@ -226,11 +227,11 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
 
         {/* Related Book (Split Screen) */}
         {showSplit && relatedPage && relatedBookInfo && (
-          <div className="flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar bg-[#f0f4eb] pb-24 md:pb-8">
-            <div className="w-full max-w-4xl mx-auto bg-[#fcfffa] md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-[#c5e1a5] flex flex-col min-h-full">
-              <div className="px-4 md:px-8 py-3 md:py-4 border-b border-[#e1f0c4] flex justify-between items-center text-[#558b2f] font-sans text-xs md:text-sm bg-[#f1f8e9]">
+          <div className="flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar pb-24 md:pb-8" style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}>
+            <div className="w-full max-w-4xl mx-auto md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-gray-300 flex flex-col min-h-full" style={{ backgroundColor: 'var(--reader-paper)' }}>
+              <div className="px-4 md:px-8 py-3 md:py-4 border-b border-gray-300 flex justify-between items-center text-gray-600 font-sans text-xs md:text-sm bg-black/5">
                 <span className="font-bold flex items-center gap-1 md:gap-2 truncate max-w-[50%]">
-                  <span className="text-base md:text-lg">🔗</span> {relatedBookInfo?.bk}
+                  <span className="text-base md:text-lg">🔗</span> <span style={{ fontFamily: 'var(--arabic-font)' }}>{relatedBookInfo?.bk}</span>
                 </span>
                 <span>Jilid: {relatedPage?.part} • Hal: {relatedPage?.page}</span>
               </div>
@@ -238,12 +239,12 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
               <div className="p-4 md:p-8 lg:p-12 flex-1">
                 {loadingRelated ? (
                   <div className="flex h-full items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-[#558b2f] border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : (
                   <div 
-                    className="text-justify text-[#1b5e20] whitespace-pre-wrap" 
-                    style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2' }}
+                    className="text-justify whitespace-pre-wrap" 
+                    style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}
                     dangerouslySetInnerHTML={{ __html: highlightText(relatedPage?.text || '', highlightQuery) }} 
                   />
                 )}
