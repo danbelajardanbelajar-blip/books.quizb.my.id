@@ -216,11 +216,11 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                   <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : (
-                <div 
-                  className="text-justify whitespace-pre-wrap" 
-                  dir="auto" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}
-                  dangerouslySetInnerHTML={{ __html: highlightText(currentPage?.text || '', highlightQuery) }} 
-                />
+                <div className="text-justify flex flex-col gap-2" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}>
+                    {highlightText(currentPage?.text || '', highlightQuery).split('\n').map((line, i) => (
+                      <div key={i} dir="auto" className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: line }} />
+                    ))}
+                  </div>
               )}
             </div>
           </div>
@@ -243,11 +243,11 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                     <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  <div 
-                    className="text-justify whitespace-pre-wrap" 
-                    dir="auto" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}
-                    dangerouslySetInnerHTML={{ __html: highlightText(relatedPage?.text || '', highlightQuery) }} 
-                  />
+                  <div className="text-justify flex flex-col gap-2" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}>
+                      {highlightText(relatedPage?.text || '', highlightQuery).split('\n').map((line, i) => (
+                        <div key={i} dir="auto" className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: line }} />
+                      ))}
+                    </div>
                 )}
               </div>
             </div>
