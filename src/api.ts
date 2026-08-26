@@ -41,5 +41,11 @@ export const webAPI = {
   },
   getRowaInfo: async (rowaId: number) => {
     return fetchAPI(`/rowa/${rowaId}`);
+  },
+  getCategories: async () => {
+    return fetchAPI(`/categories`);
+  },
+  getCategoryBooks: async (categoryId: number) => {
+    return fetchAPI(`/category/${categoryId}/books`);
   }
 };

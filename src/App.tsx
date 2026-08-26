@@ -6,8 +6,9 @@ import QuranReader from './components/QuranReader';
 import RowaDictionary from './components/RowaDictionary';
 import About from './components/About';
 import Privacy from './components/Privacy';
+import Catalog from './components/Catalog';
 function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'quran' | 'rowa' | 'about' | 'privacy'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy'>('search');
 
   // Search States
   const [query, setQuery] = useState('');
@@ -97,7 +98,13 @@ function App() {
             onClick={() => setActiveTab('search')}
             className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'search' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
           >
-            📚 البحث (Pencarian Kitab)
+            📚 البحث (Pencarian)
+          </button>
+          <button 
+            onClick={() => setActiveTab('catalog')}
+            className={`px-4 md:px-8 py-2 md:py-3 rounded-lg font-bold text-base md:text-lg transition-colors ${activeTab === 'catalog' ? 'bg-[#f4ebd0] text-[#3e2723]' : 'bg-[#795548] hover:bg-[#6d4c41]'}`}
+          >
+            🗂️ الفهرس (Katalog)
           </button>
           <button 
             onClick={() => setActiveTab('quran')}
@@ -135,6 +142,8 @@ function App() {
           <About />
         ) : activeTab === 'privacy' ? (
           <Privacy />
+        ) : activeTab === 'catalog' ? (
+          <Catalog openBook={openBookInfo} />
         ) : (
           <div className="max-w-4xl mx-auto">
             <form onSubmit={handleSearch} className="mb-8 flex flex-col md:flex-row gap-2 md:gap-4">

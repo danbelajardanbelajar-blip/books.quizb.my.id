@@ -234,6 +234,33 @@ app.get('/api/toc/:bookId', (req, res) => {
   }
 });
 
+app.get('/api/categories', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const data = db.prepare(`SELECT id, name FROM categories ORDER BY catord ASC`).all();
+    res.json({ data, error: null });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/category/:id/books', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const catId = parseInt(req.params.id);
+    const data = db.prepare(`
+      SELECT b.bkid, b.bk, a.auth as author_name
+      FROM books_meta b
+      LEFT JOIN authors a ON b.authno = a.authid
+      WHERE b.cat = ?
+      ORDER BY b.bk ASC
+    `).all(catId);
+    res.json({ data, error: null });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Serve static frontend files in production
 const distPath = path.join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {
