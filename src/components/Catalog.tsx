@@ -77,10 +77,18 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
             </h2>
             <div className="overflow-y-auto flex-1 pr-2 grid grid-cols-1 gap-3">
               {books.map(book => (
-                <div key={book.bkid} className="border border-[#e0e0e0] p-3 rounded-lg hover:border-[#8d6e63] transition-colors bg-[#fffdf7]">
+                <div 
+                  key={book.bkid} 
+                  onClick={() => openBook(book.bkid)}
+                  className="border border-[#e0e0e0] p-3 rounded-lg hover:border-[#8d6e63] hover:bg-[#fbf8f1] transition-colors bg-[#fffdf7] cursor-pointer"
+                  title="Klik untuk melihat Detail Kitab"
+                >
                   <h3 
-                    className="font-bold text-[#4e342e] text-lg mb-1 cursor-pointer hover:text-green-700 hover:underline"
-                    onClick={() => readBook(book.bkid)}
+                    className="font-bold text-[#4e342e] text-lg mb-1 cursor-pointer hover:text-green-700 hover:underline inline-block"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      readBook(book.bkid);
+                    }}
                     title="Klik untuk langsung membaca"
                   >
                     📖 {book.bk}
@@ -89,7 +97,10 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
                     <p className="text-sm text-[#795548] mb-3">Penulis: {book.author_name}</p>
                   )}
                   <button 
-                    onClick={() => openBook(book.bkid)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openBook(book.bkid);
+                    }}
                     className="bg-[#6d4c41] text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-[#5d4037] transition-colors"
                   >
                     ℹ️ Detail Kitab
