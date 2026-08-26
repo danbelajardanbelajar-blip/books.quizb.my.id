@@ -1,10 +1,10 @@
 import React from 'react';
 
 export const THEMES = [
-  { id: 'sepia', name: 'Krem (Klasik)', bg: '#f4ebd0', text: '#3e2723', readerBg: '#fcfffa', readerPaper: '#fffdf7' },
-  { id: 'light', name: 'Putih (Terang)', bg: '#f3f4f6', text: '#111827', readerBg: '#ffffff', readerPaper: '#ffffff' },
-  { id: 'dark', name: 'Gelap (Malam)', bg: '#1f2937', text: '#f9fafb', readerBg: '#111827', readerPaper: '#1f2937' },
-  { id: 'green', name: 'Hijau (Lembut)', bg: '#eef2ec', text: '#1b5e20', readerBg: '#fcfffa', readerPaper: '#f1f8e9' }
+  { id: 'light', name: 'Terang (Modern)', bg: '#f8fafc', text: '#1e293b', readerBg: '#f1f5f9', readerPaper: '#ffffff', primary: '#0f172a', primaryHover: '#1e293b' },
+  { id: 'sepia', name: 'Krem (Elegan)', bg: '#fff7ed', text: '#431407', readerBg: '#fff7ed', readerPaper: '#ffedd5', primary: '#9a3412', primaryHover: '#7c2d12' },
+  { id: 'green', name: 'Zamrud (Islami)', bg: '#f0fdf4', text: '#064e3b', readerBg: '#ecfdf5', readerPaper: '#dcfce7', primary: '#059669', primaryHover: '#047857' },
+  { id: 'dark', name: 'Malam (Nyaman)', bg: '#0f172a', text: '#f8fafc', readerBg: '#020617', readerPaper: '#1e293b', primary: '#3b82f6', primaryHover: '#2563eb' }
 ];
 
 export const ARABIC_FONTS = [
