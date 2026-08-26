@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { webAPI } from '../api';
 
-const Catalog: React.FC<{ openBook: (id: number) => void }> = ({ openBook }) => {
+const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number) => void }> = ({ openBook, readBook }) => {
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCat, setSelectedCat] = useState<number | null>(null);
   const [books, setBooks] = useState<any[]>([]);
@@ -78,7 +78,13 @@ const Catalog: React.FC<{ openBook: (id: number) => void }> = ({ openBook }) => 
             <div className="overflow-y-auto flex-1 pr-2 grid grid-cols-1 gap-3">
               {books.map(book => (
                 <div key={book.bkid} className="border border-[#e0e0e0] p-3 rounded-lg hover:border-[#8d6e63] transition-colors bg-[#fffdf7]">
-                  <h3 className="font-bold text-[#4e342e] text-lg mb-1">{book.bk}</h3>
+                  <h3 
+                    className="font-bold text-[#4e342e] text-lg mb-1 cursor-pointer hover:text-green-700 hover:underline"
+                    onClick={() => readBook(book.bkid)}
+                    title="Klik untuk langsung membaca"
+                  >
+                    📖 {book.bk}
+                  </h3>
                   {book.author_name && (
                     <p className="text-sm text-[#795548] mb-3">Penulis: {book.author_name}</p>
                   )}
@@ -86,7 +92,7 @@ const Catalog: React.FC<{ openBook: (id: number) => void }> = ({ openBook }) => 
                     onClick={() => openBook(book.bkid)}
                     className="bg-[#6d4c41] text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-[#5d4037] transition-colors"
                   >
-                    ℹ️ Detail & Baca
+                    ℹ️ Detail Kitab
                   </button>
                 </div>
               ))}

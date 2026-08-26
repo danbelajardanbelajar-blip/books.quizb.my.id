@@ -177,7 +177,7 @@ function App() {
         ) : activeTab === 'settings' ? (
           <Settings settings={settings} setSettings={setSettings} />
         ) : activeTab === 'catalog' ? (
-          <Catalog openBook={openBookInfo} />
+          <Catalog openBook={openBookInfo} readBook={(bookId) => setReadingConfig({ bookId })} />
         ) : (
           <div className="max-w-4xl mx-auto">
             <form onSubmit={handleSearch} className="mb-8 flex flex-col md:flex-row gap-2 md:gap-4">
