@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { webAPI } from '../api';
+import { Folder, ChevronLeft, BookOpen, User, Info } from 'lucide-react';
 
 const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number) => void }> = ({ openBook, readBook }) => {
   const [categories, setCategories] = useState<any[]>([]);
@@ -21,6 +22,7 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
         setBooks(res.data || []);
         setLoading(false);
       });
+      window.scrollTo(0, 0);
     } else {
       setBooks([]);
     }
@@ -31,67 +33,79 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
   );
 
   return (
-    <div className="w-full flex flex-col md:flex-row gap-6">
-      {/* Sidebar Kategori */}
-      <div className="w-full md:w-1/3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col max-h-[35vh] md:max-h-none md:h-[80vh]">
-        <h2 className="text-lg md:text-xl font-bold text-[#5d4037] mb-3 border-b pb-2">Kategori</h2>
-        <input 
-          type="text" 
-          placeholder="Cari kategori..." 
-          value={searchCat}
-          onChange={(e) => setSearchCat(e.target.value)}
-          className="w-full p-2 mb-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#5d4037] text-sm md:text-base"
-        />
-        <div className="overflow-y-auto flex-1 pr-2 space-y-1 custom-scrollbar">
-          {filteredCategories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCat(cat.id)}
-              className={`w-full text-right px-3 py-2.5 rounded-lg text-sm transition-all font-bold border-b border-gray-50 last:border-0 ${selectedCat === cat.id ? 'bg-[#5d4037] text-white shadow-sm' : 'hover:bg-[#f4ebd0] text-gray-700'}`}
-            >
-              {cat.name}
-            </button>
-          ))}
+    <div className="w-full">
+      {!selectedCat ? (
+        <div className="bg-[var(--reader-bg)] p-4 md:p-6 rounded-2xl shadow-sm border border-black/5 animate-in fade-in duration-300">
+          <h2 className="text-xl md:text-2xl font-bold text-[var(--app-primary)] mb-4 border-b border-black/10 pb-3 flex items-center gap-2">
+            <Folder size={24} /> Kategori Kitab
+          </h2>
+          <input 
+            type="text" 
+            placeholder="Cari nama kategori..." 
+            value={searchCat}
+            onChange={(e) => setSearchCat(e.target.value)}
+            className="w-full p-3 mb-6 bg-[var(--reader-paper)] border-2 border-black/10 rounded-xl focus:outline-none focus:border-[var(--app-primary)] text-lg transition-colors shadow-inner"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+            {filteredCategories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCat(cat.id)}
+                className="flex items-center gap-3 bg-[var(--reader-paper)] p-4 rounded-xl border border-black/10 hover:border-[var(--app-primary)] hover:bg-[var(--app-primary)] hover:text-white transition-all group text-right shadow-sm"
+              >
+                <Folder className="text-[var(--app-primary)] group-hover:text-white shrink-0" size={24} />
+                <span className="font-bold text-lg w-full" style={{ fontFamily: 'var(--arabic-font)' }}>{cat.name}</span>
+              </button>
+            ))}
+          </div>
           {filteredCategories.length === 0 && (
-            <p className="text-center text-gray-500 text-sm mt-4">Kategori tidak ditemukan.</p>
+            <div className="text-center p-8 opacity-60">
+              <p className="text-lg">Kategori tidak ditemukan.</p>
+            </div>
           )}
         </div>
-      </div>
+      ) : (
+        <div className="bg-[var(--reader-bg)] p-4 md:p-6 rounded-2xl shadow-sm border border-black/5 animate-in slide-in-from-right-4 duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/10 pb-4 mb-6">
+            <button 
+              onClick={() => setSelectedCat(null)}
+              className="flex items-center gap-2 text-[var(--app-primary)] hover:bg-[var(--app-primary)] hover:text-white px-4 py-2 rounded-lg font-bold transition-colors w-fit border border-[var(--app-primary)]"
+            >
+              <ChevronLeft size={20} /> Kembali
+            </button>
+            <div className="text-right">
+              <h2 className="text-xl md:text-2xl font-bold text-[var(--app-text)]" style={{ fontFamily: 'var(--arabic-font)' }}>
+                {categories.find(c => c.id === selectedCat)?.name}
+              </h2>
+              <p className="text-sm opacity-70 mt-1">{books.length} Kitab</p>
+            </div>
+          </div>
 
-      {/* Main Content (Buku) */}
-      <div className="w-full md:w-2/3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col h-[65vh] md:h-[80vh]">
-        {!selectedCat ? (
-          <div className="flex-1 flex items-center justify-center text-[#795548] flex-col opacity-60">
-            <span className="text-4xl mb-4">📚</span>
-            <p className="font-bold text-lg">Pilih kategori di samping untuk melihat daftar kitab.</p>
-          </div>
-        ) : loading ? (
-          <div className="flex-1 flex items-center justify-center text-[#795548]">
-            <p className="font-bold animate-pulse">Memuat daftar kitab...</p>
-          </div>
-        ) : (
-          <>
-            <h2 className="text-xl font-bold text-[#5d4037] mb-4 border-b pb-2 flex justify-between">
-              <span>{categories.find(c => c.id === selectedCat)?.name}</span>
-              <span className="text-sm bg-[#f4ebd0] px-3 py-1 rounded-full text-[#795548]">{books.length} Kitab</span>
-            </h2>
-            <div className="overflow-y-auto flex-1 pl-2 pr-1 flex flex-col gap-3 pb-4">
+          {loading ? (
+            <div className="flex justify-center p-12">
+              <div className="animate-pulse flex flex-col items-center gap-3 text-[var(--app-primary)]">
+                <BookOpen size={48} className="opacity-50" />
+                <p className="font-bold">Memuat daftar kitab...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
               {books.map(book => (
                 <div 
                   key={book.bkid} 
                   onClick={() => readBook(book.bkid)}
-                  className="border border-[#e0e0e0] p-3 md:p-4 rounded-xl shadow-sm hover:shadow-md hover:border-[#8d6e63] hover:bg-[#fbf8f1] transition-all bg-white cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-3 group shrink-0"
-                  title="Klik untuk langsung membaca kitab"
+                  className="bg-[var(--reader-paper)] border-2 border-black/5 p-4 md:p-5 rounded-xl shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group"
+                  title="Klik untuk membaca kitab"
                 >
-                  <div className="flex-1 w-full">
-                    <h3 className="font-bold text-[#4e342e] text-lg md:text-xl mb-1 group-hover:text-green-700 transition-colors flex items-start gap-2 leading-snug" style={{ fontFamily: 'var(--arabic-font)' }}>
-                      <span className="text-lg md:text-xl mt-0.5 shrink-0">📖</span>
+                  <div className="flex-1 w-full text-right">
+                    <h3 className="font-bold text-[var(--app-text)] text-xl mb-2 group-hover:text-[var(--app-primary)] transition-colors flex justify-end items-start gap-2" style={{ fontFamily: 'var(--arabic-font)' }}>
                       <span className="break-words">{book.bk}</span>
+                      <BookOpen className="shrink-0 mt-1 opacity-70" size={20} />
                     </h3>
                     {book.author_name && (
-                      <p className="text-xs md:text-sm text-gray-500 font-sans flex items-start gap-1 leading-tight">
-                        <span className="shrink-0">👤</span>
-                        <span className="break-words">Penulis: {book.author_name}</span>
+                      <p className="text-sm opacity-70 font-sans flex justify-end items-center gap-2">
+                        <span className="break-words">{book.author_name}</span>
+                        <User size={14} />
                       </p>
                     )}
                   </div>
@@ -100,19 +114,22 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
                       e.stopPropagation();
                       openBook(book.bkid);
                     }}
-                    className="bg-gray-100 text-[#5d4037] border border-gray-200 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm font-bold hover:bg-[#6d4c41] hover:text-white hover:border-[#6d4c41] transition-all shrink-0 flex items-center justify-center gap-2 shadow-sm w-full md:w-auto mt-1 md:mt-0"
+                    className="bg-black/5 text-[var(--app-text)] hover:bg-[var(--app-primary)] hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shrink-0 flex items-center justify-center gap-2 w-full md:w-auto"
                   >
-                    ℹ️ Detail
+                    Detail <Info size={16} />
                   </button>
                 </div>
               ))}
               {books.length === 0 && (
-                <p className="text-center text-gray-500 mt-10">Tidak ada kitab dalam kategori ini.</p>
+                <div className="text-center p-10 opacity-60">
+                  <BookOpen size={48} className="mx-auto mb-3 opacity-50" />
+                  <p className="text-lg">Tidak ada kitab dalam kategori ini.</p>
+                </div>
               )}
             </div>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
