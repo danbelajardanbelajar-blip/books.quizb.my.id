@@ -200,7 +200,9 @@ function App() {
                     </div>
                   )}
                   <div 
-                    className="text-2xl leading-loose"
+                    onClick={() => setReadingConfig({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
+                    className="text-2xl leading-loose cursor-pointer hover:bg-[#fbf8f1] p-3 rounded-lg border border-transparent hover:border-[#d7ccc8] transition-all"
+                    title="Klik teks untuk membaca halaman ini"
                     dangerouslySetInnerHTML={{ __html: r.snippet }} 
                   />
                 </div>
