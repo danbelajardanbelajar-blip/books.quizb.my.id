@@ -25,7 +25,7 @@ function App() {
   
   // Advanced Search States
   const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number | ''>('');
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
   // States for Book Modal
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
@@ -77,7 +77,7 @@ function App() {
     setError('');
     try {
       // @ts-ignore
-      const res = await webAPI.search(searchQuery, page, limit, selectedCategory === '' ? undefined : selectedCategory);
+      const res = await webAPI.search(searchQuery, page, limit, selectedCategories.length > 0 ? selectedCategories.join(',') : undefined);
       if (res.error) {
         setError(res.error);
       } else {
@@ -229,16 +229,36 @@ function App() {
                 <h3 className="font-bold text-[var(--app-primary)] mb-3 flex items-center gap-2">
                   <FolderSearch size={20}/> Cari Lanjut (Berdasarkan Kategori)
                 </h3>
-                <select 
-                  value={selectedCategory} 
-                  onChange={(e) => setSelectedCategory(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full p-4 rounded-xl border-2 border-black/10 focus:outline-none focus:border-[var(--app-primary)] bg-[var(--reader-paper)] text-lg transition-all"
-                >
-                  <option value="">-- Semua Kategori --</option>
+                
+                <div className="max-h-48 overflow-y-auto p-4 bg-white/50 border-2 border-black/5 rounded-xl flex flex-col gap-2 custom-scrollbar">
+                  <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-black/5 rounded-lg transition-colors border border-transparent hover:border-black/5">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedCategories.length === 0}
+                      onChange={() => setSelectedCategories([])}
+                      className="w-5 h-5 accent-[var(--app-primary)] rounded cursor-pointer"
+                    />
+                    <span className="text-gray-700 font-semibold select-none">-- Semua Kategori --</span>
+                  </label>
+                  <div className="h-px bg-black/5 my-1"></div>
                   {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <label key={c.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-black/5 rounded-lg transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCategories.includes(c.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCategories([...selectedCategories, c.id]);
+                          } else {
+                            setSelectedCategories(selectedCategories.filter(id => id !== c.id));
+                          }
+                        }}
+                        className="w-5 h-5 accent-[var(--app-primary)] rounded cursor-pointer"
+                      />
+                      <span className="text-gray-700 select-none">{c.name}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
             )}
             <form onSubmit={handleSearch} className="mb-8 flex flex-col md:flex-row gap-3">

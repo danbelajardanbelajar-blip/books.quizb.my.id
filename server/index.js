@@ -36,21 +36,27 @@ app.get('/api/search', (req, res) => {
     const query = req.query.q;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
-    const cat_id = req.query.cat_id ? parseInt(req.query.cat_id) : null;
+    
+    let cat_ids = [];
+    if (req.query.cat_id) {
+      cat_ids = req.query.cat_id.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+    }
+    
     const offset = (page - 1) * limit;
 
     let total = 0;
     let results = [];
 
-    if (cat_id) {
+    if (cat_ids.length > 0) {
+      const placeholders = cat_ids.map(() => '?').join(',');
       const countStmt = db.prepare(`
         SELECT COUNT(*) as total 
         FROM pages_fts f
         JOIN pages p ON f.rowid = p.rowid
         JOIN books_meta b ON p.book_id = b.bkid
-        WHERE pages_fts MATCH ? AND b.cat = ?
+        WHERE pages_fts MATCH ? AND b.cat IN (${placeholders})
       `);
-      const totalRow = countStmt.get(query, cat_id);
+      const totalRow = countStmt.get(query, ...cat_ids);
       total = totalRow ? totalRow.total : 0;
 
       const stmt = db.prepare(`
@@ -58,10 +64,10 @@ app.get('/api/search', (req, res) => {
         FROM pages_fts f
         JOIN pages p ON f.rowid = p.rowid
         JOIN books_meta b ON p.book_id = b.bkid
-        WHERE pages_fts MATCH ? AND b.cat = ?
+        WHERE pages_fts MATCH ? AND b.cat IN (${placeholders})
         LIMIT ? OFFSET ?;
       `);
-      results = stmt.all(query, cat_id, limit, offset);
+      results = stmt.all(query, ...cat_ids, limit, offset);
     } else {
       const countStmt = db.prepare(`SELECT COUNT(*) as total FROM pages_fts WHERE pages_fts MATCH ?`);
       const totalRow = countStmt.get(query);
@@ -71,8 +77,8 @@ app.get('/api/search', (req, res) => {
         SELECT p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet 
         FROM pages_fts f
         JOIN pages p ON f.rowid = p.rowid
-        LEFT JOIN books_meta b ON p.book_id = b.bkid
-        WHERE pages_fts MATCH ?
+        JOIN books_meta b ON p.book_id = b.bkid
+        WHERE pages_fts MATCH ? 
         LIMIT ? OFFSET ?;
       `);
       results = stmt.all(query, limit, offset);
