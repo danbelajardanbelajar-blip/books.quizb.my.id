@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings'>('search');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Search States
   const [query, setQuery] = useState('');
@@ -114,51 +115,64 @@ function App() {
 
   return (
     <div className="min-h-screen font-sans" dir="rtl" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
-      <header className="bg-[#5d4037] text-white p-4 md:p-6 shadow-md" style={{ fontFamily: 'var(--latin-font)' }}>
-        <div className="flex justify-center items-center gap-3 md:gap-4">
-          <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
-          <h1 className="text-2xl md:text-3xl font-bold" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h1>
-        </div>
-        <div className="flex overflow-x-auto md:flex-wrap md:justify-center gap-2 md:gap-4 mt-4 md:mt-6 font-sans pb-2 custom-scrollbar px-2 md:px-0">
+      <header className="bg-[#5d4037] text-white shadow-md relative" style={{ fontFamily: 'var(--latin-font)' }}>
+        <div className="flex justify-between items-center p-4 md:p-6 max-w-7xl mx-auto">
+          {/* Logo & Title */}
+          <div className="flex items-center gap-3 md:gap-4">
+            <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-10 h-10 md:w-16 md:h-16 object-contain" />
+            <h1 className="text-xl md:text-3xl font-bold" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h1>
+          </div>
+
+          {/* Mobile Hamburger Button */}
           <button 
-            onClick={() => setActiveTab('search')}
-            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'search' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
+            onClick={() => setIsMenuOpen(!isMenuOpen)} 
+            className="md:hidden text-2xl px-2 py-1 bg-[#6d4c41] rounded-lg hover:bg-[#795548] transition-colors"
+          >
+            {isMenuOpen ? '✖' : '☰'}
+          </button>
+        </div>
+
+        {/* Navigation Menu */}
+        <div className={`${isMenuOpen ? 'flex' : 'hidden'} md:flex flex-col md:flex-row flex-wrap justify-center gap-2 md:gap-4 pb-4 md:pb-6 px-4 font-sans max-w-7xl mx-auto absolute md:static top-full left-0 w-full bg-[#5d4037] md:bg-transparent z-40 shadow-lg md:shadow-none`}>
+          <button 
+            onClick={() => { setActiveTab('search'); setIsMenuOpen(false); }}
+            className={`w-full md:w-auto px-5 md:px-8 py-3 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'search' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             📚 Pencarian
           </button>
           <button 
-            onClick={() => setActiveTab('catalog')}
-            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'catalog' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
+            onClick={() => { setActiveTab('catalog'); setIsMenuOpen(false); }}
+            className={`w-full md:w-auto px-5 md:px-8 py-3 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'catalog' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             🗂️ Katalog
           </button>
           <button 
-            onClick={() => setActiveTab('quran')}
-            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'quran' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
+            onClick={() => { setActiveTab('quran'); setIsMenuOpen(false); }}
+            className={`w-full md:w-auto px-5 md:px-8 py-3 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'quran' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             📖 Al-Qur'an
           </button>
           <button 
-            onClick={() => setActiveTab('rowa')}
-            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'rowa' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
+            onClick={() => { setActiveTab('rowa'); setIsMenuOpen(false); }}
+            className={`w-full md:w-auto px-5 md:px-8 py-3 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'rowa' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             👤 Kamus Perawi
           </button>
           <button 
-            onClick={() => setActiveTab('about')}
-            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'about' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
+            onClick={() => { setActiveTab('about'); setIsMenuOpen(false); }}
+            className={`w-full md:w-auto px-5 md:px-8 py-3 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'about' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             ℹ️ Tentang
           </button>
           <button 
-            onClick={() => setActiveTab('privacy')}
-            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'privacy' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
+            onClick={() => { setActiveTab('privacy'); setIsMenuOpen(false); }}
+            className={`w-full md:w-auto px-5 md:px-8 py-3 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'privacy' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             🔒 Privasi
           </button>
           <button 
-            onClick={() => setActiveTab('settings')}
-            className={`shrink-0 whitespace-nowrap px-5 md:px-8 py-2 md:py-3 rounded-full md:rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'settings' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
+            onClick={() => { setActiveTab('settings'); setIsMenuOpen(false); }}
+            className={`w-full md:w-auto px-5 md:px-8 py-3 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-sm ${activeTab === 'settings' ? 'bg-white text-[#5d4037]' : 'bg-[#795548] hover:bg-[#6d4c41] text-white'}`}
           >
             ⚙️ Pengaturan
           </button>
