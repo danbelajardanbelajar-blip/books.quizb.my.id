@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { webAPI } from '../api';
 import { ChevronLeft, ChevronRight, X, BookOpen } from 'lucide-react';
 
@@ -59,6 +59,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
   
   // Customization states
   const [fontSize, setFontSize] = useState(settings?.fontSize || 32);
+  const [showUi, setShowUi] = useState(false);
 
   // Split screen states
   const [relatedPage, setRelatedPage] = useState<any>(null);
@@ -69,6 +70,41 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
   useEffect(() => {
     loadBookAndPage();
   }, [bookId, currentPageId]);
+
+  
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const distance = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (distance > minSwipeDistance) {
+      // Swiped left -> Next Page
+      nextPage();
+    } else if (distance < -minSwipeDistance) {
+      // Swiped right -> Previous Page
+      prevPage();
+    }
+    
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
+  const toggleUi = (e: React.MouseEvent) => {
+    // Prevent toggling if user is clicking a button or link inside
+    if ((e.target as HTMLElement).closest('button, a')) return;
+    setShowUi(!showUi);
+  };
 
   const loadBookAndPage = async () => {
     setLoading(true);
@@ -166,7 +202,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
     <div className="fixed inset-0 flex flex-col z-50 shadow-2xl" dir="auto" style={{ backgroundColor: 'var(--reader-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
       
       {/* Sleek Header */}
-      <div className="bg-white/80 backdrop-blur-md text-[#3e2723] h-auto min-h-16 flex justify-between items-center px-2 md:px-6 py-2 shadow-sm border-b border-[#d7ccc8] z-20">
+      <div className={`bg-white/80 backdrop-blur-md text-[#3e2723] h-auto min-h-16 flex justify-between items-center px-2 md:px-6 py-2 shadow-sm border-b border-[#d7ccc8] z-30 transition-all duration-300 w-full ${showUi ? "translate-y-0 opacity-100 absolute" : "-translate-y-full opacity-0 absolute pointer-events-none"} lg:relative lg:translate-y-0 lg:opacity-100 lg:pointer-events-auto`}>
         <div className="flex items-center gap-2 md:gap-4 w-auto md:w-1/3">
           <button 
             onClick={onClose} 
@@ -201,7 +237,13 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
       </div>
 
       {/* Content Area - Like physical pages on a desk */}
-      <div className={`flex-1 flex ${showSplit ? 'flex-col lg:flex-row' : 'flex-col'} overflow-hidden relative`}>
+      <div 
+        className={`flex-1 flex ${showSplit ? 'flex-col lg:flex-row' : 'flex-col'} overflow-hidden relative cursor-pointer lg:cursor-auto`}
+        onClick={toggleUi}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         
         {/* Main Book Page */}
         <div className="flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar pb-24 md:pb-8">
