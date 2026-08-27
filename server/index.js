@@ -329,32 +329,80 @@ app.post('/api/ask', express.json(), async (req, res) => {
       generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
     };
 
-    const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyDDeLIfq3Vi4T3xwjQD9FJb_hRN2go7QpU';
-    
-    // Dynamic import for node-fetch if using older Node without native fetch
-    // But Node 18+ has native fetch. Let's assume Node 18+.
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+    const envKeys = process.env.GEMINI_API_KEY || '';
+      let apiKeys = envKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
+      
+      if (apiKeys.length === 0) {
+         return res.json({ status: 'error', message: 'API Key Gemini belum diatur di server (.env).' });
+      }
 
-    if (!response.ok) {
-        return res.json({ status: 'error', message: `Gagal menghubungi server AI (Code: ${response.status})` });
-    }
+      // Shuffle apiKeys to distribute load
+      for (let i = apiKeys.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [apiKeys[i], apiKeys[j]] = [apiKeys[j], apiKeys[i]];
+      }
 
-    const data = await response.json();
-    let aiResponse = "Maaf, terjadi kesalahan saat memproses jawaban dari AI.";
-    
-    if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-        aiResponse = data.candidates[0].content.parts.map(p => p.text).join('');
-    }
+      let aiResponse = null;
+      let lastError = "Gagal menghubungi server AI.";
 
-    res.json({
-        status: 'success',
-        answer: aiResponse,
-        references
-    });
+      for (const key of apiKeys) {
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+
+          if (response.status === 429 || response.status >= 500) {
+              lastError = `Server AI sibuk (Code: ${response.status}).`;
+              continue; // Coba key berikutnya jika limit/kuota habis
+          }
+
+          if (!response.ok) {
+              const errData = await response.json().catch(() => ({}));
+              if (response.status === 403 && errData?.error?.message?.includes('leaked')) {
+                 lastError = `API Key ditolak karena bocor (Code: 403).`;
+                 continue;
+              }
+              if (response.status === 404) {
+                 // Fallback to older model name if 1.5 is not found in their region
+                 const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify(payload)
+                 });
+                 if (fallbackResponse.ok) {
+                    const data = await fallbackResponse.json();
+                    if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+                        aiResponse = data.candidates[0].content.parts.map(p => p.text).join('');
+                        break;
+                    }
+                 }
+              }
+              lastError = `Gagal API (Code: ${response.status})`;
+              continue; // Coba key berikutnya
+          }
+
+          const data = await response.json();
+          if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+              aiResponse = data.candidates[0].content.parts.map(p => p.text).join('');
+              break; // Sukses, keluar dari loop
+          }
+        } catch (err) {
+          lastError = `Koneksi error: ${err.message}`;
+          continue; // Coba key berikutnya
+        }
+      }
+
+      if (!aiResponse) {
+          return res.json({ status: 'error', message: lastError + " Semua API key telah dicoba." });
+      }
+
+      res.json({
+          status: 'success',
+          answer: aiResponse,
+          references
+      });
 
   } catch (error) {
     res.status(500).json({ status: 'error', message: 'Terjadi kesalahan sistem: ' + error.message });
