@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Shield, ChevronRight, ChevronLeft, BookMarked } from 'lucide-react';
+import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Shield, ChevronRight, ChevronLeft, BookMarked, Bot } from 'lucide-react';
 import './App.css';
 import { webAPI } from './api';
 import ReaderModal from './components/ReaderModal';
@@ -8,12 +8,13 @@ import RowaDictionary from './components/RowaDictionary';
 import About from './components/About';
 import Privacy from './components/Privacy';
 import Catalog from './components/Catalog';
+import AskAI from './components/AskAI';
 import Settings, { THEMES } from './components/Settings';
 import { useEffect, useRef } from 'react';
 
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask'>('search');
 
   // Search States
   const [query, setQuery] = useState('');
@@ -213,6 +214,13 @@ function App() {
             >
               <Library size={18} /> Katalog
             </button>
+              <button 
+                onClick={() => { setActiveTab('ask'); }}
+                className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'ask' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+              >
+                <Bot size={18} /> Tanya AI
+              </button>
+
             <button 
               onClick={() => { setActiveTab('quran'); }}
               className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'quran' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
@@ -248,7 +256,9 @@ function App() {
           <Settings settings={settings} setSettings={setSettings} />
         ) : activeTab === 'catalog' ? (
           <Catalog openBook={openBookInfo} readBook={(bookId) => openReader({ bookId })} />
-        ) : activeTab === 'more' ? (
+        ) : activeTab === 'ask' ? (
+            <AskAI openBook={(bookId) => openReader({ bookId })} />
+          ) : activeTab === 'more' ? (
           <div className="w-full bg-[var(--reader-bg)] p-6 rounded-2xl shadow-xl border border-[var(--app-primary)]/10 my-4 transition-all">
             <h2 className="text-2xl font-bold mb-6 text-[var(--app-text)] border-b pb-4 flex items-center gap-3">
               <Menu className="text-[var(--app-primary)]" /> Lainnya
@@ -474,7 +484,15 @@ function App() {
           <Library size={24} className="mb-1" />
           <span className="text-[10px] font-bold">Katalog</span>
         </button>
-        <button 
+        
+          <button 
+            onClick={() => { setActiveTab('ask'); window.scrollTo(0, 0); }}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'ask' ? 'text-[var(--app-primary)]' : 'text-gray-500 hover:text-gray-900'}`}
+          >
+            <Bot size={22} className={activeTab === 'ask' ? 'fill-[var(--app-primary)]/20' : ''} />
+            <span className="text-[10px] font-medium">Tanya AI</span>
+          </button>
+<button 
           onClick={() => { setActiveTab('more'); window.scrollTo(0,0); }} 
           className={`flex flex-col items-center justify-center w-1/4 h-full transition-all duration-300 ${activeTab === 'more' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
         >

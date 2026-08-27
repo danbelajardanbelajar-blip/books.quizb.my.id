@@ -9,6 +9,17 @@ async function fetchAPI(endpoint: string) {
 }
 
 export const webAPI = {
+
+  askAI: async (query: string) => {
+    const res = await fetch(`${API_BASE}/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: query })
+    });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return res.json();
+  },
+
   search: async (query: string, page = 1, limit = 50, cat_id?: number | string) => {
     let url = `/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
     if (cat_id) url += `&cat_id=${cat_id}`;

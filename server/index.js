@@ -267,6 +267,101 @@ app.get('/api/toc/:bookId', (req, res) => {
   }
 });
 
+
+app.post('/api/ask', express.json(), async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  const question = req.body.q;
+  if (!question || question.length < 5) {
+    return res.json({ status: 'error', message: 'Pertanyaan terlalu pendek.' });
+  }
+
+  try {
+    // Basic Keyword Extraction
+    let qClean = question.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+    const stopWords = ['siapa', 'apa', 'kapan', 'dimana', 'bagaimana', 'kenapa', 'mengapa', 'apakah', 'berapa'];
+    let words = qClean.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w.toLowerCase()));
+    
+    let ftsQuery = '';
+    if (words.length > 0) {
+      words.sort((a, b) => b.length - a.length);
+      const topWords = words.slice(0, 5);
+      ftsQuery = topWords.map(w => `"${w}"`).join(' AND ');
+    } else {
+      ftsQuery = `"${question}"`;
+    }
+
+    const stmt = db.prepare(`
+      SELECT p.book_id as bkid, p.page as match_page, p.part as match_juz, p.nass as snippet, b.bk as title
+      FROM pages_fts f
+      JOIN pages p ON f.rowid = p.rowid
+      JOIN books_meta b ON p.book_id = b.bkid
+      WHERE pages_fts MATCH ?
+      LIMIT 10
+    `);
+    
+    const contextData = stmt.all(ftsQuery);
+
+    let contextText = '';
+    let references = [];
+    if (contextData.length === 0) {
+      contextText = "Tidak ada teks referensi yang ditemukan.";
+    } else {
+      contextText = contextData.map((r, i) => {
+        references.push({
+            bkid: r.bkid,
+            title: r.title,
+            juz: r.match_juz,
+            page: r.match_page
+        });
+        return `[Referensi ${i+1}: ${r.title} (Juz ${r.match_juz}, Hlm ${r.match_page})]\n${r.snippet.replace(/<[^>]+>/g, '')}\n`;
+      }).join('\n');
+    }
+
+    const prompt = "Anda adalah asisten virtual (AI) Islami bernama 'Maktabah Bot' yang ramah dan berilmu. Tugas Anda adalah menjawab pertanyaan pengguna HANYA berdasarkan referensi konteks teks dari kitab/buku yang diberikan di bawah ini. Jika jawaban tidak terdapat di dalam konteks, katakan bahwa Anda tidak menemukan informasinya di database perpustakaan ini.\n\n"
+      + "ATURAN BAHASA: Anda wajib mendeteksi bahasa yang digunakan pengguna pada pertanyaan. Jika pengguna bertanya dalam bahasa Arab, maka Anda HARUS menjawab dalam bahasa Arab (meskipun instruksi ini dalam bahasa Indonesia). Jika pengguna bertanya dalam bahasa Indonesia, jawab dalam bahasa Indonesia.\n\n"
+      + "--- KONTEKS KITAB ---\n"
+      + contextText
+      + "\n---------------------\n\n"
+      + "Pertanyaan Pengguna: " + question;
+
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
+    };
+
+    const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyDDeLIfq3Vi4T3xwjQD9FJb_hRN2go7QpU';
+    
+    // Dynamic import for node-fetch if using older Node without native fetch
+    // But Node 18+ has native fetch. Let's assume Node 18+.
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        return res.json({ status: 'error', message: `Gagal menghubungi server AI (Code: ${response.status})` });
+    }
+
+    const data = await response.json();
+    let aiResponse = "Maaf, terjadi kesalahan saat memproses jawaban dari AI.";
+    
+    if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+        aiResponse = data.candidates[0].content.parts.map(p => p.text).join('');
+    }
+
+    res.json({
+        status: 'success',
+        answer: aiResponse,
+        references
+    });
+
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan sistem: ' + error.message });
+  }
+});
+
+
 app.get('/api/categories', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
