@@ -16,8 +16,14 @@ export const webAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ q: query })
     });
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) {
+        if (data.message) {
+            throw new Error(data.message);
+        }
+        throw new Error(`API error: ${res.status}`);
+    }
+    return data;
   },
 
   search: async (query: string, page = 1, limit = 50, cat_id?: number | string) => {

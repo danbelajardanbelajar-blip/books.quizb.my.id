@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
+import https from 'https';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -342,12 +343,35 @@ app.post('/api/ask', express.json(), async (req, res) => {
         [apiKeys[i], apiKeys[j]] = [apiKeys[j], apiKeys[i]];
       }
 
+      
+      const myFetch = async (url, options) => {
+        if (typeof fetch !== 'undefined') {
+            return fetch(url, options);
+        }
+        return new Promise((resolve, reject) => {
+          const req = https.request(url, options, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+              resolve({
+                ok: res.statusCode >= 200 && res.statusCode < 300,
+                status: res.statusCode,
+                json: async () => JSON.parse(body)
+              });
+            });
+          });
+          req.on('error', reject);
+          if (options.body) req.write(options.body);
+          req.end();
+        });
+      };
+
       let aiResponse = null;
       let lastError = "Gagal menghubungi server AI.";
 
       for (const key of apiKeys) {
         try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`, {
+          const response = await myFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
@@ -366,7 +390,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
               }
               if (response.status === 404) {
                  // Fallback to older model name if 1.5 is not found in their region
-                 const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
+                 const fallbackResponse = await myFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
                      body: JSON.stringify(payload)
