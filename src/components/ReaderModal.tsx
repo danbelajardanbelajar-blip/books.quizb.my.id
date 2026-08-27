@@ -277,7 +277,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
           disabled={loading}
           className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
         >
-          <ChevronRight size={24} /> <span>Sebelumnya</span>
+          <ChevronLeft size={24} /> <span>Sebelumnya</span>
         </button>
         
         <div className="px-2 md:px-6 font-bold text-[var(--app-primary)] flex flex-col items-center">
@@ -291,7 +291,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
           disabled={loading}
           className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
         >
-          <span>Selanjutnya</span> <ChevronLeft size={24} />
+          <span>Selanjutnya</span> <ChevronRight size={24} />
         </button>
       </div>
 
