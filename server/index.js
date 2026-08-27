@@ -425,18 +425,27 @@ app.post('/api/ask', express.json(), async (req, res) => {
     return res.json({ status: 'error', message: 'Pertanyaan terlalu pendek.' });
   }
 
+  // [KEEPALIVE TRICK] Mencegah Passenger Timeout (cPanel)
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  const keepAliveInterval = setInterval(() => { res.write(' '); }, 10000); // Kirim spasi tiap 10 detik agar koneksi tidak dianggap idle
+  const respondJSON = (obj) => {
+      clearInterval(keepAliveInterval);
+      res.write(JSON.stringify(obj));
+      res.end();
+  };
+
   try {
       const envKeys = process.env.GEMINI_API_KEY || '';
       let apiKeys = envKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
       
       if (apiKeys.length === 0) {
-         return res.json({ status: 'error', message: 'API Key Gemini belum diatur di server (.env).' });
+         return respondJSON({ status: 'error', message: 'API Key Gemini belum diatur di server (.env).' });
       }
 
       // [CACHING] Cek history jika pertanyaan sudah pernah ditanyakan
       if (askCache.has(question)) {
           const cachedData = askCache.get(question);
-          return res.json({
+          return respondJSON({
               status: 'success',
               answer: cachedData.answer,
               references: cachedData.references
@@ -597,7 +606,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
         }
       }
       if (!aiResponse) {
-          return res.json({ status: 'error', message: lastError + " Semua API key telah dicoba." });
+          return respondJSON({ status: 'error', message: lastError + " Semua API key telah dicoba." });
       }
 
       // Simpan ke cache
@@ -612,7 +621,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
           askCache.delete(firstKey);
       }
 
-      res.json({
+      respondJSON({
           status: 'success',
           answer: aiResponse,
           references
@@ -622,7 +631,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
     try {
         fs.appendFileSync(logPath, new Date().toISOString() + ' /api/ask route error: ' + (error ? error.stack || error : 'null') + '\n');
     } catch(e) {}
-    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan sistem: ' + (error ? error.message : 'Unknown') });
+    respondJSON({ status: 'error', message: 'Terjadi kesalahan sistem: ' + (error ? error.message : 'Unknown') });
   }
 });
 
