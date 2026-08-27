@@ -32,7 +32,7 @@ export default function AskAI({ openBook }: { openBook: (id: number) => void }) 
     try {
       const res = await webAPI.askAI(q);
       if (res.status === 'success') {
-        setMessages(prev => [...prev, { role: "ai", content: "Assalamu'alaikum. Saya Maktabah Bot, asisten AI Anda. Tanyakan apa saja seputar ilmu agama, dan saya akan mencarikannya di dalam ribuan kitab database ini." }]);
+        setMessages(prev => [...prev, { role: "ai", content: res.answer, references: res.references }]);
       } else {
         setMessages(prev => [...prev, { role: 'error', content: res.message || 'Terjadi kesalahan sistem.' }]);
       }
