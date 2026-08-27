@@ -314,6 +314,106 @@ app.get('/api/toc/:bookId', (req, res) => {
   }
 });
 
+// Helper functions for AI Service
+const myFetch = async (url, options) => {
+    if (typeof fetch !== 'undefined') {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), (options.timeout || 45000));
+        try {
+            const res = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            return res;
+        } catch (err) {
+            clearTimeout(id);
+            throw err;
+        }
+    }
+    
+    return new Promise((resolve, reject) => {
+        const https = require('https');
+        try {
+            const parsedUrl = new URL(url);
+            const reqOptions = {
+                hostname: parsedUrl.hostname,
+                port: parsedUrl.port || 443,
+                path: parsedUrl.pathname + parsedUrl.search,
+                method: options.method || 'GET',
+                headers: options.headers || {},
+                rejectUnauthorized: false,
+            };
+            
+            const body = options.body;
+            if (body) {
+                reqOptions.headers['Content-Length'] = Buffer.byteLength(body);
+            }
+            
+            const req = https.request(reqOptions, (res) => {
+                let responseBody = '';
+                res.on('data', chunk => responseBody += chunk);
+                res.on('end', () => {
+                    resolve({
+                        ok: res.statusCode >= 200 && res.statusCode < 300,
+                        status: res.statusCode,
+                        json: async () => JSON.parse(responseBody),
+                        text: async () => responseBody
+                    });
+                });
+            });
+            
+            req.setTimeout((options.timeout || 45000), () => {
+                req.destroy(new Error('Request Timeout'));
+            });
+            
+            req.on('error', reject);
+            if (body) req.write(body);
+            req.end();
+        } catch(parseErr) {
+            reject(parseErr);
+        }
+    });
+};
+
+async function translateToSearchKeywords(question, apiKeys) {
+    if (!apiKeys || apiKeys.length === 0) return null;
+    
+    const prompt = "Terjemahkan pertanyaan berikut ke dalam bahasa Arab jika pertanyaan dalam bahasa Indonesia, atau ke bahasa Indonesia jika pertanyaan dalam bahasa Arab. Hasilkan HANYA kata kunci pencariannya saja (tanpa tanda baca, tanpa kata hubung), pisahkan dengan spasi, tanpa penjelasan apapun, tanpa tanda kutip. Jika tidak bisa diterjemahkan, kembalikan teks kosong.\n\n"
+            + "Pertanyaan: " + question;
+
+    const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 150, thinkingConfig: { thinkingBudget: 0 } }
+    };
+
+    let keysToTry = [...apiKeys];
+    for (let i = keysToTry.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [keysToTry[i], keysToTry[j]] = [keysToTry[j], keysToTry[i]];
+    }
+
+    for (const key of keysToTry) {
+        try {
+            const response = await myFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash8b:generateContent?key=${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                timeout: 15000 // Sama seperti PHP: timeout 15s untuk terjemahan
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+                    let text = data.candidates[0].content.parts[0].text.trim();
+                    text = text.replace(/```.*?```/s, '');
+                    text = text.replace(/[\n\r"'`]/g, ' ');
+                    return text.trim();
+                }
+            }
+        } catch (err) {
+            continue;
+        }
+    }
+    return null;
+}
 
 app.post('/api/ask', express.json(), async (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
@@ -323,19 +423,29 @@ app.post('/api/ask', express.json(), async (req, res) => {
   }
 
   try {
-    // Basic Keyword Extraction
-    let qClean = question.replace(/[^\p{L}\p{N}\s]/gu, ' ');
-    const stopWords = ['siapa', 'apa', 'kapan', 'dimana', 'bagaimana', 'kenapa', 'mengapa', 'apakah', 'berapa'];
-    let words = qClean.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w.toLowerCase()));
-    
-    let ftsQuery = '';
-    if (words.length > 0) {
-      words.sort((a, b) => b.length - a.length);
-      const topWords = words.slice(0, 5);
-      ftsQuery = topWords.map(w => `"${w}"`).join(' AND ');
-    } else {
-      ftsQuery = `"${question}"`;
-    }
+      const envKeys = process.env.GEMINI_API_KEY || '';
+      let apiKeys = envKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
+      
+      if (apiKeys.length === 0) {
+         return res.json({ status: 'error', message: 'API Key Gemini belum diatur di server (.env).' });
+      }
+
+      // 1. TERJEMAHKAN KE ARAB SEPERTI PHP!
+      const translatedKeywords = await translateToSearchKeywords(question, apiKeys);
+      
+      let ftsQuery = '';
+      if (translatedKeywords) {
+          const words = translatedKeywords.split(/\s+/).filter(w => w.length > 1).slice(0, 5);
+          ftsQuery = words.map(w => `"${w}"`).join(' AND ');
+      } else {
+          // Fallback ke basic indonesia jika terjemahan gagal
+          let qClean = question.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+          const stopWords = ['siapa', 'apa', 'kapan', 'dimana', 'bagaimana', 'kenapa', 'mengapa', 'apakah', 'berapa'];
+          let words = qClean.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w.toLowerCase()));
+          words.sort((a, b) => b.length - a.length);
+          ftsQuery = words.slice(0, 5).map(w => `"${w}"`).join(' AND ');
+          if(!ftsQuery) ftsQuery = `"${question}"`;
+      }
 
     const stmt = db.prepare(`
       SELECT p.book_id as bkid, p.page as match_page, p.part as match_juz, p.nass as snippet, b.bk as title
@@ -376,78 +486,13 @@ app.post('/api/ask', express.json(), async (req, res) => {
       generationConfig: { temperature: 0.2, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } }
     };
 
-    const envKeys = process.env.GEMINI_API_KEY || '';
-      let apiKeys = envKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
-      
-      if (apiKeys.length === 0) {
-         return res.json({ status: 'error', message: 'API Key Gemini belum diatur di server (.env).' });
-      }
+
 
       // Shuffle apiKeys to distribute load
       for (let i = apiKeys.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [apiKeys[i], apiKeys[j]] = [apiKeys[j], apiKeys[i]];
       }
-
-      
-      // myFetch: polyfill untuk Node.js lama yang tidak punya native fetch()
-      // Penting: https.request() di Node <18 tidak bisa menerima string URL + options object secara bersamaan.
-      // Kita harus parse URL terlebih dahulu, lalu gabungkan ke dalam satu object.
-      const myFetch = async (url, options) => {
-        if (typeof fetch !== 'undefined') {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 120000);
-            try {
-                const res = await fetch(url, { ...options, signal: controller.signal });
-                clearTimeout(id);
-                return res;
-            } catch (err) {
-                clearTimeout(id);
-                throw err;
-            }
-        }
-        
-        return new Promise((resolve, reject) => {
-          try {
-            const parsedUrl = new URL(url);
-            const reqOptions = {
-                hostname: parsedUrl.hostname,
-                port: parsedUrl.port || 443,
-                path: parsedUrl.pathname + parsedUrl.search,
-                method: options.method || 'GET',
-                headers: options.headers || {},
-                rejectUnauthorized: false, // Sama dengan CURLOPT_SSL_VERIFYPEER=false di PHP
-            };
-            
-            const body = options.body;
-            if (body) {
-                reqOptions.headers['Content-Length'] = Buffer.byteLength(body);
-            }
-            
-            const req = https.request(reqOptions, (res) => {
-              let responseBody = '';
-              res.on('data', chunk => responseBody += chunk);
-              res.on('end', () => {
-                resolve({
-                  ok: res.statusCode >= 200 && res.statusCode < 300,
-                  status: res.statusCode,
-                  json: async () => JSON.parse(responseBody)
-                });
-              });
-            });
-            
-            req.setTimeout(120000, () => {
-                req.destroy(new Error("Request Timeout: Server Gemini tidak merespons dalam 120 detik."));
-            });
-            
-            req.on('error', reject);
-            if (body) req.write(body);
-            req.end();
-          } catch(parseErr) {
-              reject(parseErr);
-          }
-        });
-      };
 
       let aiResponse = null;
       let lastError = "Gagal menghubungi server AI.";
