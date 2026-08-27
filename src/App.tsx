@@ -9,7 +9,7 @@ import About from './components/About';
 import Privacy from './components/Privacy';
 import Catalog from './components/Catalog';
 import Settings, { THEMES } from './components/Settings';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 
 function App() {
@@ -38,6 +38,46 @@ function App() {
   const [readingConfig, setReadingConfig] = useState<{ bookId: number, pageId?: number, highlightQuery?: string } | null>(null);
 
   // Settings State
+  
+  const openReader = (config: any) => {
+    setReadingConfig(config);
+    const hash = `#/read/${config.bookId}${config.pageId ? '/' + config.pageId : ''}`;
+    window.history.pushState(config, '', hash);
+  };
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/read/')) {
+        const parts = hash.replace('#/read/', '').split('/');
+        setReadingConfig({
+          bookId: parseInt(parts[0]),
+          pageId: parts[1] ? parseInt(parts[1]) : undefined,
+          highlightQuery: e.state?.highlightQuery || ''
+        });
+      } else {
+        setReadingConfig(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    // Initial load
+    if (window.location.hash.startsWith('#/read/')) {
+      handlePopState({ state: null } as PopStateEvent);
+    }
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  
+  const scrollRef = useRef<number>(0);
+  useEffect(() => {
+    if (readingConfig) {
+      scrollRef.current = window.scrollY;
+    } else {
+      // Small timeout to allow DOM to render before scrolling
+      setTimeout(() => window.scrollTo(0, scrollRef.current), 50);
+    }
+  }, [readingConfig]);
+
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('maktabah_settings');
     return saved ? JSON.parse(saved) : {
@@ -143,7 +183,9 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen font-sans pb-[70px] md:pb-0 transition-colors duration-300" dir="ltr" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
-      <header className="bg-[var(--app-primary)] text-white shadow-lg relative z-40 sticky top-0 transition-colors duration-300 backdrop-blur-md bg-opacity-95" style={{ fontFamily: 'var(--latin-font)' }}>
+      {!readingConfig && (
+        <>
+          <header className="bg-[var(--app-primary)] text-white shadow-lg relative z-40 sticky top-0 transition-colors duration-300 backdrop-blur-md bg-opacity-95" style={{ fontFamily: 'var(--latin-font)' }}>
         <div className="flex justify-between items-center p-4 md:px-8 md:py-0 max-w-7xl mx-auto md:h-[80px]">
           {/* Logo & Title */}
           <div className="flex items-center gap-3 shrink-0">
@@ -205,7 +247,7 @@ function App() {
         ) : activeTab === 'settings' ? (
           <Settings settings={settings} setSettings={setSettings} />
         ) : activeTab === 'catalog' ? (
-          <Catalog openBook={openBookInfo} readBook={(bookId) => setReadingConfig({ bookId })} />
+          <Catalog openBook={openBookInfo} readBook={(bookId) => openReader({ bookId })} />
         ) : activeTab === 'more' ? (
           <div className="w-full bg-[var(--reader-bg)] p-6 rounded-2xl shadow-xl border border-[var(--app-primary)]/10 my-4 transition-all">
             <h2 className="text-2xl font-bold mb-6 text-[var(--app-text)] border-b pb-4 flex items-center gap-3">
@@ -317,7 +359,7 @@ function App() {
                         <Info size={16} /> Detail Kitab
                       </button>
                       <button 
-                        onClick={() => setReadingConfig({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
+                        onClick={() => openReader({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
                         className="font-semibold text-[var(--app-primary)] hover:opacity-80 transition-colors flex items-center gap-1.5"
                       >
                         <BookOpen size={16} /> Baca Kitab
@@ -333,7 +375,7 @@ function App() {
                     </div>
                   )}
                   <div 
-                      onClick={() => setReadingConfig({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
+                      onClick={() => openReader({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
                       className="text-2xl leading-loose cursor-pointer hover:bg-[var(--app-primary)]/5 active:bg-[var(--app-primary)]/10 p-4 rounded-xl border border-transparent hover:border-[var(--app-primary)]/20 transition-all flex flex-col gap-1"
                       title="Klik teks untuk membaca halaman ini"
                       style={{ fontFamily: 'var(--arabic-font)' }}
@@ -462,10 +504,7 @@ function App() {
                     <button 
                       onClick={() => {
                         setSelectedBook(null);
-                        setReadingConfig({ 
-                          bookId: selectedBook as number,
-                          highlightQuery: activeTab === 'search' ? query : undefined
-                        });
+                        openReader({ bookId: selectedBook as number, highlightQuery: activeTab === 'search' ? query : undefined });
                       }}
                       className="bg-[var(--app-primary)] text-white px-8 py-4 rounded-xl font-bold text-xl hover:bg-[var(--app-primary-hover)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center gap-3"
                     >
@@ -518,11 +557,7 @@ function App() {
                               <button
                                 onClick={() => {
                                   setSelectedBook(null);
-                                  setReadingConfig({ 
-                                    bookId: selectedBook as number, 
-                                    pageId: item.id,
-                                    highlightQuery: activeTab === 'search' ? query : undefined 
-                                  });
+                                  openReader({ bookId: selectedBook as number, pageId: item.id, highlightQuery: activeTab === 'search' ? query : undefined });
                                 }}
                                 className="text-[#5d4037] hover:text-[#3e2723] hover:underline text-right w-full flex text-lg"
                               >
@@ -545,6 +580,9 @@ function App() {
         </div>
       )}
 
+        </>
+      )}
+
       {/* Reader Modal */}
       {readingConfig && (
         <ReaderModal 
@@ -552,7 +590,7 @@ function App() {
           initialPageId={readingConfig.pageId}
           highlightQuery={readingConfig.highlightQuery}
           settings={settings}
-          onClose={() => setReadingConfig(null)} 
+          onClose={() => { window.history.back(); }} 
         />
       )}
     </div>
