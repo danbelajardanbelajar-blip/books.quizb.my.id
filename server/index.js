@@ -28,6 +28,9 @@ let db;
 // Gunakan variabel environment DB_PATH, atau fallback ke alamat PC
 const dbPath = process.env.DB_PATH || "D:\\database_maktabah_golden\\maktabah.db";
 
+// Cache untuk query AI
+const askCache = new Map();
+
 try {
   if (fs.existsSync(dbPath)) {
     db = new Database(dbPath, { fileMustExist: true });
@@ -430,10 +433,17 @@ app.post('/api/ask', express.json(), async (req, res) => {
          return res.json({ status: 'error', message: 'API Key Gemini belum diatur di server (.env).' });
       }
 
-      // 1. TERJEMAHKAN KE ARAB SEPERTI PHP!
-      const translatedKeywords = await translateToSearchKeywords(question, apiKeys);
-      
-      // 2. CEK KATALOG KITAB SEPERTI PHP!
+      // [CACHING] Cek history jika pertanyaan sudah pernah ditanyakan
+      if (askCache.has(question)) {
+          const cachedData = askCache.get(question);
+          return res.json({
+              status: 'success',
+              answer: cachedData.answer,
+              references: cachedData.references
+          });
+      }
+
+      // 1. CEK KATALOG KITAB SEPERTI PHP!
       let catalogText = '';
       let matchedBkids = [];
       try {
@@ -456,8 +466,6 @@ app.post('/api/ask', express.json(), async (req, res) => {
           console.error("Error catalog search", err);
       }
       
-      let contextData = [];
-      let ftsQuery = '';
       const stmtFts = db.prepare(`
         SELECT p.book_id as bkid, p.page as match_page, p.part as match_juz, p.nass as snippet, b.bk as title
         FROM pages_fts f
@@ -467,37 +475,36 @@ app.post('/api/ask', express.json(), async (req, res) => {
         LIMIT 5
       `);
 
-      if (translatedKeywords) {
-          const words = translatedKeywords.split(/\s+/).filter(w => w.length > 1).slice(0, 5);
-          
-          // Mekanisme Fallback berjenjang seperti PHP
-          // Step A: Strict AND
-          ftsQuery = words.map(w => `"${w}"`).join(' AND ');
-          try { contextData = stmtFts.all(ftsQuery); } catch(e){}
-
-          // Step B: Jika kosong, coba OR (Fallback)
-          if (contextData.length === 0 && words.length > 1) {
-              ftsQuery = words.map(w => `"${w}"`).join(' OR ');
-              try { contextData = stmtFts.all(ftsQuery); } catch(e){}
-          }
-      } else {
-          // Fallback ke basic indonesia jika terjemahan gagal
-          let qClean = question.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+      // Fungsi bantu pencarian FTS
+      const performFtsSearch = (queryStr) => {
+          let qClean = queryStr.replace(/[^\p{L}\p{N}\s]/gu, ' ');
           const stopWords = ['siapa', 'apa', 'kapan', 'dimana', 'bagaimana', 'kenapa', 'mengapa', 'apakah', 'berapa'];
-          let words = qClean.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w.toLowerCase()));
+          let words = qClean.split(/\s+/).filter(w => w.length > 1 && !stopWords.includes(w.toLowerCase()));
           words.sort((a, b) => b.length - a.length);
+          let results = [];
           
           if (words.length > 0) {
-              ftsQuery = words.slice(0, 5).map(w => `"${w}"`).join(' AND ');
-              try { contextData = stmtFts.all(ftsQuery); } catch(e){}
+              let ftsQuery = words.slice(0, 5).map(w => `"${w}"`).join(' AND ');
+              try { results = stmtFts.all(ftsQuery); } catch(e){}
               
-              if (contextData.length === 0 && words.length > 1) {
+              if (results.length === 0 && words.length > 1) {
                   ftsQuery = words.slice(0, 5).map(w => `"${w}"`).join(' OR ');
-                  try { contextData = stmtFts.all(ftsQuery); } catch(e){}
+                  try { results = stmtFts.all(ftsQuery); } catch(e){}
               }
           } else {
-              ftsQuery = `"${question}"`;
-              try { contextData = stmtFts.all(ftsQuery); } catch(e){}
+              try { results = stmtFts.all(`"${queryStr}"`); } catch(e){}
+          }
+          return results;
+      };
+
+      // 2. Pencarian FTS Awal (Bahasa Indonesia / Arab sesuai input)
+      let contextData = performFtsSearch(question);
+
+      // 3. JIKA KOSONG, baru terjemahkan ke Arab dan cari lagi! (Sama persis seperti PHP)
+      if (contextData.length === 0) {
+          const translatedKeywords = await translateToSearchKeywords(question, apiKeys);
+          if (translatedKeywords && translatedKeywords.toLowerCase() !== question.toLowerCase()) {
+              contextData = performFtsSearch(translatedKeywords);
           }
       }
 
@@ -591,6 +598,18 @@ app.post('/api/ask', express.json(), async (req, res) => {
       }
       if (!aiResponse) {
           return res.json({ status: 'error', message: lastError + " Semua API key telah dicoba." });
+      }
+
+      // Simpan ke cache
+      askCache.set(question, {
+          answer: aiResponse,
+          references
+      });
+      
+      // Jika cache terlalu besar, hapus entry pertama (FIFO)
+      if (askCache.size > 100) {
+          const firstKey = askCache.keys().next().value;
+          askCache.delete(firstKey);
       }
 
       res.json({
