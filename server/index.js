@@ -339,7 +339,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
       JOIN pages p ON f.rowid = p.rowid
       JOIN books_meta b ON p.book_id = b.bkid
       WHERE pages_fts MATCH ?
-      LIMIT 10
+      LIMIT 5
     `);
     
     const contextData = stmt.all(ftsQuery);
@@ -356,7 +356,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
             juz: r.match_juz,
             page: r.match_page
         });
-        return `[Referensi ${i+1}: ${r.title} (Juz ${r.match_juz}, Hlm ${r.match_page})]\n${r.snippet.replace(/<[^>]+>/g, '')}\n`;
+        return `[Referensi ${i+1}: ${r.title} (Juz ${r.match_juz}, Hlm ${r.match_page})]\n${r.snippet.replace(/<[^>]+>/g, '').substring(0, 500)}\n`;
       }).join('\n');
     }
 
@@ -369,7 +369,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
 
     const payload = {
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } }
     };
 
     const envKeys = process.env.GEMINI_API_KEY || '';
@@ -392,7 +392,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
       const myFetch = async (url, options) => {
         if (typeof fetch !== 'undefined') {
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 45000);
+            const id = setTimeout(() => controller.abort(), 120000);
             try {
                 const res = await fetch(url, { ...options, signal: controller.signal });
                 clearTimeout(id);
@@ -432,8 +432,8 @@ app.post('/api/ask', express.json(), async (req, res) => {
               });
             });
             
-            req.setTimeout(45000, () => {
-                req.destroy(new Error("Request Timeout: Server Gemini tidak merespons dalam 45 detik."));
+            req.setTimeout(120000, () => {
+                req.destroy(new Error("Request Timeout: Server Gemini tidak merespons dalam 120 detik."));
             });
             
             req.on('error', reject);
@@ -493,9 +493,6 @@ app.post('/api/ask', express.json(), async (req, res) => {
           }
         } catch (err) {
           lastError = `Koneksi error: ${err.message}`;
-          if (err.message.includes('Timeout') || err.message.includes('timeout') || err.message.includes('aborted')) {
-              break; // Jangan coba key lain jika server terblokir/timeout
-          }
           continue; // Coba key berikutnya
         }
       }
