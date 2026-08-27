@@ -218,7 +218,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                 </div>
               ) : (
                 <div className="flex flex-col" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}>
-                    {(currentPage?.text || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => (
+                    {(currentPage?.text || '').split(/\r\n|\n|\r|<br\s*\/?>|<\/br>|\u2028|\u2029/i).map((line: string, i: number) => (
                       <div 
                         key={i} 
                         dir="auto" 
@@ -251,7 +251,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                   </div>
                 ) : (
                   <div className="flex flex-col" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}>
-                      {(relatedPage?.text || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => (
+                      {(relatedPage?.text || '').split(/\r\n|\n|\r|<br\s*\/?>|<\/br>|\u2028|\u2029/i).map((line: string, i: number) => (
                         <div 
                           key={i} 
                           dir="auto" 

@@ -338,7 +338,7 @@ function App() {
                       title="Klik teks untuk membaca halaman ini"
                       style={{ fontFamily: 'var(--arabic-font)' }}
                     >
-                      {(r.snippet || '').split(/\n|<br\s*\/?>/i).map((line: string, i: number) => (
+                      {(r.snippet || '').split(/\r\n|\n|\r|<br\s*\/?>|<\/br>|\u2028|\u2029/i).map((line: string, i: number) => (
                         <div 
                           key={i} 
                           dir="auto" 
