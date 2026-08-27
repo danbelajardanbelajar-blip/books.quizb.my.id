@@ -355,7 +355,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
       const myFetch = async (url, options) => {
         if (typeof fetch !== 'undefined') {
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 8000); // 30s timeout
+            const id = setTimeout(() => controller.abort(), 45000); // 30s timeout
             try {
                 const res = await fetch(url, { ...options, signal: controller.signal });
                 clearTimeout(id);
@@ -383,7 +383,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
             });
           });
           
-          req.setTimeout(8000, () => {
+          req.setTimeout(45000, () => {
               req.destroy(new Error("Request Timeout: Server Gemini tidak merespons."));
           });
           
@@ -398,7 +398,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
 
       for (const key of apiKeys) {
         try {
-          const response = await myFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`, {
+          const response = await myFetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
