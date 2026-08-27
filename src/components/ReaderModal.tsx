@@ -60,6 +60,8 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
   // Customization states
   const [fontSize, setFontSize] = useState(settings?.fontSize || 32);
   const [showUi, setShowUi] = useState(false);
+  const [slideDir, setSlideDir] = useState<'left'|'right'|''>('');
+  const [pageKey, setPageKey] = useState(0);
 
   // Split screen states
   const [relatedPage, setRelatedPage] = useState<any>(null);
@@ -90,9 +92,11 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
 
     if (distance > minSwipeDistance) {
       // Swiped left -> Next Page
+      setSlideDir('left');
       nextPage();
     } else if (distance < -minSwipeDistance) {
       // Swiped right -> Previous Page
+      setSlideDir('right');
       prevPage();
     }
     
@@ -119,6 +123,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
       const page = await webAPI.getPage(bookId, currentPageId);
       if (page.data) {
         setCurrentPage(page.data);
+        setPageKey(k => k + 1);
         if (currentPageId === undefined || currentPageId !== page.data.id) {
           setCurrentPageId(page.data.id);
         }
@@ -246,7 +251,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
       >
         
         {/* Main Book Page */}
-        <div className="flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar pb-24 md:pb-8">
+        <div className={`flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar ${showUi ? "pb-24 md:pb-8" : "pb-4"}`}>
           <div className="w-full max-w-4xl mx-auto md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-gray-200 flex flex-col min-h-full" style={{ backgroundColor: 'var(--reader-paper)' }}>
             <div className="px-4 md:px-8 py-3 md:py-4 border-b border-gray-200 flex justify-between items-center text-gray-600 font-sans text-xs md:text-sm">
               <span className="font-bold truncate max-w-[50%]" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{bookInfo?.bk}</span>
@@ -259,7 +264,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                   <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : (
-                <div className="flex flex-col" style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}>
+                <div key={pageKey} className={`flex flex-col ${slideDir ? 'animate-slide-' + slideDir : ''}`} style={{ fontSize: `${fontSize}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)' }}>
                     {(currentPage?.text || '').split(/\r\n|\n|\r|<br\s*\/?>|<\/br>|\u2028|\u2029/i).map((line: string, i: number) => (
                       <div 
                         key={i} 
@@ -277,7 +282,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
 
         {/* Related Book (Split Screen) */}
         {showSplit && relatedPage && relatedBookInfo && (
-          <div className="flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar pb-24 md:pb-8" style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}>
+          <div className={`flex-1 p-0 md:p-4 lg:p-8 overflow-y-auto custom-scrollbar ${showUi ? "pb-24 md:pb-8" : "pb-4"}`} style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}>
             <div className="w-full max-w-4xl mx-auto md:rounded-sm shadow-[0_0_25px_rgba(0,0,0,0.05)] border-0 md:border border-gray-300 flex flex-col min-h-full" style={{ backgroundColor: 'var(--reader-paper)' }}>
               <div className="px-4 md:px-8 py-3 md:py-4 border-b border-gray-300 flex justify-between items-center text-gray-600 font-sans text-xs md:text-sm bg-black/5">
                 <span className="font-bold flex items-center gap-1 md:gap-2 truncate max-w-[50%]">
@@ -292,7 +297,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                     <div className="w-8 h-8 border-4 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : (
-                  <div className="flex flex-col" style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}>
+                  <div key={pageKey} className={`flex flex-col ${slideDir ? 'animate-slide-' + slideDir : ''}`} style={{ fontSize: `${Math.max(fontSize - 4, 16)}px`, lineHeight: '2.2', fontFamily: 'var(--arabic-font)', color: 'var(--app-text)' }}>
                       {(relatedPage?.text || '').split(/\r\n|\n|\r|<br\s*\/?>|<\/br>|\u2028|\u2029/i).map((line: string, i: number) => (
                         <div 
                           key={i} 
@@ -315,7 +320,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
       <div className={`absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 flex items-center bg-white/95 backdrop-blur-lg shadow-2xl rounded-full p-1 md:p-2 border border-[#e0e0e0] z-30 font-sans w-[95%] md:w-auto justify-between md:justify-center transition-all duration-300 ${showUi ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"} lg:translate-y-0 lg:opacity-100 lg:pointer-events-auto`}>
         {/* Previous is on the right visually in RTL */}
         <button 
-          onClick={prevPage} 
+          onClick={() => { setSlideDir('right'); prevPage(); }} 
           disabled={loading}
           className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
         >
@@ -329,7 +334,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
         
         {/* Next is on the left visually in RTL */}
         <button 
-          onClick={nextPage} 
+          onClick={() => { setSlideDir('left'); nextPage(); }} 
           disabled={loading}
           className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
         >
