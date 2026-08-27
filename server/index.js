@@ -433,46 +433,89 @@ app.post('/api/ask', express.json(), async (req, res) => {
       // 1. TERJEMAHKAN KE ARAB SEPERTI PHP!
       const translatedKeywords = await translateToSearchKeywords(question, apiKeys);
       
+      // 2. CEK KATALOG KITAB SEPERTI PHP!
+      let catalogText = '';
+      let matchedBkids = [];
+      try {
+          const qCleanCat = question.replace(/[^a-zA-Z0-9\s]/g, ' ');
+          const qWordsCat = qCleanCat.split(/\s+/).filter(w => w.length > 3).slice(0, 3);
+          if (qWordsCat.length > 0) {
+              const likeQuery = '%' + qWordsCat.join('%') + '%';
+              const stmtBooks = db.prepare(`SELECT bkid, bk as title, auth as author FROM books_meta WHERE bk LIKE ? OR auth LIKE ? LIMIT 5`);
+              const matchedBooks = stmtBooks.all(likeQuery, likeQuery);
+              if (matchedBooks.length > 0) {
+                  catalogText = "INFORMASI KATALOG PERPUSTAKAAN (DAFTAR KITAB YANG TERSEDIA):\n";
+                  for (const mb of matchedBooks) {
+                      matchedBkids.push(mb.bkid);
+                      catalogText += `- Judul: ${mb.title} ` + (mb.author ? `(Karya: ${mb.author})` : '') + "\n";
+                  }
+                  catalogText += "CATATAN UNTUK AI: Jika pengguna bertanya apakah kitab/buku tersebut ada di perpustakaan, jawablah ADA berdasarkan daftar di atas.\n\n";
+              }
+          }
+      } catch (err) {
+          console.error("Error catalog search", err);
+      }
+      
+      let contextData = [];
       let ftsQuery = '';
+      const stmtFts = db.prepare(`
+        SELECT p.book_id as bkid, p.page as match_page, p.part as match_juz, p.nass as snippet, b.bk as title
+        FROM pages_fts f
+        JOIN pages p ON f.rowid = p.rowid
+        JOIN books_meta b ON p.book_id = b.bkid
+        WHERE pages_fts MATCH ?
+        LIMIT 5
+      `);
+
       if (translatedKeywords) {
           const words = translatedKeywords.split(/\s+/).filter(w => w.length > 1).slice(0, 5);
+          
+          // Mekanisme Fallback berjenjang seperti PHP
+          // Step A: Strict AND
           ftsQuery = words.map(w => `"${w}"`).join(' AND ');
+          try { contextData = stmtFts.all(ftsQuery); } catch(e){}
+
+          // Step B: Jika kosong, coba OR (Fallback)
+          if (contextData.length === 0 && words.length > 1) {
+              ftsQuery = words.map(w => `"${w}"`).join(' OR ');
+              try { contextData = stmtFts.all(ftsQuery); } catch(e){}
+          }
       } else {
           // Fallback ke basic indonesia jika terjemahan gagal
           let qClean = question.replace(/[^\p{L}\p{N}\s]/gu, ' ');
           const stopWords = ['siapa', 'apa', 'kapan', 'dimana', 'bagaimana', 'kenapa', 'mengapa', 'apakah', 'berapa'];
           let words = qClean.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w.toLowerCase()));
           words.sort((a, b) => b.length - a.length);
-          ftsQuery = words.slice(0, 5).map(w => `"${w}"`).join(' AND ');
-          if(!ftsQuery) ftsQuery = `"${question}"`;
+          
+          if (words.length > 0) {
+              ftsQuery = words.slice(0, 5).map(w => `"${w}"`).join(' AND ');
+              try { contextData = stmtFts.all(ftsQuery); } catch(e){}
+              
+              if (contextData.length === 0 && words.length > 1) {
+                  ftsQuery = words.slice(0, 5).map(w => `"${w}"`).join(' OR ');
+                  try { contextData = stmtFts.all(ftsQuery); } catch(e){}
+              }
+          } else {
+              ftsQuery = `"${question}"`;
+              try { contextData = stmtFts.all(ftsQuery); } catch(e){}
+          }
       }
 
-    const stmt = db.prepare(`
-      SELECT p.book_id as bkid, p.page as match_page, p.part as match_juz, p.nass as snippet, b.bk as title
-      FROM pages_fts f
-      JOIN pages p ON f.rowid = p.rowid
-      JOIN books_meta b ON p.book_id = b.bkid
-      WHERE pages_fts MATCH ?
-      LIMIT 5
-    `);
-    
-    const contextData = stmt.all(ftsQuery);
-
-    let contextText = '';
-    let references = [];
-    if (contextData.length === 0) {
-      contextText = "Tidak ada teks referensi yang ditemukan.";
-    } else {
-      contextText = contextData.map((r, i) => {
-        references.push({
-            bkid: r.bkid,
-            title: r.title,
-            juz: r.match_juz,
-            page: r.match_page
-        });
-        return `[Referensi ${i+1}: ${r.title} (Juz ${r.match_juz}, Hlm ${r.match_page})]\n${r.snippet.replace(/<[^>]+>/g, '').substring(0, 500)}\n`;
-      }).join('\n');
-    }
+      let contextText = catalogText;
+      let references = [];
+      if (contextData.length === 0 && !catalogText) {
+        contextText = "Tidak ada teks referensi yang ditemukan.";
+      } else {
+        contextText += contextData.map((r, i) => {
+          references.push({
+              bkid: r.bkid,
+              title: r.title,
+              juz: r.match_juz,
+              page: r.match_page
+          });
+          return `[Referensi ${i+1}: ${r.title} (Juz ${r.match_juz}, Hlm ${r.match_page})]\n${r.snippet.replace(/<[^>]+>/g, '').substring(0, 500)}\n`;
+        }).join('\n');
+      }
 
     const prompt = "Anda adalah asisten virtual (AI) Islami bernama 'Maktabah Bot' yang ramah dan berilmu. Tugas Anda adalah menjawab pertanyaan pengguna HANYA berdasarkan referensi konteks teks dari kitab/buku yang diberikan di bawah ini. Jika jawaban tidak terdapat di dalam konteks, katakan bahwa Anda tidak menemukan informasinya di database perpustakaan ini.\n\n"
       + "ATURAN BAHASA: Anda wajib mendeteksi bahasa yang digunakan pengguna pada pertanyaan. Jika pengguna bertanya dalam bahasa Arab, maka Anda HARUS menjawab dalam bahasa Arab (meskipun instruksi ini dalam bahasa Indonesia). Jika pengguna bertanya dalam bahasa Indonesia, jawab dalam bahasa Indonesia.\n\n"
