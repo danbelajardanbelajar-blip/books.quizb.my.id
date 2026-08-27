@@ -96,10 +96,13 @@ export default function AskAI({ openBook }: { openBook: (id: number) => void }) 
             <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600">
               <Bot size={16} />
             </div>
-            <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm flex gap-1 items-center h-10">
-              <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="bg-white border border-emerald-100 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm flex items-center gap-3">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span className="text-sm text-emerald-700 italic">Mesin sedang membaca referensi kitab & berpikir... (mohon tunggu, butuh hingga 1 menit)</span>
             </div>
           </div>
         )}
