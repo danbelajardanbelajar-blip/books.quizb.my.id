@@ -352,10 +352,13 @@ app.post('/api/ask', express.json(), async (req, res) => {
       }
 
       
+      // myFetch: polyfill untuk Node.js lama yang tidak punya native fetch()
+      // Penting: https.request() di Node <18 tidak bisa menerima string URL + options object secara bersamaan.
+      // Kita harus parse URL terlebih dahulu, lalu gabungkan ke dalam satu object.
       const myFetch = async (url, options) => {
         if (typeof fetch !== 'undefined') {
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 45000); // 30s timeout
+            const id = setTimeout(() => controller.abort(), 45000);
             try {
                 const res = await fetch(url, { ...options, signal: controller.signal });
                 clearTimeout(id);
@@ -367,29 +370,43 @@ app.post('/api/ask', express.json(), async (req, res) => {
         }
         
         return new Promise((resolve, reject) => {
-          if (options.body) {
-              options.headers = options.headers || {};
-              options.headers['Content-Length'] = Buffer.byteLength(options.body);
-          }
-          const req = https.request(url, options, (res) => {
-            let body = '';
-            res.on('data', chunk => body += chunk);
-            res.on('end', () => {
-              resolve({
-                ok: res.statusCode >= 200 && res.statusCode < 300,
-                status: res.statusCode,
-                json: async () => JSON.parse(body)
+          try {
+            const parsedUrl = new URL(url);
+            const reqOptions = {
+                hostname: parsedUrl.hostname,
+                port: parsedUrl.port || 443,
+                path: parsedUrl.pathname + parsedUrl.search,
+                method: options.method || 'GET',
+                headers: options.headers || {},
+            };
+            
+            const body = options.body;
+            if (body) {
+                reqOptions.headers['Content-Length'] = Buffer.byteLength(body);
+            }
+            
+            const req = https.request(reqOptions, (res) => {
+              let responseBody = '';
+              res.on('data', chunk => responseBody += chunk);
+              res.on('end', () => {
+                resolve({
+                  ok: res.statusCode >= 200 && res.statusCode < 300,
+                  status: res.statusCode,
+                  json: async () => JSON.parse(responseBody)
+                });
               });
             });
-          });
-          
-          req.setTimeout(45000, () => {
-              req.destroy(new Error("Request Timeout: Server Gemini tidak merespons."));
-          });
-          
-          req.on('error', reject);
-          if (options.body) req.write(options.body);
-          req.end();
+            
+            req.setTimeout(45000, () => {
+                req.destroy(new Error("Request Timeout: Server Gemini tidak merespons dalam 45 detik."));
+            });
+            
+            req.on('error', reject);
+            if (body) req.write(body);
+            req.end();
+          } catch(parseErr) {
+              reject(parseErr);
+          }
         });
       };
 
