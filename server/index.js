@@ -441,7 +441,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
           }
         } catch (err) {
           lastError = `Koneksi error: ${err.message}`;
-          if (err.message.includes('Timeout') || err.message.includes('timeout')) {
+          if (err.message.includes('Timeout') || err.message.includes('timeout') || err.message.includes('aborted')) {
               break; // Jangan coba key lain jika server terblokir/timeout
           }
           continue; // Coba key berikutnya
