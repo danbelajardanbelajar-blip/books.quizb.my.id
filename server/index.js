@@ -39,6 +39,40 @@ try {
   console.error("Failed to connect to database:", err);
 }
 
+// === DIAGNOSTIC ENDPOINT: tes koneksi Gemini langsung dari Passenger ===
+app.get('/api/test-gemini', async (req, res) => {
+  const envKeys = process.env.GEMINI_API_KEY || '';
+  const apiKeys = envKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
+  const results = [];
+  
+  // Test only the first 3 keys to save time
+  for (const key of apiKeys.slice(0, 3)) {
+    const keyPreview = key.substring(0, 10) + '...';
+    const startTime = Date.now();
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: 'Jawab singkat: 1+1=' }] }] })
+      });
+      const elapsed = Date.now() - startTime;
+      const data = await response.json();
+      const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'no text';
+      results.push({ key: keyPreview, status: response.status, elapsed: elapsed + 'ms', answer: answer.substring(0, 100) });
+    } catch (err) {
+      const elapsed = Date.now() - startTime;
+      results.push({ key: keyPreview, error: err.message, elapsed: elapsed + 'ms' });
+    }
+  }
+  
+  res.json({
+    nodeVersion: process.version,
+    totalKeys: apiKeys.length,
+    fetchAvailable: typeof fetch !== 'undefined',
+    results
+  });
+});
+
 app.get('/api/search', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
