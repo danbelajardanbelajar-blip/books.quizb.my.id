@@ -45,12 +45,16 @@ app.get('/api/test-gemini', async (req, res) => {
   const apiKeys = envKeys.split(',').map(k => k.trim()).filter(k => k.length > 0);
   const results = [];
   
-  // Test only the first 3 keys to save time
-  for (const key of apiKeys.slice(0, 3)) {
-    const keyPreview = key.substring(0, 10) + '...';
+  // Test only the FIRST key with multiple models
+  const key = apiKeys.find(k => k.startsWith('AQ.'));
+  if (!key) return res.json({ error: 'No active AQ key' });
+  const keyPreview = key.substring(0, 10) + '...';
+  
+  const models = ['gemini-1.5-flash8b', 'gemini-1.5-flash', 'gemini-flash-latest'];
+  for (const model of models) {
     const startTime = Date.now();
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: 'Jawab singkat: 1+1=' }] }] })
@@ -58,10 +62,10 @@ app.get('/api/test-gemini', async (req, res) => {
       const elapsed = Date.now() - startTime;
       const data = await response.json();
       const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'no text';
-      results.push({ key: keyPreview, status: response.status, elapsed: elapsed + 'ms', answer: answer.substring(0, 100) });
+      results.push({ model, status: response.status, elapsed: elapsed + 'ms', answer: answer.substring(0, 100) });
     } catch (err) {
       const elapsed = Date.now() - startTime;
-      results.push({ key: keyPreview, error: err.message, elapsed: elapsed + 'ms' });
+      results.push({ model, error: err.message, elapsed: elapsed + 'ms' });
     }
   }
   
