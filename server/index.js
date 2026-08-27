@@ -354,7 +354,16 @@ app.post('/api/ask', express.json(), async (req, res) => {
       
       const myFetch = async (url, options) => {
         if (typeof fetch !== 'undefined') {
-            return fetch(url, options);
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 8000); // 30s timeout
+            try {
+                const res = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(id);
+                return res;
+            } catch (err) {
+                clearTimeout(id);
+                throw err;
+            }
         }
         
         return new Promise((resolve, reject) => {
@@ -373,6 +382,11 @@ app.post('/api/ask', express.json(), async (req, res) => {
               });
             });
           });
+          
+          req.setTimeout(8000, () => {
+              req.destroy(new Error("Request Timeout: Server Gemini tidak merespons."));
+          });
+          
           req.on('error', reject);
           if (options.body) req.write(options.body);
           req.end();
@@ -427,6 +441,9 @@ app.post('/api/ask', express.json(), async (req, res) => {
           }
         } catch (err) {
           lastError = `Koneksi error: ${err.message}`;
+          if (err.message.includes('Timeout') || err.message.includes('timeout')) {
+              break; // Jangan coba key lain jika server terblokir/timeout
+          }
           continue; // Coba key berikutnya
         }
       }
