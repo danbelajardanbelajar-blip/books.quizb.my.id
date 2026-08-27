@@ -348,7 +348,12 @@ app.post('/api/ask', express.json(), async (req, res) => {
         if (typeof fetch !== 'undefined') {
             return fetch(url, options);
         }
+        
         return new Promise((resolve, reject) => {
+          if (options.body) {
+              options.headers = options.headers || {};
+              options.headers['Content-Length'] = Buffer.byteLength(options.body);
+          }
           const req = https.request(url, options, (res) => {
             let body = '';
             res.on('data', chunk => body += chunk);

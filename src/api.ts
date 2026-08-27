@@ -16,7 +16,15 @@ export const webAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ q: query })
     });
-    const data = await res.json();
+    
+    let data;
+    try {
+        data = await res.json();
+    } catch (e) {
+        await res.text().catch(() => '');
+        throw new Error(`Server returned invalid response (Status ${res.status}). Ini biasanya karena koneksi terputus atau server sedang sibuk (Timeout).`);
+    }
+
     if (!res.ok) {
         if (data.message) {
             throw new Error(data.message);
