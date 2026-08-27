@@ -2,21 +2,21 @@ import express from 'express';
 import cors from 'cors';
 import Database from 'better-sqlite3';
 import path from 'path';
-
 import fs from 'fs';
-process.on('uncaughtException', (err) => {
-    fs.appendFileSync('cpanel_error.log', new Date().toISOString() + ' uncaughtException: ' + (err.stack || err) + '\n');
-});
-process.on('unhandledRejection', (reason, promise) => {
-    fs.appendFileSync('cpanel_error.log', new Date().toISOString() + ' unhandledRejection: ' + (reason.stack || reason) + '\n');
-});
-
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import https from 'https';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const logPath = path.join(__dirname, '..', 'cpanel_error.log');
+
+process.on('uncaughtException', (err) => {
+    try { fs.appendFileSync(logPath, new Date().toISOString() + ' uncaughtException: ' + (err.stack || err) + '\n'); } catch(e) {}
+});
+process.on('unhandledRejection', (reason, promise) => {
+    try { fs.appendFileSync(logPath, new Date().toISOString() + ' unhandledRejection: ' + (reason && reason.stack ? reason.stack : reason) + '\n'); } catch(e) {}
+});
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -378,6 +378,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
                 path: parsedUrl.pathname + parsedUrl.search,
                 method: options.method || 'GET',
                 headers: options.headers || {},
+                rejectUnauthorized: false, // Sama dengan CURLOPT_SSL_VERIFYPEER=false di PHP
             };
             
             const body = options.body;
@@ -477,7 +478,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
 
   } catch (error) {
     try {
-        fs.appendFileSync('cpanel_error.log', new Date().toISOString() + ' /api/ask route error: ' + (error ? error.stack || error : 'null') + '\n');
+        fs.appendFileSync(logPath, new Date().toISOString() + ' /api/ask route error: ' + (error ? error.stack || error : 'null') + '\n');
     } catch(e) {}
     res.status(500).json({ status: 'error', message: 'Terjadi kesalahan sistem: ' + (error ? error.message : 'Unknown') });
   }
