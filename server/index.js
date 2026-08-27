@@ -2,7 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import Database from 'better-sqlite3';
 import path from 'path';
+
 import fs from 'fs';
+process.on('uncaughtException', (err) => {
+    fs.appendFileSync('cpanel_error.log', new Date().toISOString() + ' uncaughtException: ' + (err.stack || err) + '\n');
+});
+process.on('unhandledRejection', (reason, promise) => {
+    fs.appendFileSync('cpanel_error.log', new Date().toISOString() + ' unhandledRejection: ' + (reason.stack || reason) + '\n');
+});
+
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import https from 'https';
@@ -434,7 +442,10 @@ app.post('/api/ask', express.json(), async (req, res) => {
       });
 
   } catch (error) {
-    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan sistem: ' + error.message });
+    try {
+        fs.appendFileSync('cpanel_error.log', new Date().toISOString() + ' /api/ask route error: ' + (error ? error.stack || error : 'null') + '\n');
+    } catch(e) {}
+    res.status(500).json({ status: 'error', message: 'Terjadi kesalahan sistem: ' + (error ? error.message : 'Unknown') });
   }
 });
 
