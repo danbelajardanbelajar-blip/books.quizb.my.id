@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Shield, ChevronRight, ChevronLeft, BookMarked, Bot } from 'lucide-react';
+import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, History } from 'lucide-react';
 import './App.css';
 import { webAPI } from './api';
 import ReaderModal from './components/ReaderModal';
@@ -241,10 +241,20 @@ function App() {
             </button>
             <button 
               onClick={() => { setActiveTab('settings'); }}
-              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'settings' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] whitespace-nowrap ${activeTab === 'settings' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
               <SettingsIcon size={18} /> Pengaturan
             </button>
+
+            <a 
+              href="https://maktabah.quizb.my.id"
+              className="hidden lg:flex items-center gap-2 px-4 py-2 my-auto ml-2 rounded-full border border-white/30 text-white hover:bg-white hover:text-[var(--app-primary)] transition-all font-semibold text-sm shadow-sm whitespace-nowrap bg-white/10"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Kembali ke Maktabah versi lama"
+            >
+              <History size={16} /> Web Versi Lama
+            </a>
           </nav>
         </div>
       </header>
@@ -290,6 +300,11 @@ function App() {
                 <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Privasi</span>
                 <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
               </button>
+              
+              <a href="https://maktabah.quizb.my.id" target="_blank" rel="noopener noreferrer" className="mt-4 text-right p-4 bg-amber-50 text-amber-900 rounded-xl font-bold text-lg border border-amber-200 hover:bg-amber-100 hover:shadow-md transition-all flex justify-between items-center group shadow-sm">
+                <span className="flex items-center gap-3"><History className="text-amber-700" /> Web Versi Lama</span>
+                <ChevronLeft className="text-amber-400 group-hover:text-amber-700 transition-colors" />
+              </a>
             </div>
           </div>
         ) : (
@@ -485,6 +500,14 @@ function App() {
             >
               <Shield size={16} /> Kebijakan Privasi
             </button>
+            <a 
+              href="https://maktabah.quizb.my.id" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-white/70 hover:text-white transition-colors pb-1 flex items-center gap-2 border-b-2 border-transparent hover:border-white"
+            >
+              <History size={16} /> Web Versi Lama
+            </a>
           </div>
         </div>
       </footer>

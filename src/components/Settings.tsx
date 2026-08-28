@@ -1,4 +1,5 @@
 import React from 'react';
+import { History } from 'lucide-react';
 
 export const THEMES = [
   { id: 'light', name: 'Terang (Modern)', bg: '#f8fafc', text: '#1e293b', readerBg: '#f1f5f9', readerPaper: '#ffffff', primary: '#0f172a', primaryHover: '#1e293b' },
@@ -116,6 +117,23 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings }) => {
             >
               A+
             </button>
+          </div>
+        </div>
+
+        {/* Akses Web Lama */}
+        <div>
+          <h3 className="text-xl font-bold mb-4 border-b pb-2">Akses Web Versi Lama</h3>
+          <div className="bg-amber-50 p-6 rounded-lg border border-amber-200 text-center">
+            <p className="text-amber-900 mb-4 font-medium">Jika Anda masih ingin menggunakan fitur-fitur dari web versi lama, silakan klik tombol di bawah ini.</p>
+            <a 
+              href="https://maktabah.quizb.my.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-8 rounded-full shadow-md hover:shadow-lg transition-all"
+            >
+              <History size={20} />
+              Kembali ke Web Versi Lama
+            </a>
           </div>
         </div>
 
