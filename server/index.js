@@ -140,25 +140,16 @@ app.get('/api/search', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
     const rawQuery = req.query.q || '';
-    let query = rawQuery;
-    
-    // Transform query for exact phrase match priority if it has multiple words and no quotes
-    if (query && !query.includes('"')) {
-      const words = query.trim().split(/\s+/).filter(w => w.length > 0);
-      if (words.length > 1) {
-        const exactPhrase = '"' + words.join(' ') + '"';
-        const andMatch = '(' + words.join(' AND ') + ')';
-        query = exactPhrase + ' OR ' + andMatch;
-      }
-    }
+    const query = rawQuery.trim();
     
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
     
     // Log pencarian
-    if (page === 1 && rawQuery && rawQuery.length >= 3) {
+    if (page === 1 && query && query.length >= 3) {
         try {
-            db.prepare("INSERT INTO search_logs (query) VALUES (?)").run(rawQuery);
+            db.prepare("INSERT INTO search_logs (query) VALUES (?)").run(query);
         } catch(e) {}
     }
     
@@ -167,48 +158,80 @@ app.get('/api/search', (req, res) => {
       cat_ids = req.query.cat_id.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
     }
     
-    const offset = (page - 1) * limit;
+    let exactPhrase = '';
+    let andMatch = '';
+    const words = query.split(/\s+/).filter(w => w.length > 0);
+    
+    if (words.length > 1 && !query.includes('"')) {
+      exactPhrase = '"' + words.join(' ') + '"';
+      andMatch = '(' + words.join(' AND ') + ') NOT ' + exactPhrase;
+    } else {
+      // If single word or already contains quotes
+      exactPhrase = query;
+      andMatch = '';
+    }
 
     let total = 0;
     let results = [];
 
-    if (cat_ids.length > 0) {
-      const placeholders = cat_ids.map(() => '?').join(',');
-      const countStmt = db.prepare(`
-        SELECT COUNT(*) as total 
-        FROM pages_fts f
-        JOIN pages p ON f.rowid = p.rowid
-        JOIN books_meta b ON p.book_id = b.bkid
-        WHERE pages_fts MATCH ? AND b.cat IN (${placeholders})
-      `);
-      const totalRow = countStmt.get(query, ...cat_ids);
-      total = totalRow ? totalRow.total : 0;
+    const getQuery = (isCount, isExact) => {
+       const selectFields = isCount ? 'COUNT(*) as total' : `p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, ${isExact ? 1 : 0} as is_exact`;
+       let sql = `
+          SELECT ${selectFields}
+          FROM pages_fts f
+          JOIN pages p ON f.rowid = p.rowid
+          JOIN books_meta b ON p.book_id = b.bkid
+          WHERE pages_fts MATCH ?
+       `;
+       if (cat_ids.length > 0) {
+          const placeholders = cat_ids.map(() => '?').join(',');
+          sql += ` AND b.cat IN (${placeholders})`;
+       }
+       if (!isCount) {
+          sql += ` LIMIT ? OFFSET ?`;
+       }
+       return sql;
+    };
 
-      const stmt = db.prepare(`
-        SELECT p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, bm25(pages_fts) as rank
-        FROM pages_fts f
-        JOIN pages p ON f.rowid = p.rowid
-        JOIN books_meta b ON p.book_id = b.bkid
-        WHERE pages_fts MATCH ? AND b.cat IN (${placeholders})
-        ORDER BY rank
-        LIMIT ? OFFSET ?;
-      `);
-      results = stmt.all(query, ...cat_ids, limit, offset);
+    if (andMatch !== '') {
+        // Dual query mode (Exact Phrase priority)
+        const countExactStmt = db.prepare(getQuery(true, true));
+        const totalExact = cat_ids.length > 0 ? countExactStmt.get(exactPhrase, ...cat_ids).total : countExactStmt.get(exactPhrase).total;
+        
+        const countAndStmt = db.prepare(getQuery(true, false));
+        const totalAnd = cat_ids.length > 0 ? countAndStmt.get(andMatch, ...cat_ids).total : countAndStmt.get(andMatch).total;
+        
+        total = totalExact + totalAnd;
+        
+        if (offset < totalExact) {
+            // Fetch exact matches
+            const fetchExactStmt = db.prepare(getQuery(false, true));
+            const params = cat_ids.length > 0 ? [exactPhrase, ...cat_ids, limit, offset] : [exactPhrase, limit, offset];
+            results = fetchExactStmt.all(...params);
+            
+            // If exact matches didn't fill the limit, fetch the rest from AND matches
+            if (results.length < limit && totalAnd > 0) {
+                const remLimit = limit - results.length;
+                const fetchAndStmt = db.prepare(getQuery(false, false));
+                const params2 = cat_ids.length > 0 ? [andMatch, ...cat_ids, remLimit, 0] : [andMatch, remLimit, 0];
+                const extraResults = fetchAndStmt.all(...params2);
+                results = results.concat(extraResults);
+            }
+        } else {
+            // Fetch only AND matches (offset adjusted)
+            const andOffset = offset - totalExact;
+            const fetchAndStmt = db.prepare(getQuery(false, false));
+            const params = cat_ids.length > 0 ? [andMatch, ...cat_ids, limit, andOffset] : [andMatch, limit, andOffset];
+            results = fetchAndStmt.all(...params);
+        }
     } else {
-      const countStmt = db.prepare(`SELECT COUNT(*) as total FROM pages_fts WHERE pages_fts MATCH ?`);
-      const totalRow = countStmt.get(query);
-      total = totalRow ? totalRow.total : 0;
-
-      const stmt = db.prepare(`
-        SELECT p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, bm25(pages_fts) as rank
-        FROM pages_fts f
-        JOIN pages p ON f.rowid = p.rowid
-        JOIN books_meta b ON p.book_id = b.bkid
-        WHERE pages_fts MATCH ? 
-        ORDER BY rank
-        LIMIT ? OFFSET ?;
-      `);
-      results = stmt.all(query, limit, offset);
+        // Single query mode
+        const countStmt = db.prepare(getQuery(true, true));
+        total = cat_ids.length > 0 ? countStmt.get(exactPhrase, ...cat_ids).total : countStmt.get(exactPhrase).total;
+        
+        const fetchStmt = db.prepare(getQuery(false, true));
+        const params = cat_ids.length > 0 ? [exactPhrase, ...cat_ids, limit, offset] : [exactPhrase, limit, offset];
+        results = fetchStmt.all(...params);
     }
     
     res.json({ results, total, error: null });
