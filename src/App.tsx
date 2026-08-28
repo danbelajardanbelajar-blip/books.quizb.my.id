@@ -23,6 +23,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [recentSearches, setRecentSearches] = useState<{query:string}[]>([]);
   const limit = 50;
   
   // Advanced Search States
@@ -110,6 +111,11 @@ function App() {
     // @ts-ignore
     webAPI.getCategories().then(res => {
       if (res.data) setCategories(res.data);
+    }).catch(console.error);
+
+    // Fetch recent searches
+    webAPI.getRecentSearches().then(res => {
+      if (res.data) setRecentSearches(res.data);
     }).catch(console.error);
   }, []);
 
@@ -349,6 +355,24 @@ function App() {
 
             <div id="search-results">
               {error && <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 shadow-sm">{error}</div>}
+
+            {results.length === 0 && !loading && recentSearches.length > 0 && query.trim() === '' && (
+              <div className="mb-8 p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
+                <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><Search size={18} /> Pencarian Terakhir</h3>
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((rs, idx) => (
+                    <button 
+                      key={idx}
+                      onClick={() => { setQuery(rs.query); executeSearch(rs.query, 1); }}
+                      className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-600 px-4 py-2 rounded-full text-sm transition-all shadow-sm"
+                      dir="auto"
+                    >
+                      {rs.query}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {totalResults > 0 && (
               <div className="flex flex-col md:flex-row justify-between items-center mb-6 bg-[var(--reader-bg)] p-4 rounded-xl shadow-sm border border-black/5 gap-2">

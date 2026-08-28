@@ -14,7 +14,14 @@ export default function AskAI({ openBook }: { openBook: (id: number) => void }) 
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recentQuestions, setRecentQuestions] = useState<{query:string}[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    webAPI.getRecentQuestions().then(res => {
+      if (res.data) setRecentQuestions(res.data);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -91,6 +98,26 @@ export default function AskAI({ openBook }: { openBook: (id: number) => void }) 
           </div>
         ))}
         
+        {messages.length === 1 && recentQuestions.length > 0 && (
+          <div className="flex gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-transparent"></div>
+            <div className="max-w-[85%] md:max-w-[75%]">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 ml-1">Pertanyaan Terakhir:</p>
+              <div className="flex flex-wrap gap-2">
+                {recentQuestions.map((rq, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => { setInput(rq.query); }}
+                    className="bg-white hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 border border-gray-200 hover:border-emerald-200 px-4 py-2 rounded-full text-sm transition-all shadow-sm"
+                    dir="auto"
+                  >
+                    {rq.query}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {loading && (
           <div className="flex gap-3">
             <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600">

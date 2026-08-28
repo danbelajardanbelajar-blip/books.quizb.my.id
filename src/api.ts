@@ -74,5 +74,11 @@ export const webAPI = {
   },
   getCategoryBooks: async (categoryId: number) => {
     return fetchAPI(`/category/${categoryId}/books`);
+  },
+  getRecentSearches: async () => {
+    return fetchAPI(`/recent-searches`);
+  },
+  getRecentQuestions: async () => {
+    return fetchAPI(`/recent-questions`);
   }
 };

@@ -35,12 +35,68 @@ try {
   if (fs.existsSync(dbPath)) {
     db = new Database(dbPath, { fileMustExist: true });
     console.log("Database connected at:", dbPath);
+    
+    // Bikin tabel log otomatis
+    try {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS search_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            query TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+          CREATE TABLE IF NOT EXISTS ask_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question TEXT NOT NULL,
+            response TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+    } catch(e) { console.error("Gagal membuat tabel log:", e.message); }
   } else {
     console.log("Database not found at:", dbPath);
   }
 } catch (err) {
   console.error("Failed to connect to database:", err);
 }
+
+// === LOGGING ENDPOINTS ===
+app.get('/api/recent-searches', (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        const data = db.prepare("SELECT query FROM search_logs WHERE length(trim(query)) >= 3 ORDER BY id DESC LIMIT 200").all();
+        const unique = [];
+        const result = [];
+        for (const row of data) {
+            const q = row.query.toLowerCase().trim();
+            if (!unique.includes(q)) {
+                unique.push(q);
+                result.push({ query: row.query });
+                if (result.length >= limit) break;
+            }
+        }
+        res.json({ data: result });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/recent-questions', (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        const data = db.prepare("SELECT question FROM ask_logs WHERE length(trim(question)) >= 5 ORDER BY id DESC LIMIT 200").all();
+        const unique = [];
+        const result = [];
+        for (const row of data) {
+            const q = row.question.toLowerCase().trim();
+            if (!unique.includes(q)) {
+                unique.push(q);
+                result.push({ query: row.question });
+                if (result.length >= limit) break;
+            }
+        }
+        res.json({ data: result });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // === DIAGNOSTIC ENDPOINT: tes koneksi Gemini langsung dari Passenger ===
 app.get('/api/test-gemini', async (req, res) => {
@@ -86,6 +142,13 @@ app.get('/api/search', (req, res) => {
     const query = req.query.q;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
+    
+    // Log pencarian
+    if (page === 1 && query && query.length >= 3) {
+        try {
+            db.prepare("INSERT INTO search_logs (query) VALUES (?)").run(query);
+        } catch(e) {}
+    }
     
     let cat_ids = [];
     if (req.query.cat_id) {
@@ -615,6 +678,11 @@ app.post('/api/ask', express.json(), async (req, res) => {
           references
       });
       
+      // Simpan ke db
+      try {
+          db.prepare("INSERT INTO ask_logs (question, response) VALUES (?, ?)").run(question, aiResponse);
+      } catch(e) {}
+
       // Jika cache terlalu besar, hapus entry pertama (FIFO)
       if (askCache.size > 100) {
           const firstKey = askCache.keys().next().value;
