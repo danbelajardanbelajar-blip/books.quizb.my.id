@@ -223,7 +223,7 @@ function App() {
             className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           >
             <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
-            <h1 className="text-xl md:text-2xl font-bold" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة الشاملة</h1>
+            <h1 className="text-xl md:text-2xl font-bold" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h1>
           </a>
 
           {/* Navigation Menu (Hidden on mobile, uses bottom tabs instead) */}
@@ -343,7 +343,7 @@ function App() {
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                           Perpustakaan Digital Islam
                         </div>
-                        <h2 className="text-5xl md:text-7xl font-bold mb-4 drop-shadow-[0_4px_24px_rgba(201,162,39,0.4)] text-amber-300" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة الشاملة</h2>
+                        <h2 className="text-5xl md:text-7xl font-bold mb-4 drop-shadow-[0_4px_24px_rgba(201,162,39,0.4)] text-amber-300" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h2>
                         <p className="text-white/90 text-lg md:text-xl max-w-2xl mx-auto font-light tracking-wide leading-relaxed">
                           Eksplorasi ribuan literatur klasik dan khazanah keilmuan Islam dalam genggaman Anda.
                         </p>
