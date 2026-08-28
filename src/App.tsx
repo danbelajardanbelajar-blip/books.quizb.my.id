@@ -17,7 +17,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask'>('search');
 
   // Search States
-  const [searchMode, setSearchMode] = useState<'text' | 'title' | 'scholarium' | 'archive'>('text');
+  const [searchMode, setSearchMode] = useState<'text' | 'title' | 'pdf'>('text');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [totalResults, setTotalResults] = useState(0);
@@ -134,14 +134,19 @@ function App() {
         res = await webAPI.searchTitles(searchQuery, page, limit, selectedCategories.length > 0 ? selectedCategories.join(',') : undefined);
         setResults(res.data || []);
         setTotalResults(res.total || 0);
-      } else if (mode === 'scholarium') {
-        res = await webAPI.searchScholarium(searchQuery, page);
-        setResults(res.data || []);
-        setTotalResults(res.total || 0);
-      } else if (mode === 'archive') {
-        res = await webAPI.searchArchive(searchQuery, page);
-        setResults(res.response?.docs || []);
-        setTotalResults(res.response?.numFound || 0);
+      } else if (mode === 'pdf') {
+        const [scholariumRes, archiveRes] = await Promise.all([
+          webAPI.searchScholarium(searchQuery, page).catch(() => ({ data: [] })),
+          webAPI.searchArchive(searchQuery, page).catch(() => ({ response: { docs: [], numFound: 0 } }))
+        ]);
+        
+        const combinedResults = [
+          ...(scholariumRes.data || []).map((r: any) => ({ ...r, _source: 'scholarium' })),
+          ...(archiveRes.response?.docs || []).map((r: any) => ({ ...r, _source: 'archive' }))
+        ];
+        
+        setResults(combinedResults);
+        setTotalResults((scholariumRes.total || (scholariumRes.data?.length || 0)) + (archiveRes.response?.numFound || 0));
       }
       setCurrentPage(page);
     } catch (err: any) {
@@ -379,13 +384,12 @@ function App() {
               </button>
             </form>
 
-            <div className="flex flex-wrap gap-2 mb-6">
-              {[
-                { id: 'text', label: 'Teks', icon: <Search size={16}/> },
-                { id: 'title', label: 'Judul Kitab', icon: <BookMarked size={16}/> },
-                { id: 'scholarium', label: 'Scholarium', icon: <Library size={16}/> },
-                { id: 'archive', label: 'Archive.org', icon: <FolderSearch size={16}/> }
-              ].map(tab => (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {[
+                  { id: 'text', label: 'Teks', icon: <Search size={16}/> },
+                  { id: 'title', label: 'Judul Kitab', icon: <BookMarked size={16}/> },
+                  { id: 'pdf', label: 'PDF', icon: <FolderSearch size={16}/> }
+                ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => {
@@ -491,27 +495,33 @@ function App() {
                 </div>
               ))}
 
-              {searchMode === 'scholarium' && results.map((r, i) => (
-                <div key={i} className="bg-yellow-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-yellow-200 transition-all">
-                  <h3 className="text-lg font-bold text-yellow-900 break-words">{r.name}</h3>
-                  <a href={r.link} target="_blank" rel="noopener noreferrer" className="mt-3 bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-yellow-700 transition-colors inline-flex items-center gap-2">
-                     Buka File / Download
-                  </a>
-                </div>
-              ))}
-
-              {searchMode === 'archive' && results.map((r, i) => (
-                <div key={i} className="bg-blue-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-blue-200 transition-all">
-                  <h3 className="text-lg font-bold text-blue-900 break-words">{r.title}</h3>
-                  <p className="text-sm text-blue-700 mt-1">
-                    {r.creator && <span>Oleh: <strong>{Array.isArray(r.creator) ? r.creator.join(', ') : r.creator}</strong><br/></span>}
-                    {r.date && <span>Tahun: {r.date}</span>}
-                  </p>
-                  <a href={`https://archive.org/details/${r.identifier}`} target="_blank" rel="noopener noreferrer" className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
-                     Buka di Archive.org
-                  </a>
-                </div>
-              ))}
+              {searchMode === 'pdf' && results.map((r, i) => {
+                if (r._source === 'scholarium') {
+                  return (
+                    <div key={i} className="bg-yellow-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-yellow-200 transition-all relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-yellow-200 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase">Scholarium</div>
+                      <h3 className="text-lg font-bold text-yellow-900 break-words pr-16">{r.name}</h3>
+                      <a href={r.link} target="_blank" rel="noopener noreferrer" className="mt-3 bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-yellow-700 transition-colors inline-flex items-center gap-2">
+                         Buka File / Download
+                      </a>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div key={i} className="bg-blue-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-blue-200 transition-all relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-blue-200 text-blue-800 text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase">Archive.org</div>
+                      <h3 className="text-lg font-bold text-blue-900 break-words pr-16">{r.title}</h3>
+                      <p className="text-sm text-blue-700 mt-1">
+                        {r.creator && <span>Oleh: <strong>{Array.isArray(r.creator) ? r.creator.join(', ') : r.creator}</strong><br/></span>}
+                        {r.date && <span>Tahun: {r.date}</span>}
+                      </p>
+                      <a href={`https://archive.org/details/${r.identifier}`} target="_blank" rel="noopener noreferrer" className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+                         Buka di Archive.org
+                      </a>
+                    </div>
+                  );
+                }
+              })}
 
               {!loading && results.length === 0 && query && !error && (
                 <div className="text-center py-12 bg-[var(--reader-bg)] rounded-2xl border border-black/5">
