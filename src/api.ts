@@ -39,6 +39,18 @@ export const webAPI = {
     if (cat_id) url += `&cat_id=${cat_id}`;
     return fetchAPI(url);
   },
+  
+  searchTitles: async (query: string, page = 1, limit = 20, cat_id?: number | string) => {
+    let url = `/search_titles?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
+    if (cat_id) url += `&cat_id=${cat_id}`;
+    return fetchAPI(url);
+  },
+  searchScholarium: async (query: string, page = 1) => {
+    return fetchAPI(`/search_scholarium?q=${encodeURIComponent(query)}&page=${page}`);
+  },
+  searchArchive: async (query: string, page = 1) => {
+    return fetchAPI(`/search_archive?q=${encodeURIComponent(query)}&page=${page}`);
+  },
   getBookInfo: async (bookId: number) => {
     return fetchAPI(`/book/${bookId}`);
   },

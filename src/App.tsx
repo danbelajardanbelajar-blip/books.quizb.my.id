@@ -17,6 +17,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask'>('search');
 
   // Search States
+  const [searchMode, setSearchMode] = useState<'text' | 'title' | 'scholarium' | 'archive'>('text');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [totalResults, setTotalResults] = useState(0);
@@ -119,22 +120,34 @@ function App() {
     }).catch(console.error);
   }, []);
 
-  const executeSearch = async (searchQuery: string, page: number) => {
+  const executeSearch = async (searchQuery: string, page: number, mode = searchMode) => {
     if (!searchQuery.trim()) return;
     setLoading(true);
     setError('');
     try {
-      // @ts-ignore
-      const res = await webAPI.search(searchQuery, page, limit, selectedCategories.length > 0 ? selectedCategories.join(',') : undefined);
-      if (res.error) {
-        setError(res.error);
-      } else {
-        setResults(res.results);
-        setTotalResults(res.total);
-        setCurrentPage(page);
+      let res;
+      if (mode === 'text') {
+        res = await webAPI.search(searchQuery, page, limit, selectedCategories.length > 0 ? selectedCategories.join(',') : undefined);
+        setResults(res.results || []);
+        setTotalResults(res.total || 0);
+      } else if (mode === 'title') {
+        res = await webAPI.searchTitles(searchQuery, page, limit, selectedCategories.length > 0 ? selectedCategories.join(',') : undefined);
+        setResults(res.data || []);
+        setTotalResults(res.total || 0);
+      } else if (mode === 'scholarium') {
+        res = await webAPI.searchScholarium(searchQuery, page);
+        setResults(res.data || []);
+        setTotalResults(res.total || 0);
+      } else if (mode === 'archive') {
+        res = await webAPI.searchArchive(searchQuery, page);
+        setResults(res.response?.docs || []);
+        setTotalResults(res.response?.numFound || 0);
       }
+      setCurrentPage(page);
     } catch (err: any) {
       setError(err.message);
+      setResults([]);
+      setTotalResults(0);
     }
     setLoading(false);
   };
@@ -144,7 +157,7 @@ function App() {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    executeSearch(query, 1).then(() => {
+    executeSearch(query, 1, searchMode).then(() => {
       setTimeout(() => {
         const resultsEl = document.getElementById('search-results');
         if (resultsEl) {
@@ -156,10 +169,8 @@ function App() {
   };
 
   const handleNextPage = () => {
-    if (currentPage * limit < totalResults) {
-      executeSearch(query, currentPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    executeSearch(query, currentPage + 1, searchMode);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePrevPage = () => {
@@ -368,6 +379,31 @@ function App() {
               </button>
             </form>
 
+            <div className="flex flex-wrap gap-2 mb-6">
+              {[
+                { id: 'text', label: 'Teks', icon: <Search size={16}/> },
+                { id: 'title', label: 'Judul Kitab', icon: <BookMarked size={16}/> },
+                { id: 'scholarium', label: 'Scholarium', icon: <Library size={16}/> },
+                { id: 'archive', label: 'Archive.org', icon: <FolderSearch size={16}/> }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setSearchMode(tab.id as any);
+                    if (query.trim()) executeSearch(query, 1, tab.id as any);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm border ${
+                    searchMode === tab.id 
+                    ? 'bg-[var(--app-primary)] text-white border-[var(--app-primary)]' 
+                    : 'bg-[var(--reader-bg)] text-gray-600 border-black/10 hover:border-[var(--app-primary)]/50 hover:bg-[var(--app-primary)]/5'
+                  }`}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
+            </div>
+
+
             <div id="search-results">
               {error && <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 shadow-sm">{error}</div>}
 
@@ -400,21 +436,16 @@ function App() {
               </div>
             )}
 
+            
             <div className="space-y-4 md:space-y-6">
-              {results.map((r, i) => (
+              {searchMode === 'text' && results.map((r, i) => (
                 <div key={i} className="bg-[var(--reader-bg)] p-5 md:p-6 rounded-2xl shadow-sm hover:shadow-md border border-black/5 transition-all">
                   <div className="text-xs md:text-sm text-[var(--app-text)] opacity-70 mb-4 font-sans flex flex-col sm:flex-row sm:justify-between border-b border-black/5 pb-3 gap-3">
                     <div className="flex gap-4">
-                      <button 
-                        onClick={() => openBookInfo(r.book_id)}
-                        className="font-semibold hover:text-[var(--app-primary)] transition-colors flex items-center gap-1.5"
-                      >
+                      <button onClick={() => openBookInfo(r.book_id)} className="font-semibold hover:text-[var(--app-primary)] transition-colors flex items-center gap-1.5">
                         <Info size={16} /> Detail Kitab
                       </button>
-                      <button 
-                        onClick={() => openReader({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })}
-                        className="font-semibold text-[var(--app-primary)] hover:opacity-80 transition-colors flex items-center gap-1.5"
-                      >
+                      <button onClick={() => openReader({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })} className="font-semibold text-[var(--app-primary)] hover:opacity-80 transition-colors flex items-center gap-1.5">
                         <BookOpen size={16} /> Baca Kitab
                       </button>
                     </div>
@@ -433,18 +464,55 @@ function App() {
                       title="Klik teks untuk membaca halaman ini"
                       style={{ fontFamily: 'var(--arabic-font)' }}
                     >
-                      {(r.snippet || '').split(/\r\n|\n|\r|<br\s*\/?>|<\/br>|\u2028|\u2029/i).map((line: string, i: number) => (
-                        <div 
-                          key={i} 
-                          dir="auto" 
-                          className="whitespace-pre-wrap text-justify" 
-                          style={{ wordBreak: 'break-word' }}
-                          dangerouslySetInnerHTML={{ __html: line }} 
-                        />
+                      {(r.snippet || '').split(/\r\n|\n|\r|<br\s*\/?>|<\/br>|\u2028|\u2029/i).map((line: string, idx: number) => (
+                        <div key={idx} dir="auto" className="whitespace-pre-wrap text-justify" style={{ wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: line }} />
                       ))}
                     </div>
                 </div>
               ))}
+
+              {searchMode === 'title' && results.map((r, i) => (
+                <div key={i} className="bg-[var(--reader-bg)] p-5 md:p-6 rounded-2xl shadow-sm hover:shadow-md border border-black/5 transition-all">
+                  <div className="flex flex-col gap-3">
+                    <h3 dir="auto" style={{ fontFamily: 'var(--arabic-font)' }} className="text-2xl font-bold text-[var(--app-primary)]">{r.bk}</h3>
+                    <p className="text-sm text-gray-600">
+                      <strong>Penulis:</strong> {r.author_name || 'Tidak diketahui'} <br/>
+                      <strong>Kategori:</strong> {r.category_name || '-'}
+                    </p>
+                    <div className="flex gap-4 mt-2">
+                      <button onClick={() => openBookInfo(r.bkid)} className="bg-black/5 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[var(--app-primary)] hover:text-white transition-colors flex items-center gap-2">
+                        <Info size={16} /> Detail
+                      </button>
+                      <button onClick={() => openReader({ bookId: r.bkid })} className="bg-[var(--app-primary)] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[var(--app-primary-hover)] transition-colors flex items-center gap-2">
+                        <BookOpen size={16} /> Baca Kitab
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {searchMode === 'scholarium' && results.map((r, i) => (
+                <div key={i} className="bg-yellow-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-yellow-200 transition-all">
+                  <h3 className="text-lg font-bold text-yellow-900 break-words">{r.name}</h3>
+                  <a href={r.link} target="_blank" rel="noopener noreferrer" className="mt-3 bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-yellow-700 transition-colors inline-flex items-center gap-2">
+                     Buka File / Download
+                  </a>
+                </div>
+              ))}
+
+              {searchMode === 'archive' && results.map((r, i) => (
+                <div key={i} className="bg-blue-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-blue-200 transition-all">
+                  <h3 className="text-lg font-bold text-blue-900 break-words">{r.title}</h3>
+                  <p className="text-sm text-blue-700 mt-1">
+                    {r.creator && <span>Oleh: <strong>{Array.isArray(r.creator) ? r.creator.join(', ') : r.creator}</strong><br/></span>}
+                    {r.date && <span>Tahun: {r.date}</span>}
+                  </p>
+                  <a href={`https://archive.org/details/${r.identifier}`} target="_blank" rel="noopener noreferrer" className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+                     Buka di Archive.org
+                  </a>
+                </div>
+              ))}
+
               {!loading && results.length === 0 && query && !error && (
                 <div className="text-center py-12 bg-[var(--reader-bg)] rounded-2xl border border-black/5">
                   <Search className="mx-auto text-gray-300 mb-3" size={48} />

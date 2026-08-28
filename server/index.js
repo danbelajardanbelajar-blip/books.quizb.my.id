@@ -731,6 +731,89 @@ app.get('/api/category/:id/books', (req, res) => {
   }
 });
 
+
+// --- NEW SEARCH ENDPOINTS ---
+
+app.get('/api/search_titles', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const query = req.query.q;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    let cat_ids = [];
+    if (req.query.cat_id) {
+      cat_ids = req.query.cat_id.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+    }
+
+    if (!query) {
+       return res.json({ data: [], total: 0, page, limit });
+    }
+
+    let whereClause = "WHERE b.bk LIKE ?";
+    let params = [`%${query}%`];
+
+    if (cat_ids.length > 0) {
+      const placeholders = cat_ids.map(() => '?').join(',');
+      whereClause += ` AND b.cat IN (${placeholders})`;
+      params.push(...cat_ids);
+    }
+
+    const countStmt = db.prepare(`SELECT COUNT(*) as total FROM books_meta b ${whereClause}`);
+    const total = countStmt.get(...params).total;
+
+    const stmt = db.prepare(`
+      SELECT b.bkid, b.bk, b.inf, a.auth as author_name, c.name as category_name
+      FROM books_meta b
+      LEFT JOIN authors a ON b.authno = a.authid
+      LEFT JOIN categories c ON b.cat = c.id
+      ${whereClause}
+      ORDER BY b.bk ASC
+      LIMIT ? OFFSET ?
+    `);
+    
+    params.push(limit, offset);
+    const data = stmt.all(...params);
+
+    res.json({ data, total, page, limit });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/search_scholarium', async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    const page = req.query.page || 1;
+    const url = `https://maktabah.quizb.my.id/api.php?action=search_scholarium_pdfs&q=${encodeURIComponent(q)}&page=${page}`;
+    
+    // We use dynamic import for node-fetch or native fetch in node 18+
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/search_archive', async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    const page = req.query.page || 1;
+    const archiveQ = q.split(/\s+/).filter(Boolean).join(' AND ');
+    const url = `https://archive.org/advancedsearch.php?q=title:(${encodeURIComponent(archiveQ)})+AND+mediatype:(texts)&fl[]=identifier,title,creator,date&rows=10&page=${page}&output=json`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- END NEW SEARCH ENDPOINTS ---
+
 // Serve static frontend files in production
 const distPath = path.join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {
