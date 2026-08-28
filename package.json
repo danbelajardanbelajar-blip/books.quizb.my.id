@@ -35,7 +35,7 @@
   },
   "build": {
     "appId": "com.shamela.golden",
-    "productName": "Maktabah Syamilah Golden",
+    "productName": "al Maktabah as Sunniyyah",
     "win": {
       "target": [
         "nsis",

@@ -470,7 +470,7 @@ function App() {
       <footer className="hidden md:block bg-[var(--app-primary)] text-white py-6 md:py-8 mt-auto shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm md:text-base font-medium opacity-90 flex items-center gap-2">
-            &copy; {new Date().getFullYear()} Maktabah Syamilah Golden.
+            &copy; {new Date().getFullYear()} al Maktabah as Sunniyyah.
           </div>
           <div className="flex gap-6 text-sm md:text-base font-bold">
             <button 
