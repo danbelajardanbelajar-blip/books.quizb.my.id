@@ -447,7 +447,7 @@ function App() {
                   className="bg-[var(--app-primary)] text-white p-3 rounded-xl font-bold hover:bg-[var(--app-primary-hover)] disabled:opacity-50 transition-all"
                   title="Sebelumnya"
                 >
-                  <ChevronRight size={24} />
+                  <ChevronLeft size={24} />
                 </button>
                 <span className="flex items-center font-bold px-4 text-[var(--app-text)] min-w-[100px] justify-center">
                   {currentPage} / {totalPages}
@@ -458,7 +458,7 @@ function App() {
                   className="bg-[var(--app-primary)] text-white p-3 rounded-xl font-bold hover:bg-[var(--app-primary-hover)] disabled:opacity-50 transition-all"
                   title="Selanjutnya"
                 >
-                  <ChevronLeft size={24} />
+                  <ChevronRight size={24} />
                 </button>
               </div>
             )}
