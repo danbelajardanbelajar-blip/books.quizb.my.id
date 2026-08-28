@@ -14,10 +14,377 @@ import { useEffect, useRef } from 'react';
 
 
 function App() {
-  const [
+  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask'>('search');
+
+  // Search States
+  const [searchMode, setSearchMode] = useState<'text' | 'title' | 'scholarium' | 'archive'>('text');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [totalResults, setTotalResults] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [recentSearches, setRecentSearches] = useState<{query:string}[]>([]);
+  const limit = 50;
+  
+  // Advanced Search States
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+
+  // States for Book Modal
+  const [selectedBook, setSelectedBook] = useState<number | null>(null);
+  const [bookInfo, setBookInfo] = useState<any>(null);
+  const [toc, setToc] = useState<any[]>([]);
+  const [loadingBook, setLoadingBook] = useState(false);
+
+  // States for Reader Modal
+  const [readingConfig, setReadingConfig] = useState<{ bookId: number, pageId?: number, highlightQuery?: string } | null>(null);
+
+  // Settings State
+  
+  const openReader = (config: any) => {
+    setReadingConfig(config);
+    const hash = `#/read/${config.bookId}${config.pageId ? '/' + config.pageId : ''}`;
+    window.history.pushState(config, '', hash);
+  };
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/read/')) {
+        const parts = hash.replace('#/read/', '').split('/');
+        setReadingConfig({
+          bookId: parseInt(parts[0]),
+          pageId: parts[1] ? parseInt(parts[1]) : undefined,
+          highlightQuery: e.state?.highlightQuery || ''
+        });
+      } else {
+        setReadingConfig(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    // Initial load
+    if (window.location.hash.startsWith('#/read/')) {
+      handlePopState({ state: null } as PopStateEvent);
+    }
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  
+  const scrollRef = useRef<number>(0);
+  useEffect(() => {
+    if (readingConfig) {
+      scrollRef.current = window.scrollY;
+    } else {
+      // Small timeout to allow DOM to render before scrolling
+      setTimeout(() => window.scrollTo(0, scrollRef.current), 50);
+    }
+  }, [readingConfig]);
+
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('maktabah_settings');
+    return saved ? JSON.parse(saved) : {
+      arabicFont: 'Amiri',
+      latinFont: 'Inter',
+      theme: 'green',
+      fontSize: 24
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('maktabah_settings', JSON.stringify(settings));
+    const theme = THEMES.find(t => t.id === settings.theme) || THEMES[0];
+    const root = document.documentElement;
+    root.style.setProperty('--app-bg', theme.bg);
+    root.style.setProperty('--app-text', theme.text);
+    root.style.setProperty('--reader-bg', theme.readerBg);
+    root.style.setProperty('--reader-paper', theme.readerPaper);
+    // @ts-ignore
+    root.style.setProperty('--app-primary', theme.primary || '#0f172a');
+    // @ts-ignore
+    root.style.setProperty('--app-primary-hover', theme.primaryHover || '#1e293b');
+    root.style.setProperty('--arabic-font', `"${settings.arabicFont}", serif`);
+    root.style.setProperty('--latin-font', `"${settings.latinFont}", sans-serif`);
+    root.style.setProperty('--app-font-size', `${settings.fontSize}px`);
+  }, [settings]);
+
+  useEffect(() => {
+    // @ts-ignore
+    webAPI.getCategories().then(res => {
+      if (res.data) setCategories(res.data);
+    }).catch(console.error);
+
+    // Fetch recent searches
+    webAPI.getRecentSearches().then(res => {
+      if (res.data) setRecentSearches(res.data);
+    }).catch(console.error);
+  }, []);
+
+  const executeSearch = async (searchQuery: string, page: number, mode = searchMode) => {
+    if (!searchQuery.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      let res;
+      if (mode === 'text') {
+        res = await webAPI.search(searchQuery, page, limit, selectedCategories.length > 0 ? selectedCategories.join(',') : undefined);
+        setResults(res.results || []);
+        setTotalResults(res.total || 0);
+      } else if (mode === 'title') {
+        res = await webAPI.searchTitles(searchQuery, page, limit, selectedCategories.length > 0 ? selectedCategories.join(',') : undefined);
+        setResults(res.data || []);
+        setTotalResults(res.total || 0);
+      } else if (mode === 'scholarium') {
+        res = await webAPI.searchScholarium(searchQuery, page);
+        setResults(res.data || []);
+        setTotalResults(res.total || 0);
+      } else if (mode === 'archive') {
+        res = await webAPI.searchArchive(searchQuery, page);
+        setResults(res.response?.docs || []);
+        setTotalResults(res.response?.numFound || 0);
+      }
+      setCurrentPage(page);
+    } catch (err: any) {
+      setError(err.message);
+      setResults([]);
+      setTotalResults(0);
+    }
+    setLoading(false);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    executeSearch(query, 1, searchMode).then(() => {
+      setTimeout(() => {
+        const resultsEl = document.getElementById('search-results');
+        if (resultsEl) {
+          const y = resultsEl.getBoundingClientRect().top + window.scrollY - 100;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 100);
+    });
+  };
+
+  const handleNextPage = () => {
+    executeSearch(query, currentPage + 1, searchMode);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      executeSearch(query, currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const openBookInfo = async (bookId: number) => {
+    setSelectedBook(bookId);
+    setLoadingBook(true);
+    try {
+      // @ts-ignore
+      const infoRes = await webAPI.getBookInfo(bookId);
+      // @ts-ignore
+      const tocRes = await webAPI.getToc(bookId);
+      
+      setBookInfo(infoRes.data);
+      setToc(tocRes.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoadingBook(false);
+  };
+
+  const totalPages = Math.ceil(totalResults / limit);
+
+  return (
+    <div className="flex flex-col min-h-screen font-sans pb-[70px] md:pb-0 transition-colors duration-300" dir="ltr" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
+      {!readingConfig && (
+        <>
+          <header className="bg-[var(--app-primary)] text-white shadow-lg relative z-40 sticky top-0 transition-colors duration-300 backdrop-blur-md bg-opacity-95" style={{ fontFamily: 'var(--latin-font)' }}>
+        <div className="flex justify-between items-center p-4 md:px-8 md:py-0 max-w-7xl mx-auto md:h-[80px]">
+          {/* Logo & Title */}
+          <div className="flex items-center gap-3 shrink-0">
+            <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
+            <h1 className="text-xl md:text-2xl font-bold" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة الشاملة</h1>
+          </div>
+
+          {/* Navigation Menu (Hidden on mobile, uses bottom tabs instead) */}
+          <nav className="hidden md:flex flex-row gap-4 lg:gap-6 font-sans h-full">
+            <button 
+              onClick={() => { setActiveTab('search'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'search' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <Search size={18} /> Pencarian
+            </button>
+            <button 
+              onClick={() => { setActiveTab('advanced_search'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'advanced_search' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <FolderSearch size={18} /> Cari Lanjut
+            </button>
+            <button 
+              onClick={() => { setActiveTab('catalog'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'catalog' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <Library size={18} /> Katalog
+            </button>
+              <button 
+                onClick={() => { setActiveTab('ask'); }}
+                className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'ask' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+              >
+                <Bot size={18} /> Tanya AI
+              </button>
+
+            <button 
+              onClick={() => { setActiveTab('quran'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'quran' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <BookOpen size={18} /> Al-Qur'an
+            </button>
+            <button 
+              onClick={() => { setActiveTab('rowa'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'rowa' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <UserCircle size={18} /> Kamus Perawi
+            </button>
+            <button 
+              onClick={() => { setActiveTab('settings'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] whitespace-nowrap ${activeTab === 'settings' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <SettingsIcon size={18} /> Pengaturan
+            </button>
+
+            <a 
+              href="https://maktabah.quizb.my.id"
+              className="hidden lg:flex items-center gap-2 px-4 py-2 my-auto ml-2 rounded-full border border-white/30 text-white hover:bg-white hover:text-[var(--app-primary)] transition-all font-semibold text-sm shadow-sm whitespace-nowrap bg-white/10"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Kembali ke Maktabah versi lama"
+            >
+              <History size={16} /> Web Versi Lama
+            </a>
+          </nav>
+        </div>
+      </header>
+      
+      <main className="flex-1 w-full mx-auto p-4 md:px-8 md:py-6 max-w-7xl relative">
+        {activeTab === 'quran' ? (
+          <QuranReader />
+        ) : activeTab === 'rowa' ? (
+          <RowaDictionary />
+        ) : activeTab === 'about' ? (
+          <About />
+        ) : activeTab === 'privacy' ? (
+          <Privacy />
+        ) : activeTab === 'settings' ? (
+          <Settings settings={settings} setSettings={setSettings} />
+        ) : activeTab === 'catalog' ? (
+          <Catalog openBook={openBookInfo} readBook={(bookId) => openReader({ bookId })} />
+        ) : activeTab === 'ask' ? (
+            <AskAI openBook={(bookId) => openReader({ bookId })} />
+          ) : activeTab === 'more' ? (
+          <div className="w-full bg-[var(--reader-bg)] p-6 rounded-2xl shadow-xl border border-[var(--app-primary)]/10 my-4 transition-all">
+            <h2 className="text-2xl font-bold mb-6 text-[var(--app-text)] border-b pb-4 flex items-center gap-3">
+              <Menu className="text-[var(--app-primary)]" /> Lainnya
+            </h2>
+            <div className="flex flex-col gap-4">
+              <button onClick={() => setActiveTab('quran')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><BookOpen className="text-[var(--app-primary)]" /> Al-Qur'an</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('rowa')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><UserCircle className="text-[var(--app-primary)]" /> Kamus Perawi</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('settings')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><SettingsIcon className="text-[var(--app-primary)]" /> Pengaturan</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('about')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><Info className="text-[var(--app-primary)]" /> Tentang</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('privacy')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Privasi</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              
+              <a href="https://maktabah.quizb.my.id" target="_blank" rel="noopener noreferrer" className="mt-4 text-right p-4 bg-amber-50 text-amber-900 rounded-xl font-bold text-lg border border-amber-200 hover:bg-amber-100 hover:shadow-md transition-all flex justify-between items-center group shadow-sm">
+                <span className="flex items-center gap-3"><History className="text-amber-700" /> Web Versi Lama</span>
+                <ChevronLeft className="text-amber-400 group-hover:text-amber-700 transition-colors" />
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full">
+            {activeTab === 'advanced_search' && (
+              <div className="mb-6 bg-[var(--reader-bg)] p-5 rounded-2xl border border-[var(--app-primary)]/20 shadow-sm">
+                <h3 className="font-bold text-[var(--app-primary)] mb-3 flex items-center gap-2">
+                  <FolderSearch size={20}/> Cari Lanjut (Berdasarkan Kategori)
+                </h3>
+                
+                <div className="max-h-80 md:max-h-[60vh] overflow-y-auto p-4 bg-white/50 border-2 border-black/5 rounded-xl flex flex-col gap-2 custom-scrollbar">
+                  <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-black/5 rounded-lg transition-colors border border-transparent hover:border-black/5">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedCategories.length === 0}
+                      onChange={() => setSelectedCategories([])}
+                      className="w-5 h-5 accent-[var(--app-primary)] rounded cursor-pointer"
+                    />
+                    <span className="text-gray-700 font-semibold select-none">-- Semua Kategori --</span>
+                  </label>
+                  <div className="h-px bg-black/5 my-1"></div>
+                  {categories.map(c => (
+                    <label key={c.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-black/5 rounded-lg transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCategories.includes(c.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCategories([...selectedCategories, c.id]);
+                          } else {
+                            setSelectedCategories(selectedCategories.filter(id => id !== c.id));
+                          }
+                        }}
+                        className="w-5 h-5 accent-[var(--app-primary)] rounded cursor-pointer"
+                      />
+                      <span className="text-gray-700 select-none">{c.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            <form onSubmit={handleSearch} className="mb-8 flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                  <Search className="text-gray-400" size={20} />
+                </div>
+                <input 
+                  type="text" 
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Cari di sini..." 
+                  className="w-full pl-4 pr-12 py-4 rounded-xl border-2 border-black/10 text-lg md:text-xl focus:outline-none focus:border-[var(--app-primary)] bg-[var(--reader-paper)] shadow-inner transition-all"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="bg-[var(--app-primary)] text-white px-8 py-4 rounded-xl font-bold text-lg md:text-xl hover:bg-[var(--app-primary-hover)] transition-all disabled:opacity-50 shadow-md flex justify-center items-center gap-2"
+              >
+                {loading ? 'Mencari...' : 'Cari'}
+              </button>
+            </form>
+
+            <div className="flex flex-wrap gap-2 mb-6">
+              {[
                 { id: 'text', label: 'Teks', icon: <Search size={16}/> },
                 { id: 'title', label: 'Judul Kitab', icon: <BookMarked size={16}/> },
-                { id: 'pdf', label: 'PDF', icon: <FolderSearch size={16}/> }
+                { id: 'scholarium', label: 'Scholarium', icon: <Library size={16}/> },
+                { id: 'archive', label: 'Archive.org', icon: <FolderSearch size={16}/> }
               ].map(tab => (
                 <button
                   key={tab.id}
