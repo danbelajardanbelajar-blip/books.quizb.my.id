@@ -493,36 +493,37 @@ function App() {
       <div dir="ltr" className="md:hidden fixed bottom-0 left-0 w-full bg-[var(--reader-bg)] border-t border-black/10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 h-[70px] pb-safe flex justify-around items-center transition-colors duration-300">
         <button 
           onClick={() => { setActiveTab('search'); window.scrollTo(0,0); }} 
-          className={`flex flex-col items-center justify-center w-1/4 h-full transition-all duration-300 ${activeTab === 'search' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
+          className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ${activeTab === 'search' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <Search size={24} className="mb-1" />
           <span className="text-[10px] font-bold">Home</span>
         </button>
         <button 
           onClick={() => { setActiveTab('advanced_search'); window.scrollTo(0,0); }} 
-          className={`flex flex-col items-center justify-center w-1/4 h-full transition-all duration-300 ${activeTab === 'advanced_search' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
+          className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ${activeTab === 'advanced_search' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <FolderSearch size={24} className="mb-1" />
           <span className="text-[10px] font-bold">Lanjut</span>
         </button>
         <button 
           onClick={() => { setActiveTab('catalog'); window.scrollTo(0,0); }} 
-          className={`flex flex-col items-center justify-center w-1/4 h-full transition-all duration-300 ${activeTab === 'catalog' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
+          className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ${activeTab === 'catalog' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <Library size={24} className="mb-1" />
           <span className="text-[10px] font-bold">Katalog</span>
         </button>
         
-          <button 
-            onClick={() => { setActiveTab('ask'); window.scrollTo(0, 0); }}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'ask' ? 'text-[var(--app-primary)]' : 'text-gray-500 hover:text-gray-900'}`}
-          >
-            <Bot size={22} className={activeTab === 'ask' ? 'fill-[var(--app-primary)]/20' : ''} />
-            <span className="text-[10px] font-medium">Tanya AI</span>
-          </button>
-<button 
+        <button 
+          onClick={() => { setActiveTab('ask'); window.scrollTo(0, 0); }}
+          className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-colors ${activeTab === 'ask' ? 'text-[var(--app-primary)]' : 'text-gray-500 hover:text-gray-900'}`}
+        >
+          <Bot size={22} className={activeTab === 'ask' ? 'fill-[var(--app-primary)]/20' : ''} />
+          <span className="text-[10px] font-medium">Tanya AI</span>
+        </button>
+        
+        <button 
           onClick={() => { setActiveTab('more'); window.scrollTo(0,0); }} 
-          className={`flex flex-col items-center justify-center w-1/4 h-full transition-all duration-300 ${activeTab === 'more' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
+          className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ${activeTab === 'more' ? 'text-[var(--app-primary)] transform -translate-y-1' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <Menu size={24} className="mb-1" />
           <span className="text-[10px] font-bold">Lainnya</span>
