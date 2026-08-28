@@ -210,11 +210,21 @@ function App() {
         <>
           <header className="bg-[var(--app-primary)] text-white shadow-lg relative z-40 sticky top-0 transition-colors duration-300 backdrop-blur-md bg-opacity-95" style={{ fontFamily: 'var(--latin-font)' }}>
         <div className="flex justify-between items-center p-4 md:px-8 md:py-0 max-w-7xl mx-auto md:h-[80px]">
-          {/* Logo & Title */}
-          <div className="flex items-center gap-3 shrink-0">
+                    {/* Logo & Title */}
+          <a 
+            href="/" 
+            onClick={(e) => { 
+              e.preventDefault(); 
+              setActiveTab('search'); 
+              setQuery(''); 
+              setResults([]); 
+              window.scrollTo(0, 0); 
+            }} 
+            className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          >
             <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
             <h1 className="text-xl md:text-2xl font-bold" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة الشاملة</h1>
-          </div>
+          </a>
 
           {/* Navigation Menu (Hidden on mobile, uses bottom tabs instead) */}
           <nav className="hidden md:flex flex-row gap-4 lg:gap-6 font-sans h-full">
@@ -325,7 +335,22 @@ function App() {
           </div>
         ) : (
           <div className="w-full">
-            {activeTab === 'advanced_search' && (
+            {activeTab === 'search' && results.length === 0 && !loading && query.trim() === '' && (
+                 <div className="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--app-primary)] to-[#0f3d20] text-white shadow-2xl border border-white/10">
+                    <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 50% -20%, rgba(201,162,39,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 100%, rgba(22,101,52,0.4) 0%, transparent 60%)' }}></div>
+                    <div className="relative z-10 px-6 py-12 md:py-20 text-center">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-amber-300 text-xs font-semibold tracking-widest uppercase mb-6 shadow-sm backdrop-blur-md">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                          Perpustakaan Digital Islam
+                        </div>
+                        <h2 className="text-5xl md:text-7xl font-bold mb-4 drop-shadow-[0_4px_24px_rgba(201,162,39,0.4)] text-amber-300" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة الشاملة</h2>
+                        <p className="text-white/90 text-lg md:text-xl max-w-2xl mx-auto font-light tracking-wide leading-relaxed">
+                          Eksplorasi ribuan literatur klasik dan khazanah keilmuan Islam dalam genggaman Anda.
+                        </p>
+                    </div>
+                 </div>
+              )}
+              {activeTab === 'advanced_search' && (
               <div className="mb-6 bg-[var(--reader-bg)] p-5 rounded-2xl border border-[var(--app-primary)]/20 shadow-sm">
                 <h3 className="font-bold text-[var(--app-primary)] mb-3 flex items-center gap-2">
                   <FolderSearch size={20}/> Cari Lanjut (Berdasarkan Kategori)
