@@ -328,7 +328,7 @@ app.get('/api/download/:id', async (req, res) => {
         
     } catch (error) {
         console.error("Error creating docx:", error);
-        res.status(500).json({ error: 'Failed to generate Word document' });
+        res.status(500).json({ error: 'Failed to generate Word document: ' + error.message + ' ' + (error.stack || '') });
     }
 });
 
