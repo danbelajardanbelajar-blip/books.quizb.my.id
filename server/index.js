@@ -298,6 +298,7 @@ app.get('/api/download/:id', async (req, res) => {
         for (const p of pages) {
             let contentText = p.content || '';
             contentText = contentText.replace(/<[^>]*>?/gm, '');
+            contentText = contentText.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
             
             docChildren.push(new Paragraph({
                 text: `Juz: ${p.juz || 1} | Halaman: ${p.page || 1}`,
