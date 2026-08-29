@@ -229,58 +229,11 @@ function App() {
           {/* Navigation Menu (Hidden on mobile, uses bottom tabs instead) */}
           <nav className="hidden md:flex flex-row gap-4 lg:gap-6 font-sans h-full">
             <button 
-              onClick={() => { setActiveTab('search'); }}
-              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'search' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+              onClick={() => { setActiveTab('more'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] whitespace-nowrap ${activeTab === 'more' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
-              <Search size={18} /> Pencarian
+              <Menu size={18} /> Lainnya
             </button>
-            <button 
-              onClick={() => { setActiveTab('advanced_search'); }}
-              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'advanced_search' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-            >
-              <FolderSearch size={18} /> Cari Lanjut
-            </button>
-            <button 
-              onClick={() => { setActiveTab('catalog'); }}
-              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'catalog' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-            >
-              <Library size={18} /> Katalog
-            </button>
-              <button 
-                onClick={() => { setActiveTab('ask'); }}
-                className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'ask' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-              >
-                <Bot size={18} /> Tanya AI
-              </button>
-
-            <button 
-              onClick={() => { setActiveTab('quran'); }}
-              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'quran' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-            >
-              <BookOpen size={18} /> Al-Qur'an
-            </button>
-            <button 
-              onClick={() => { setActiveTab('rowa'); }}
-              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'rowa' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-            >
-              <UserCircle size={18} /> Kamus Perawi
-            </button>
-            <button 
-              onClick={() => { setActiveTab('settings'); }}
-              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] whitespace-nowrap ${activeTab === 'settings' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-            >
-              <SettingsIcon size={18} /> Pengaturan
-            </button>
-
-            <a 
-              href="https://maktabah.quizb.my.id"
-              className="hidden lg:flex items-center gap-2 px-4 py-2 my-auto ml-2 rounded-full border border-white/30 text-white hover:bg-white hover:text-[var(--app-primary)] transition-all font-semibold text-sm shadow-sm whitespace-nowrap bg-white/10"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Kembali ke Maktabah versi lama"
-            >
-              <History size={16} /> Web Versi Lama
-            </a>
           </nav>
         </div>
       </header>
