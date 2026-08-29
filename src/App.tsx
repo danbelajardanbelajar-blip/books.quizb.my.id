@@ -229,6 +229,31 @@ function App() {
           {/* Navigation Menu (Hidden on mobile, uses bottom tabs instead) */}
           <nav className="hidden md:flex flex-row gap-4 lg:gap-6 font-sans h-full">
             <button 
+              onClick={() => { setActiveTab('search'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'search' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <Search size={18} /> Pencarian
+            </button>
+            <button 
+              onClick={() => { setActiveTab('advanced_search'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'advanced_search' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <FolderSearch size={18} /> Cari Lanjut
+            </button>
+            <button 
+              onClick={() => { setActiveTab('catalog'); }}
+              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'catalog' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+            >
+              <Library size={18} /> Katalog
+            </button>
+              <button 
+                onClick={() => { setActiveTab('ask'); }}
+                className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] ${activeTab === 'ask' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
+              >
+                <Bot size={18} /> Tanya AI
+              </button>
+
+            <button 
               onClick={() => { setActiveTab('more'); }}
               className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] whitespace-nowrap ${activeTab === 'more' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
             >
