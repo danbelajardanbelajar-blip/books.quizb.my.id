@@ -24,6 +24,14 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [stats, setStats] = useState<{ total_books?: number, total_categories?: number, total_searches?: number, online_users?: number } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(err => console.error("Failed to load stats:", err));
+  }, []);
   const [recentSearches, setRecentSearches] = useState<{query:string}[]>([]);
   const limit = 50;
   
@@ -342,6 +350,27 @@ function App() {
                         <p className="text-white/90 text-lg md:text-xl max-w-2xl mx-auto font-light tracking-wide leading-relaxed">
                           Eksplorasi ribuan literatur klasik dan khazanah keilmuan Islam dalam genggaman Anda.
                         </p>
+                        
+                        {/* Stats Banner */}
+                        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-sm text-white/90 font-medium">
+                          {stats ? (
+                            <>
+                              <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 shadow-lg">
+                                <BookOpen size={16} className="text-amber-400" /> {stats.total_books ? stats.total_books.toLocaleString('id-ID') : '...'} Kitab
+                              </span>
+                              <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 shadow-lg">
+                                <Library size={16} className="text-amber-400" /> {stats.total_categories ? stats.total_categories.toLocaleString('id-ID') : '...'} Kategori
+                              </span>
+                              <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 shadow-lg">
+                                <Search size={16} className="text-amber-400" /> {stats.total_searches ? stats.total_searches.toLocaleString('id-ID') : '...'} Pencarian
+                              </span>
+                            </>
+                          ) : (
+                            <span className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 shadow-lg animate-pulse">
+                              <BookOpen size={16} className="text-amber-400" /> Memuat statistik...
+                            </span>
+                          )}
+                        </div>
                     </div>
                  </div>
               )}
