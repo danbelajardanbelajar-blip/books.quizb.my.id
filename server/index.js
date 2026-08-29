@@ -4,7 +4,8 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
+import docxLib from './vendor/docx.js';
+const { Document, Packer, Paragraph, TextRun, AlignmentType } = docxLib;
 import 'dotenv/config';
 import https from 'https';
 
