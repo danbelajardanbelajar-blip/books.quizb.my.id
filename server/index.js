@@ -297,9 +297,6 @@ app.get('/api/download/:id', async (req, res) => {
         
         for (const p of pages) {
             let contentText = p.content || '';
-            contentText = contentText.replace(/<br\s*\/?>/gi, '\n');
-            contentText = contentText.replace(/<[^>]*>?/gm, '');
-            contentText = contentText.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
             
             docChildren.push(new Paragraph({
                 text: `Juz: ${p.juz || 1} | Halaman: ${p.page || 1}`,
@@ -307,17 +304,20 @@ app.get('/api/download/:id', async (req, res) => {
                 spacing: { before: 200, after: 100 }
             }));
             
-            const lines = contentText.split('\n');
-            for (const line of lines) {
+            const lines = contentText.split(/\r\n|\n|\r|<br\s*\/?>|<\/br>|\u2028|\u2029/i);
+            for (const rawLine of lines) {
+                let line = rawLine.replace(/<[^>]*>?/gm, '');
+                line = line.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+                
                 if (line.trim()) {
                     docChildren.push(new Paragraph({
                         children: [new TextRun({ text: line.trim(), rightToLeft: true })],
-                        alignment: AlignmentType.RIGHT,
+                        alignment: AlignmentType.JUSTIFIED,
                         bidirectional: true
                     }));
                 }
             }
-            docChildren.push(new Paragraph({ text: "" }));
+            docChildren.push(new Paragraph({ text: "" })); // spacer antar halaman
         }
         
         const doc = new Document({ sections: [{ properties: {}, children: docChildren }] });
