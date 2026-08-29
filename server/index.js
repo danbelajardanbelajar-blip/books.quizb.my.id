@@ -279,7 +279,7 @@ app.get('/api/download/:id', async (req, res) => {
     try {
         const bookId = parseInt(req.params.id);
         
-        const bookStmt = db.prepare(`SELECT bkid, bk as title, auth as author FROM books_meta WHERE bkid = ?`);
+        const bookStmt = db.prepare(`SELECT b.bkid, b.bk as title, a.auth as author FROM books_meta b LEFT JOIN authors a ON b.authno = a.authid WHERE b.bkid = ?`);
         const book = bookStmt.get(bookId);
         if (!book) return res.status(404).json({ error: 'Book not found' });
         
@@ -653,7 +653,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
           const qWordsCat = qCleanCat.split(/\s+/).filter(w => w.length > 3).slice(0, 3);
           if (qWordsCat.length > 0) {
               const likeQuery = '%' + qWordsCat.join('%') + '%';
-              const stmtBooks = db.prepare(`SELECT bkid, bk as title, auth as author FROM books_meta WHERE bk LIKE ? OR auth LIKE ? LIMIT 5`);
+              const stmtBooks = db.prepare(`SELECT b.bkid, b.bk as title, a.auth as author FROM books_meta b LEFT JOIN authors a ON b.authno = a.authid WHERE b.bk LIKE ? OR a.auth LIKE ? LIMIT 5`);
               const matchedBooks = stmtBooks.all(likeQuery, likeQuery);
               if (matchedBooks.length > 0) {
                   catalogText = "INFORMASI KATALOG PERPUSTAKAAN (DAFTAR KITAB YANG TERSEDIA):\n";
