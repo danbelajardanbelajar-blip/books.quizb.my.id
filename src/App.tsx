@@ -253,12 +253,29 @@ function App() {
                 <Bot size={18} /> Tanya AI
               </button>
 
-            <button 
-              onClick={() => { setActiveTab('more'); }}
-              className={`flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] whitespace-nowrap ${activeTab === 'more' ? 'text-white border-b-white bg-white/10 md:bg-transparent' : 'text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent'}`}
-            >
-              <Menu size={18} /> Lainnya
-            </button>
+            <div className="relative group h-full flex items-center">
+              <button 
+                className="flex items-center gap-2 text-right md:text-center px-4 py-4 md:py-0 transition-all font-semibold text-sm lg:text-base md:h-full border-b-[3px] whitespace-nowrap text-white/70 hover:text-white border-b-transparent hover:bg-white/5 md:hover:bg-transparent"
+              >
+                <Menu size={18} /> Lainnya
+              </button>
+              
+              {/* Dropdown Menu */}
+              <div className="absolute top-full mt-0 right-0 hidden group-hover:block bg-[var(--reader-bg)] shadow-xl rounded-b-xl border border-[var(--app-primary)]/10 min-w-[220px] overflow-hidden z-50 text-[var(--app-text)] animate-in fade-in slide-in-from-top-2 duration-200">
+                <button onClick={() => setActiveTab('quran')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
+                  <BookOpen size={18} className="text-[var(--app-primary)]" /> Al-Qur'an
+                </button>
+                <button onClick={() => setActiveTab('rowa')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
+                  <UserCircle size={18} className="text-[var(--app-primary)]" /> Kamus Perawi
+                </button>
+                <button onClick={() => setActiveTab('settings')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
+                  <SettingsIcon size={18} className="text-[var(--app-primary)]" /> Pengaturan
+                </button>
+                <a href="https://maktabah.quizb.my.id" target="_blank" rel="noopener noreferrer" className="w-full text-left px-5 py-3 hover:bg-amber-50 text-amber-900 font-semibold transition-colors flex items-center gap-3 bg-amber-50/50">
+                  <History size={18} className="text-amber-700" /> Web Versi Lama
+                </a>
+              </div>
+            </div>
           </nav>
         </div>
       </header>
