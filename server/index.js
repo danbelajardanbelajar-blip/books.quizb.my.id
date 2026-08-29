@@ -63,7 +63,7 @@ try {
 app.get('/api/stats', (req, res) => {
     if (!db) return res.status(500).json({ error: 'Database not loaded' });
     try {
-        const totalBooks = db.prepare("SELECT COUNT(bkid) as count FROM main").get().count;
+        const totalBooks = db.prepare("SELECT COUNT(bkid) as count FROM books_meta").get().count;
         const totalCategories = db.prepare("SELECT COUNT(id) as count FROM categories").get().count;
         let totalSearches = 0;
         try {
