@@ -774,7 +774,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
 app.get('/api/categories', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
-    const data = db.prepare(`SELECT id, name FROM categories ORDER BY catord ASC`).all();
+    const data = db.prepare(`SELECT id, name FROM categories ORDER BY name ASC`).all();
     res.json({ data, error: null });
   } catch (error) {
     res.status(500).json({ error: error.message });
