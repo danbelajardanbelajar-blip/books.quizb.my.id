@@ -287,10 +287,22 @@ app.get('/api/download/:id', async (req, res) => {
         const pages = pagesStmt.all(bookId);
         
         const docChildren = [];
-        docChildren.push(new Paragraph({ text: book.title, heading: 'Heading1', alignment: AlignmentType.CENTER }));
+        
+        const isTitleRtl = /[\u0600-\u06FF]/.test(book.title || '');
+        docChildren.push(new Paragraph({ 
+            children: [new TextRun({ text: book.title || 'Kitab', rightToLeft: isTitleRtl })],
+            heading: 'Heading1', 
+            alignment: AlignmentType.CENTER,
+            bidirectional: isTitleRtl
+        }));
         
         if (book.author) {
-            docChildren.push(new Paragraph({ text: "Penulis: " + book.author, alignment: AlignmentType.CENTER }));
+            const isAuthRtl = /[\u0600-\u06FF]/.test(book.author);
+            docChildren.push(new Paragraph({ 
+                children: [new TextRun({ text: "Penulis: " + book.author, rightToLeft: isAuthRtl })],
+                alignment: AlignmentType.CENTER,
+                bidirectional: isAuthRtl
+            }));
         }
         
         docChildren.push(new Paragraph({ text: "", spacing: { after: 400 } }));
@@ -310,10 +322,11 @@ app.get('/api/download/:id', async (req, res) => {
                 line = line.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
                 
                 if (line.trim()) {
+                    const isRtl = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(line);
                     docChildren.push(new Paragraph({
-                        children: [new TextRun({ text: line.trim(), rightToLeft: true })],
-                        alignment: AlignmentType.JUSTIFIED,
-                        bidirectional: true
+                        children: [new TextRun({ text: line.trim(), rightToLeft: isRtl })],
+                        alignment: isRtl ? AlignmentType.JUSTIFIED : AlignmentType.LEFT,
+                        bidirectional: isRtl
                     }));
                 }
             }
