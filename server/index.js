@@ -330,7 +330,8 @@ app.get('/api/download/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to generate Word document' });
     }
 });
-\napp.get('/api/book/:id', (req, res) => {
+
+app.get('/api/book/:id', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
     const bookId = parseInt(req.params.id);
