@@ -297,6 +297,7 @@ app.get('/api/download/:id', async (req, res) => {
         
         for (const p of pages) {
             let contentText = p.content || '';
+            contentText = contentText.replace(/<br\s*\/?>/gi, '\n');
             contentText = contentText.replace(/<[^>]*>?/gm, '');
             contentText = contentText.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
             
@@ -324,7 +325,7 @@ app.get('/api/download/:id', async (req, res) => {
         
         let filename = (book.title || 'Kitab') + '.docx';
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        res.setHeader('Content-Disposition', 'attachment; filename="download.docx"');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
         res.send(Buffer.from(buffer));
         
     } catch (error) {
