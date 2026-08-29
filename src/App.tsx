@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, History } from 'lucide-react';
+import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, History } from 'lucide-react';
 import './App.css';
 import { webAPI } from './api';
 import ReaderModal from './components/ReaderModal';
@@ -498,6 +498,9 @@ function App() {
                       <button onClick={() => openBookInfo(r.book_id)} className="font-semibold hover:text-[var(--app-primary)] transition-colors flex items-center gap-1.5">
                         <Info size={16} /> Detail Kitab
                       </button>
+                      <a href={`/api/download/${r.book_id}`} target="_blank" className="font-semibold text-blue-600 hover:opacity-80 transition-colors flex items-center gap-1.5">
+                        <Download size={16} /> Word
+                      </a>
                       <button onClick={() => openReader({ bookId: r.book_id, pageId: r.page_id, highlightQuery: query })} className="font-semibold text-[var(--app-primary)] hover:opacity-80 transition-colors flex items-center gap-1.5">
                         <BookOpen size={16} /> Baca Kitab
                       </button>

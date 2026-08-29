@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import 'dotenv/config';
 import https from 'https';
 
@@ -270,7 +271,65 @@ app.get('/api/search', (req, res) => {
   }
 });
 
-app.get('/api/book/:id', (req, res) => {
+
+app.get('/api/download/:id', async (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    try {
+        const bookId = parseInt(req.params.id);
+        
+        const bookStmt = db.prepare(`SELECT bkid, bk as title, auth as author FROM books_meta WHERE bkid = ?`);
+        const book = bookStmt.get(bookId);
+        if (!book) return res.status(404).json({ error: 'Book not found' });
+        
+        const pagesStmt = db.prepare(`SELECT part as juz, page, nass as content FROM pages WHERE book_id = ? ORDER BY id ASC`);
+        const pages = pagesStmt.all(bookId);
+        
+        const docChildren = [];
+        docChildren.push(new Paragraph({ text: book.title, heading: 'Heading1', alignment: AlignmentType.CENTER }));
+        
+        if (book.author) {
+            docChildren.push(new Paragraph({ text: "Penulis: " + book.author, alignment: AlignmentType.CENTER }));
+        }
+        
+        docChildren.push(new Paragraph({ text: "", spacing: { after: 400 } }));
+        
+        for (const p of pages) {
+            let contentText = p.content || '';
+            contentText = contentText.replace(/<[^>]*>?/gm, '');
+            
+            docChildren.push(new Paragraph({
+                text: `Juz: ${p.juz || 1} | Halaman: ${p.page || 1}`,
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 200, after: 100 }
+            }));
+            
+            const lines = contentText.split('\n');
+            for (const line of lines) {
+                if (line.trim()) {
+                    docChildren.push(new Paragraph({
+                        children: [new TextRun({ text: line.trim(), rightToLeft: true })],
+                        alignment: AlignmentType.RIGHT,
+                        bidirectional: true
+                    }));
+                }
+            }
+            docChildren.push(new Paragraph({ text: "" }));
+        }
+        
+        const doc = new Document({ sections: [{ properties: {}, children: docChildren }] });
+        const buffer = await Packer.toBuffer(doc);
+        
+        let filename = (book.title || 'Kitab') + '.docx';
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Disposition', 'attachment; filename="download.docx"');
+        res.send(Buffer.from(buffer));
+        
+    } catch (error) {
+        console.error("Error creating docx:", error);
+        res.status(500).json({ error: 'Failed to generate Word document' });
+    }
+});
+\napp.get('/api/book/:id', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
     const bookId = parseInt(req.params.id);

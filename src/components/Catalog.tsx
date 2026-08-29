@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { webAPI } from '../api';
-import { Folder, ChevronLeft, BookOpen, User, Info } from 'lucide-react';
+import { Folder, ChevronLeft, BookOpen, User, Info, Download } from 'lucide-react';
 
 const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number) => void }> = ({ openBook, readBook }) => {
   const [categories, setCategories] = useState<any[]>([]);
@@ -109,15 +109,25 @@ const Catalog: React.FC<{ openBook: (id: number) => void, readBook: (id: number)
                       </p>
                     )}
                   </div>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openBook(book.bkid);
-                    }}
-                    className="bg-black/5 text-[var(--app-text)] hover:bg-[var(--app-primary)] hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shrink-0 flex items-center justify-center gap-2 w-full md:w-auto"
-                  >
-                    Detail <Info size={16} />
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full md:w-auto">
+                    <a
+                      href={`/api/download/${book.bkid}`}
+                      target="_blank"
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-blue-600/10 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                    >
+                      Word <Download size={16} />
+                    </a>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openBook(book.bkid);
+                      }}
+                      className="bg-black/5 text-[var(--app-text)] hover:bg-[var(--app-primary)] hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                    >
+                      Detail <Info size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
               {books.length === 0 && (
