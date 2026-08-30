@@ -33,14 +33,18 @@ app.use(express.urlencoded({ limit: '60mb', extended: true }));
 let db;
 // Gunakan variabel environment DB_PATH, atau fallback ke alamat PC
 // Cari database secara berurutan
+let dbError = null;
 let dbPath = process.env.DB_PATH;
 if (!dbPath) {
-  if (fs.existsSync('maktabah3.db')) {
-    dbPath = 'maktabah3.db';
-  } else if (fs.existsSync('maktabah.db')) {
-    dbPath = 'maktabah.db';
+  const rootDir = path.join(__dirname, '..');
+  const path3 = path.join(rootDir, 'maktabah3.db');
+  const path1 = path.join(rootDir, 'maktabah.db');
+  if (fs.existsSync(path3)) {
+    dbPath = path3;
+  } else if (fs.existsSync(path1)) {
+    dbPath = path1;
   } else {
-    dbPath = "D:\\database_maktabah_golden\\maktabah.db";
+    dbPath = path1;
   }
 }
 
@@ -104,14 +108,16 @@ try {
     } catch(e) { console.error("Gagal membuat tabel log:", e.message); }
   } else {
     console.log("Database not found at:", dbPath);
+    dbError = 'Database file not found at: ' + dbPath;
   }
 } catch (err) {
+  dbError = err.message || String(err);
   console.error("Failed to connect to database:", err);
 }
 
 // === LOGGING ENDPOINTS ===
 app.get('/api/stats', (req, res) => {
-    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
     try {
         const totalBooks = db.prepare("SELECT COUNT(bkid) as count FROM books_meta").get().count;
         const totalCategories = db.prepare("SELECT COUNT(id) as count FROM categories").get().count;
@@ -137,7 +143,7 @@ app.get('/api/stats', (req, res) => {
 });
 
 app.get('/api/recent-searches', (req, res) => {
-    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
     try {
         const limit = parseInt(req.query.limit) || 10;
         const data = db.prepare("SELECT query FROM search_logs WHERE length(trim(query)) >= 3 ORDER BY id DESC LIMIT 200").all();
@@ -156,7 +162,7 @@ app.get('/api/recent-searches', (req, res) => {
 });
 
 app.get('/api/recent-questions', (req, res) => {
-    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
     try {
         const limit = parseInt(req.query.limit) || 10;
         const data = db.prepare("SELECT question FROM ask_logs WHERE length(trim(question)) >= 5 ORDER BY id DESC LIMIT 200").all();
@@ -239,7 +245,7 @@ app.post('/api/admin/login', (req, res) => {
 // ========= ADMIN: CATEGORIES =========
 
 app.get('/api/admin/categories', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const cats = db.prepare(`
       SELECT c.id, c.name, c.catord, c.lvl, COUNT(b.bkid) as book_count
@@ -253,7 +259,7 @@ app.get('/api/admin/categories', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/category/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const { name } = req.body;
     const id = parseInt(req.params.id);
@@ -264,7 +270,7 @@ app.put('/api/admin/category/:id', requireAdmin, (req, res) => {
 });
 
 app.delete('/api/admin/category/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const id = parseInt(req.params.id);
     const bookCount = db.prepare(`SELECT COUNT(*) as cnt FROM books_meta WHERE cat = ?`).get(id).cnt;
@@ -280,7 +286,7 @@ app.delete('/api/admin/category/:id', requireAdmin, (req, res) => {
 // ========= ADMIN: BOOKS =========
 
 app.get('/api/admin/books', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 30;
@@ -300,7 +306,7 @@ app.get('/api/admin/books', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/book/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const { bk, cat, inf } = req.body;
     const bookId = parseInt(req.params.id);
@@ -311,7 +317,7 @@ app.put('/api/admin/book/:id', requireAdmin, (req, res) => {
 });
 
 app.delete('/api/admin/book/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     db.prepare(`DELETE FROM pages WHERE book_id = ?`).run(bookId);
@@ -324,7 +330,7 @@ app.delete('/api/admin/book/:id', requireAdmin, (req, res) => {
 // ========= ADMIN: PAGES (CONTENT) =========
 
 app.get('/api/admin/book/:id/pages', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const pageNum = parseInt(req.query.page) || 1;
@@ -337,7 +343,7 @@ app.get('/api/admin/book/:id/pages', requireAdmin, (req, res) => {
 });
 
 app.get('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.bookId);
     const pageId = parseInt(req.params.pageId);
@@ -348,7 +354,7 @@ app.get('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.bookId);
     const pageId = parseInt(req.params.pageId);
@@ -360,7 +366,7 @@ app.put('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
 });
 
 app.delete('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.bookId);
     const pageId = parseInt(req.params.pageId);
@@ -378,7 +384,7 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 // ========= BOOK SUBMISSION (BASE64) =========
 app.post('/api/book-submit', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const { email, name, book_title, book_author, category_id, notes, file_data, file_name } = req.body;
     if (!email || !book_title) return res.status(400).json({ error: 'Email dan judul kitab wajib diisi' });
@@ -417,7 +423,7 @@ app.post('/api/book-submit', (req, res) => {
 
 // ========= PUBLIC SUBMISSIONS =========
 app.post('/api/feedback', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   const { email, name, message, rating } = req.body;
   if (!email || !message) return res.status(400).json({ error: 'Email dan pesan wajib diisi' });
   try {
@@ -427,7 +433,7 @@ app.post('/api/feedback', (req, res) => {
 });
 
 app.post('/api/book-request', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   const { email, name, book_title, book_author, category_id, notes } = req.body;
   if (!email || !book_title) return res.status(400).json({ error: 'Email dan Judul Kitab wajib diisi' });
   try {
@@ -438,7 +444,7 @@ app.post('/api/book-request', (req, res) => {
 
 // ========= ADMIN: FEEDBACK MANAGEMENT =========
 app.get('/api/admin/feedback', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 20;
@@ -450,7 +456,7 @@ app.get('/api/admin/feedback', requireAdmin, (req, res) => {
 });
 
 app.delete('/api/admin/feedback/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     db.prepare('DELETE FROM feedback WHERE id = ?').run(parseInt(req.params.id));
     res.json({ success: true });
@@ -459,7 +465,7 @@ app.delete('/api/admin/feedback/:id', requireAdmin, (req, res) => {
 
 // ========= ADMIN: BOOK REQUESTS =========
 app.get('/api/admin/book-requests', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 20;
@@ -471,7 +477,7 @@ app.get('/api/admin/book-requests', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/book-request/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const { status } = req.body;
     db.prepare('UPDATE book_requests SET status = ? WHERE id = ?').run(status, parseInt(req.params.id));
@@ -480,7 +486,7 @@ app.put('/api/admin/book-request/:id', requireAdmin, (req, res) => {
 });
 
 app.delete('/api/admin/book-request/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     db.prepare('DELETE FROM book_requests WHERE id = ?').run(parseInt(req.params.id));
     res.json({ success: true });
@@ -489,7 +495,7 @@ app.delete('/api/admin/book-request/:id', requireAdmin, (req, res) => {
 
 // ========= ADMIN: BOOK SUBMISSIONS =========
 app.get('/api/admin/book-submissions', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 20;
@@ -501,7 +507,7 @@ app.get('/api/admin/book-submissions', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/book-submission/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const { status } = req.body;
     db.prepare('UPDATE book_submissions SET status = ? WHERE id = ?').run(status, parseInt(req.params.id));
@@ -510,7 +516,7 @@ app.put('/api/admin/book-submission/:id', requireAdmin, (req, res) => {
 });
 
 app.delete('/api/admin/book-submission/:id', requireAdmin, (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const row = db.prepare('SELECT file_path FROM book_submissions WHERE id = ?').get(parseInt(req.params.id));
     if (row?.file_path && fs.existsSync(row.file_path)) fs.unlinkSync(row.file_path);
@@ -520,7 +526,7 @@ app.delete('/api/admin/book-submission/:id', requireAdmin, (req, res) => {
 });
 
 app.get('/api/search', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const rawQuery = req.query.q || '';
     const query = rawQuery.trim();
@@ -629,7 +635,7 @@ app.get('/api/search', (req, res) => {
 
 
 app.get('/api/download/:id', async (req, res) => {
-    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
     try {
         const bookId = parseInt(req.params.id);
         
@@ -702,7 +708,7 @@ app.get('/api/download/:id', async (req, res) => {
 });
 
 app.get('/api/book/:id', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const stmt = db.prepare(`
@@ -727,7 +733,7 @@ app.get('/api/book/:id', (req, res) => {
 });
 
 app.get('/api/book/:id/page/:pageId', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const pageId = parseInt(req.params.pageId);
@@ -747,7 +753,7 @@ app.get('/api/book/:id/page/:pageId', (req, res) => {
 });
 
 app.get('/api/book/:id/page', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id ASC LIMIT 1`);
@@ -759,7 +765,7 @@ app.get('/api/book/:id/page', (req, res) => {
 });
 
 app.get('/api/book/:id/next/:currentPageId', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const currentPageId = parseInt(req.params.currentPageId);
@@ -773,7 +779,7 @@ app.get('/api/book/:id/next/:currentPageId', (req, res) => {
 
 
 app.get('/api/book/:id/first', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id ASC LIMIT 1`);
     res.json({ data: stmt.get(parseInt(req.params.id)), error: null });
@@ -781,7 +787,7 @@ app.get('/api/book/:id/first', (req, res) => {
 });
 
 app.get('/api/book/:id/last', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id DESC LIMIT 1`);
     res.json({ data: stmt.get(parseInt(req.params.id)), error: null });
@@ -789,7 +795,7 @@ app.get('/api/book/:id/last', (req, res) => {
 });
 
 app.get('/api/book/:id/next_juz/:currentPageId', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const currentPageId = parseInt(req.params.currentPageId);
@@ -806,7 +812,7 @@ app.get('/api/book/:id/next_juz/:currentPageId', (req, res) => {
 });
 
 app.get('/api/book/:id/prev_juz/:currentPageId', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const currentPageId = parseInt(req.params.currentPageId);
@@ -823,7 +829,7 @@ app.get('/api/book/:id/prev_juz/:currentPageId', (req, res) => {
 });
 
 app.get('/api/book/:id/prev/:currentPageId', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const currentPageId = parseInt(req.params.currentPageId);
@@ -836,7 +842,7 @@ app.get('/api/book/:id/prev/:currentPageId', (req, res) => {
 });
 
 app.get('/api/matn_sharh/:bookId/:pageId', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.bookId);
     const pageId = parseInt(req.params.pageId);
@@ -860,7 +866,7 @@ app.get('/api/matn_sharh/:bookId/:pageId', (req, res) => {
 });
 
 app.get('/api/quran/surahs', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const data = db.prepare(`SELECT id, name FROM quran_surah ORDER BY id ASC`).all();
     res.json({ data, error: null });
@@ -870,7 +876,7 @@ app.get('/api/quran/surahs', (req, res) => {
 });
 
 app.get('/api/quran/surah/:id', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const surahId = parseInt(req.params.id);
     const data = db.prepare(`SELECT id, ayah_no, text, page FROM quran_ayah WHERE surah_id = ? ORDER BY ayah_no ASC`).all(surahId);
@@ -881,7 +887,7 @@ app.get('/api/quran/surah/:id', (req, res) => {
 });
 
 app.get('/api/rowa/search', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const queryStr = req.query.q;
     if (!queryStr || typeof queryStr !== 'string' || queryStr.trim() === '') {
@@ -905,7 +911,7 @@ app.get('/api/rowa/search', (req, res) => {
 });
 
 app.get('/api/rowa/:id', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const rowaId = parseInt(req.params.id);
     const data = db.prepare(`SELECT * FROM rowa WHERE id = ?`).get(rowaId);
@@ -916,7 +922,7 @@ app.get('/api/rowa/:id', (req, res) => {
 });
 
 app.get('/api/toc/:bookId', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.bookId);
     const stmt = db.prepare(`
@@ -1031,7 +1037,7 @@ async function translateToSearchKeywords(question, apiKeys) {
 }
 
 app.post('/api/ask', express.json(), async (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   const question = req.body.q;
   if (!question || question.length < 5) {
     return res.json({ status: 'error', message: 'Pertanyaan terlalu pendek.' });
@@ -1254,7 +1260,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
 
 
 app.get('/api/categories', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const data = db.prepare(`SELECT id, name FROM categories ORDER BY name ASC`).all();
     res.json({ data, error: null });
@@ -1264,7 +1270,7 @@ app.get('/api/categories', (req, res) => {
 });
 
 app.get('/api/category/:id/books', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const catId = parseInt(req.params.id);
     const data = db.prepare(`
@@ -1284,7 +1290,7 @@ app.get('/api/category/:id/books', (req, res) => {
 // --- NEW SEARCH ENDPOINTS ---
 
 app.get('/api/search_titles', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const query = req.query.q;
     const page = parseInt(req.query.page) || 1;
@@ -1375,3 +1381,4 @@ if (fs.existsSync(distPath)) {
 app.listen(port, () => {
   console.log(`Web Server running at http://localhost:${port}`);
 });
+
