@@ -91,6 +91,8 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
     } catch (err: any) {
       if (err.message.includes('Unauthorized') || err.message.includes('401')) {
         onLogout();
+      } else {
+        alert('Gagal memuat kitab. Pastikan server Node.js sudah di-restart. Error: ' + err.message);
       }
     }
     setLoading(false);

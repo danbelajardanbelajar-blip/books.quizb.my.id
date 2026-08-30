@@ -23,7 +23,7 @@ export const webAPI = {
     let url = `${API_BASE}/admin/books?page=${page}`;
     if (query) url += `&q=${encodeURIComponent(query)}`;
     const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-    if (!res.ok) throw new Error('Failed to fetch');
+    if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
     return res.json();
   },
   updateAdminBook: async (token: string, bookId: number, data: any) => {
@@ -35,7 +35,7 @@ export const webAPI = {
       },
       body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error('Failed to update');
+    if (!res.ok) throw new Error(`Failed to update: ${res.status}`);
     return res.json();
   },
 
