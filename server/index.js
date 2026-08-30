@@ -35,8 +35,8 @@ let db;
 // Cari database secara berurutan
 let dbError = null;
 let dbPath = process.env.DB_PATH;
+const rootDir = path.join(__dirname, '..');
 if (!dbPath) {
-  const rootDir = path.join(__dirname, '..');
   const path3 = path.join(rootDir, 'maktabah3.db');
   const path1 = path.join(rootDir, 'maktabah.db');
   if (fs.existsSync(path3)) {
@@ -48,15 +48,53 @@ if (!dbPath) {
   }
 }
 
+// Path untuk database tambahan
+const tambDbPath = process.env.TAMBAHAN_DB_PATH || path.join(rootDir, 'maktabah_tambahan.db');
+const tafsirDbPath = process.env.TAFSIR_DB_PATH || path.join(rootDir, 'tafsir_relasi.db');
+
+// Flag keberadaan database tambahan
+let hasTambahan = false;
+let hasTafsir = false;
+
 // Cache untuk query AI
 const askCache = new Map();
 
 try {
   if (fs.existsSync(dbPath)) {
     db = new Database(dbPath, { fileMustExist: true });
-    console.log("Database connected at:", dbPath);
+    console.log("Database utama connected at:", dbPath);
+
+    // === ATTACH DATABASE TAMBAHAN ===
+    // Gunakan ATTACH agar query UNION ALL bisa berjalan dalam satu koneksi.
+    // Database tambahan hanya dibaca (tidak ada INSERT/UPDATE/DELETE ke file ini).
+    try {
+      if (fs.existsSync(tambDbPath)) {
+        // Escape single-quote di path untuk keamanan SQL
+        const safeTambPath = tambDbPath.replace(/'/g, "''");
+        db.exec(`ATTACH DATABASE '${safeTambPath}' AS tambahan`);
+        hasTambahan = true;
+        console.log("Database tambahan attached:", tambDbPath);
+      } else {
+        console.log("Database tambahan tidak ditemukan (opsional):", tambDbPath);
+      }
+    } catch(e) {
+      console.error("Gagal attach maktabah_tambahan.db:", e.message);
+    }
+
+    try {
+      if (fs.existsSync(tafsirDbPath)) {
+        const safeTafsirPath = tafsirDbPath.replace(/'/g, "''");
+        db.exec(`ATTACH DATABASE '${safeTafsirPath}' AS tafsir`);
+        hasTafsir = true;
+        console.log("Database tafsir attached:", tafsirDbPath);
+      } else {
+        console.log("Database tafsir tidak ditemukan (opsional):", tafsirDbPath);
+      }
+    } catch(e) {
+      console.error("Gagal attach tafsir_relasi.db:", e.message);
+    }
     
-    // Bikin tabel log otomatis
+    // Bikin tabel log otomatis (HANYA di main database)
     try {
         db.exec(`
           CREATE TABLE IF NOT EXISTS search_logs (
@@ -115,15 +153,46 @@ try {
   console.error("Failed to connect to database:", err);
 }
 
+// === HELPER: Bangun SQL books_meta UNION ALL ===
+// Digunakan di banyak query agar konsisten
+function booksMeta() {
+  if (hasTambahan) {
+    return `(SELECT bkid, bk, cat, authno, inf, betaka FROM main.books_meta UNION ALL SELECT bkid, bk, cat, authno, inf, betaka FROM tambahan.books_meta)`;
+  }
+  return `main.books_meta`;
+}
+
+function authorsUnion() {
+  if (hasTambahan) {
+    return `(SELECT authid, auth, inf, HigriD, AD FROM main.authors UNION ALL SELECT authid, auth, inf, HigriD, AD FROM tambahan.authors)`;
+  }
+  return `main.authors`;
+}
+
+function pagesUnion() {
+  if (hasTambahan) {
+    return `(SELECT id, book_id, part, page, nass FROM main.pages UNION ALL SELECT id, book_id, part, page, nass FROM tambahan.pages)`;
+  }
+  return `main.pages`;
+}
+
+function titlesUnion() {
+  if (hasTambahan) {
+    return `(SELECT id, book_id, lvl, sub, tit FROM main.titles UNION ALL SELECT id, book_id, lvl, sub, tit FROM tambahan.titles)`;
+  }
+  return `main.titles`;
+}
+
 // === LOGGING ENDPOINTS ===
 app.get('/api/stats', (req, res) => {
     if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
     try {
-        const totalBooks = db.prepare("SELECT COUNT(bkid) as count FROM books_meta").get().count;
-        const totalCategories = db.prepare("SELECT COUNT(id) as count FROM categories").get().count;
+        // Hitung total kitab dari main + tambahan (jika ada)
+        const totalBooks = db.prepare(`SELECT COUNT(bkid) as count FROM ${booksMeta()} b`).get().count;
+        const totalCategories = db.prepare("SELECT COUNT(id) as count FROM main.categories").get().count;
         let totalSearches = 0;
         try {
-            totalSearches = db.prepare("SELECT COUNT(id) as count FROM search_logs").get().count;
+            totalSearches = db.prepare("SELECT COUNT(id) as count FROM main.search_logs").get().count;
         } catch(e) { } // Table might not exist
         
         let totalVisits = 105432; // Placeholder if no activity log
@@ -141,6 +210,7 @@ app.get('/api/stats', (req, res) => {
         res.status(500).json({ error: 'Failed to fetch stats' });
     }
 });
+
 
 app.get('/api/recent-searches', (req, res) => {
     if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
@@ -530,34 +600,31 @@ app.get('/api/search', (req, res) => {
   try {
     const rawQuery = req.query.q || '';
     const query = rawQuery.trim();
-    
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
-    
-    // Log pencarian
+
+    // Log pencarian (hanya ke main database)
     if (page === 1 && query && query.length >= 3) {
-        try {
-            db.prepare("INSERT INTO search_logs (query) VALUES (?)").run(query);
-        } catch(e) {}
+        try { db.prepare("INSERT INTO main.search_logs (query) VALUES (?)").run(query); } catch(e) {}
     }
-    
+
     let cat_ids = [];
     if (req.query.cat_id) {
       cat_ids = req.query.cat_id.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
     }
-    
+
     let exactPhrase = '';
     let andMatch = '';
     const words = query.split(/\s+/).filter(w => w.length > 0);
-    
+
     if (words.length > 1 && !query.includes('"')) {
       const safeQuery = query.replace(/"/g, '');
       exactPhrase = '"' + safeQuery + '"';
       const quotedWords = words.map(w => `"${w.replace(/"/g, '')}"`);
       andMatch = '(' + quotedWords.join(' AND ') + ') NOT ' + exactPhrase;
     } else {
-      // If single word or already contains quotes
       if (!query.includes('"')) {
           exactPhrase = '"' + query.replace(/"/g, '') + '"';
       } else {
@@ -569,75 +636,122 @@ app.get('/api/search', (req, res) => {
     let total = 0;
     let results = [];
 
-    const getQuery = (isCount, isExact) => {
-       const selectFields = isCount ? 'COUNT(*) as total' : `p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, ${isExact ? 1 : 0} as is_exact`;
-       let sql = `
-          SELECT ${selectFields}
-          FROM pages_fts f
-          JOIN pages p ON f.rowid = p.rowid
-          JOIN books_meta b ON p.book_id = b.bkid
-          WHERE pages_fts MATCH ?
-       `;
-       if (cat_ids.length > 0) {
-          const placeholders = cat_ids.map(() => '?').join(',');
-          sql += ` AND b.cat IN (${placeholders})`;
-       }
-       if (!isCount) {
-          sql += ` LIMIT ? OFFSET ?`;
-       }
-       return sql;
+    // Helper: bangun SQL search untuk satu skema FTS
+    // dbPrefix: 'main' atau 'tambahan'
+    const buildFtsQuery = (dbPrefix, isCount, isExact) => {
+      const selectFields = isCount
+        ? 'COUNT(*) as total'
+        : `p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(${dbPrefix}.pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, ${isExact ? 1 : 0} as is_exact`;
+      let sql = `
+        SELECT ${selectFields}
+        FROM ${dbPrefix}.pages_fts f
+        JOIN ${dbPrefix}.pages p ON f.rowid = p.rowid
+        JOIN (SELECT bkid, bk, cat FROM main.books_meta ${hasTambahan ? 'UNION ALL SELECT bkid, bk, cat FROM tambahan.books_meta' : ''}) b ON p.book_id = b.bkid
+        WHERE ${dbPrefix}.pages_fts MATCH ?
+      `;
+      if (cat_ids.length > 0) {
+        const placeholders = cat_ids.map(() => '?').join(',');
+        sql += ` AND b.cat IN (${placeholders})`;
+      }
+      if (!isCount) {
+        sql += ` LIMIT ? OFFSET ?`;
+      }
+      return sql;
     };
 
-    if (andMatch !== '') {
-        // Dual query mode (Exact Phrase priority)
-        const countExactStmt = db.prepare(getQuery(true, true));
-        const totalExact = cat_ids.length > 0 ? countExactStmt.get(exactPhrase, ...cat_ids).total : countExactStmt.get(exactPhrase).total;
-        
-        const countAndStmt = db.prepare(getQuery(true, false));
-        const totalAnd = cat_ids.length > 0 ? countAndStmt.get(andMatch, ...cat_ids).total : countAndStmt.get(andMatch).total;
-        
-        total = totalExact + totalAnd;
-        
-        if (offset < totalExact) {
-            // Fetch exact matches
-            const fetchExactStmt = db.prepare(getQuery(false, true));
-            const params = cat_ids.length > 0 ? [exactPhrase, ...cat_ids, limit, offset] : [exactPhrase, limit, offset];
-            results = fetchExactStmt.all(...params);
-            
-            // If exact matches didn't fill the limit, fetch the rest from AND matches
-            if (results.length < limit && totalAnd > 0) {
-                const remLimit = limit - results.length;
-                const fetchAndStmt = db.prepare(getQuery(false, false));
-                const params2 = cat_ids.length > 0 ? [andMatch, ...cat_ids, remLimit, 0] : [andMatch, remLimit, 0];
-                const extraResults = fetchAndStmt.all(...params2);
-                results = results.concat(extraResults);
-            }
+    // Fungsi untuk eksekusi query di satu database prefix
+    const execSearch = (dbPrefix, ftsQuery, isCount, isExact, limitVal, offsetVal) => {
+      try {
+        const sql = buildFtsQuery(dbPrefix, isCount, isExact);
+        const stmt = db.prepare(sql);
+        if (isCount) {
+          const row = cat_ids.length > 0 ? stmt.get(ftsQuery, ...cat_ids) : stmt.get(ftsQuery);
+          return row ? row.total : 0;
         } else {
-            // Fetch only AND matches (offset adjusted)
-            const andOffset = offset - totalExact;
-            const fetchAndStmt = db.prepare(getQuery(false, false));
-            const params = cat_ids.length > 0 ? [andMatch, ...cat_ids, limit, andOffset] : [andMatch, limit, andOffset];
-            results = fetchAndStmt.all(...params);
+          const params = cat_ids.length > 0 ? [ftsQuery, ...cat_ids, limitVal, offsetVal] : [ftsQuery, limitVal, offsetVal];
+          return stmt.all(...params);
         }
+      } catch(e) {
+        return isCount ? 0 : [];
+      }
+    };
+
+    // Tentukan prefixes yang akan diquery
+    const prefixes = hasTambahan ? ['main', 'tambahan'] : ['main'];
+
+    if (andMatch !== '') {
+      // Dual query mode (Exact Phrase priority)
+      let totalExact = 0;
+      let totalAnd = 0;
+      for (const pfx of prefixes) {
+        totalExact += execSearch(pfx, exactPhrase, true, true);
+        totalAnd += execSearch(pfx, andMatch, true, false);
+      }
+      total = totalExact + totalAnd;
+
+      if (offset < totalExact) {
+        // Fetch exact matches dari semua prefixes
+        let remaining = limit;
+        let off = offset;
+        for (const pfx of prefixes) {
+          const r = execSearch(pfx, exactPhrase, false, true, remaining, off);
+          results = results.concat(r);
+          remaining -= r.length;
+          off = Math.max(0, off - (execSearch(pfx, exactPhrase, true, true)));
+          if (remaining <= 0) break;
+        }
+        // Jika belum penuh, ambil dari AND matches
+        if (results.length < limit && totalAnd > 0) {
+          const remLimit = limit - results.length;
+          for (const pfx of prefixes) {
+            const r = execSearch(pfx, andMatch, false, false, remLimit, 0);
+            results = results.concat(r);
+            if (results.length >= limit) break;
+          }
+        }
+      } else {
+        // Hanya AND matches (offset adjusted)
+        const andOffset = offset - totalExact;
+        let remaining = limit;
+        let off = andOffset;
+        for (const pfx of prefixes) {
+          const r = execSearch(pfx, andMatch, false, false, remaining, off);
+          results = results.concat(r);
+          remaining -= r.length;
+          off = Math.max(0, off - (execSearch(pfx, andMatch, true, false)));
+          if (remaining <= 0) break;
+        }
+      }
     } else {
-        // Single query mode
-        const countStmt = db.prepare(getQuery(true, true));
-        total = cat_ids.length > 0 ? countStmt.get(exactPhrase, ...cat_ids).total : countStmt.get(exactPhrase).total;
-        
-        const fetchStmt = db.prepare(getQuery(false, true));
-        const params = cat_ids.length > 0 ? [exactPhrase, ...cat_ids, limit, offset] : [exactPhrase, limit, offset];
-        results = fetchStmt.all(...params);
+      // Single query mode
+      for (const pfx of prefixes) {
+        total += execSearch(pfx, exactPhrase, true, true);
+      }
+      let remaining = limit;
+      let off = offset;
+      for (const pfx of prefixes) {
+        const pfxTotal = execSearch(pfx, exactPhrase, true, true);
+        if (off < pfxTotal) {
+          const r = execSearch(pfx, exactPhrase, false, true, remaining, off);
+          results = results.concat(r);
+          remaining -= r.length;
+          off = 0;
+        } else {
+          off -= pfxTotal;
+        }
+        if (remaining <= 0) break;
+      }
     }
-    
+
     res.json({ results, total, error: null });
   } catch (error) {
     try {
-        const logPath = require('path').join(__dirname, '..', 'cpanel_error.log');
-        require('fs').appendFileSync(logPath, new Date().toISOString() + ' /api/search route error: ' + (error ? error.stack || error : 'null') + '\n');
+        fs.appendFileSync(logPath, new Date().toISOString() + ' /api/search route error: ' + (error ? error.stack || error : 'null') + '\n');
     } catch(e) {}
     res.status(500).json({ error: error.message });
   }
 });
+
 
 
 app.get('/api/download/:id', async (req, res) => {
@@ -719,15 +833,16 @@ app.get('/api/book/:id', (req, res) => {
     const bookId = parseInt(req.params.id);
     const stmt = db.prepare(`
       SELECT b.bkid, b.bk, b.inf as book_inf, b.betaka, c.name as category, a.auth, a.inf as author_inf, a.HigriD, a.AD
-      FROM books_meta b
-      LEFT JOIN categories c ON b.cat = c.id
-      LEFT JOIN authors a ON b.authno = a.authid
+      FROM ${booksMeta()} b
+      LEFT JOIN main.categories c ON b.cat = c.id
+      LEFT JOIN ${authorsUnion()} a ON b.authno = a.authid
       WHERE b.bkid = ?
     `);
     const data = stmt.get(bookId);
 
     if (data) {
-      const countStmt = db.prepare(`SELECT COUNT(*) as total_pages FROM pages WHERE book_id = ?`);
+      // Hitung halaman dari UNION pages
+      const countStmt = db.prepare(`SELECT COUNT(*) as total_pages FROM ${pagesUnion()} p WHERE p.book_id = ?`);
       const totalRow = countStmt.get(bookId);
       data.total_pages = totalRow ? totalRow.total_pages : 0;
     }
@@ -738,19 +853,18 @@ app.get('/api/book/:id', (req, res) => {
   }
 });
 
+
 app.get('/api/book/:id/page/:pageId', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
     const pageId = parseInt(req.params.pageId);
     let data;
-    
+
     if (pageId) {
-      const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? AND id = ?`);
-      data = stmt.get(bookId, pageId);
+      data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? AND p.id = ?`).get(bookId, pageId);
     } else {
-      const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id ASC LIMIT 1`);
-      data = stmt.get(bookId);
+      data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? ORDER BY p.id ASC LIMIT 1`).get(bookId);
     }
     res.json({ data, error: null });
   } catch (error) {
@@ -762,8 +876,7 @@ app.get('/api/book/:id/page', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.id);
-    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id ASC LIMIT 1`);
-    const data = stmt.get(bookId);
+    const data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? ORDER BY p.id ASC LIMIT 1`).get(bookId);
     res.json({ data, error: null });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -775,28 +888,26 @@ app.get('/api/book/:id/next/:currentPageId', (req, res) => {
   try {
     const bookId = parseInt(req.params.id);
     const currentPageId = parseInt(req.params.currentPageId);
-    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? AND id > ? ORDER BY id ASC LIMIT 1`);
-    const data = stmt.get(bookId, currentPageId);
+    const data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? AND p.id > ? ORDER BY p.id ASC LIMIT 1`).get(bookId, currentPageId);
     res.json({ data, error: null });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-
 app.get('/api/book/:id/first', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
-    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id ASC LIMIT 1`);
-    res.json({ data: stmt.get(parseInt(req.params.id)), error: null });
+    const data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? ORDER BY p.id ASC LIMIT 1`).get(parseInt(req.params.id));
+    res.json({ data, error: null });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.get('/api/book/:id/last', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
-    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id DESC LIMIT 1`);
-    res.json({ data: stmt.get(parseInt(req.params.id)), error: null });
+    const data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? ORDER BY p.id DESC LIMIT 1`).get(parseInt(req.params.id));
+    res.json({ data, error: null });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -805,15 +916,14 @@ app.get('/api/book/:id/next_juz/:currentPageId', (req, res) => {
   try {
     const bookId = parseInt(req.params.id);
     const currentPageId = parseInt(req.params.currentPageId);
-    const current = db.prepare('SELECT part FROM pages WHERE id = ?').get(currentPageId);
+    const current = db.prepare(`SELECT part FROM ${pagesUnion()} p WHERE p.id = ?`).get(currentPageId);
     if (!current) return res.json({ data: null, error: null });
-    
-    // Get the first page of the next part
-    const nextPartRow = db.prepare('SELECT part FROM pages WHERE book_id = ? AND part > ? ORDER BY part ASC LIMIT 1').get(bookId, current.part);
-    if (!nextPartRow) return res.json({ data: null, error: null }); // no next juz
-    
-    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? AND part = ? ORDER BY id ASC LIMIT 1`);
-    res.json({ data: stmt.get(bookId, nextPartRow.part), error: null });
+
+    const nextPartRow = db.prepare(`SELECT part FROM ${pagesUnion()} p WHERE p.book_id = ? AND p.part > ? ORDER BY p.part ASC LIMIT 1`).get(bookId, current.part);
+    if (!nextPartRow) return res.json({ data: null, error: null });
+
+    const data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? AND p.part = ? ORDER BY p.id ASC LIMIT 1`).get(bookId, nextPartRow.part);
+    res.json({ data, error: null });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -822,15 +932,14 @@ app.get('/api/book/:id/prev_juz/:currentPageId', (req, res) => {
   try {
     const bookId = parseInt(req.params.id);
     const currentPageId = parseInt(req.params.currentPageId);
-    const current = db.prepare('SELECT part FROM pages WHERE id = ?').get(currentPageId);
+    const current = db.prepare(`SELECT part FROM ${pagesUnion()} p WHERE p.id = ?`).get(currentPageId);
     if (!current) return res.json({ data: null, error: null });
-    
-    // Get the first page of the previous part
-    const prevPartRow = db.prepare('SELECT part FROM pages WHERE book_id = ? AND part < ? ORDER BY part DESC LIMIT 1').get(bookId, current.part);
-    if (!prevPartRow) return res.json({ data: null, error: null }); // no prev juz
-    
-    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? AND part = ? ORDER BY id ASC LIMIT 1`);
-    res.json({ data: stmt.get(bookId, prevPartRow.part), error: null });
+
+    const prevPartRow = db.prepare(`SELECT part FROM ${pagesUnion()} p WHERE p.book_id = ? AND p.part < ? ORDER BY p.part DESC LIMIT 1`).get(bookId, current.part);
+    if (!prevPartRow) return res.json({ data: null, error: null });
+
+    const data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? AND p.part = ? ORDER BY p.id ASC LIMIT 1`).get(bookId, prevPartRow.part);
+    res.json({ data, error: null });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -839,13 +948,13 @@ app.get('/api/book/:id/prev/:currentPageId', (req, res) => {
   try {
     const bookId = parseInt(req.params.id);
     const currentPageId = parseInt(req.params.currentPageId);
-    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? AND id < ? ORDER BY id DESC LIMIT 1`);
-    const data = stmt.get(bookId, currentPageId);
+    const data = db.prepare(`SELECT id, part, page, nass as text FROM ${pagesUnion()} p WHERE p.book_id = ? AND p.id < ? ORDER BY p.id DESC LIMIT 1`).get(bookId, currentPageId);
     res.json({ data, error: null });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 app.get('/api/matn_sharh/:bookId/:pageId', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
@@ -931,15 +1040,13 @@ app.get('/api/toc/:bookId', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const bookId = parseInt(req.params.bookId);
-    const stmt = db.prepare(`
-      SELECT id, lvl, sub, tit FROM titles WHERE book_id = ? ORDER BY id ASC
-    `);
-    const data = stmt.all(bookId);
+    const data = db.prepare(`SELECT id, lvl, sub, tit FROM ${titlesUnion()} t WHERE t.book_id = ? ORDER BY t.id ASC`).all(bookId);
     res.json({ data, error: null });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Helper functions for AI Service
 const myFetch = async (url, options) => {
@@ -1268,7 +1375,8 @@ app.post('/api/ask', express.json(), async (req, res) => {
 app.get('/api/categories', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
-    const data = db.prepare(`SELECT id, name FROM categories ORDER BY name ASC`).all();
+    // Kategori dari main saja (satu sumber kebenaran, target write)
+    const data = db.prepare(`SELECT id, name FROM main.categories ORDER BY name ASC`).all();
     res.json({ data, error: null });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1279,10 +1387,11 @@ app.get('/api/category/:id/books', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const catId = parseInt(req.params.id);
+    // Ambil kitab dari UNION ALL books_meta
     const data = db.prepare(`
       SELECT b.bkid, b.bk, a.auth as author_name
-      FROM books_meta b
-      LEFT JOIN authors a ON b.authno = a.authid
+      FROM ${booksMeta()} b
+      LEFT JOIN ${authorsUnion()} a ON b.authno = a.authid
       WHERE b.cat = ?
       ORDER BY b.bk ASC
     `).all(catId);
@@ -1321,19 +1430,20 @@ app.get('/api/search_titles', (req, res) => {
       params.push(...cat_ids);
     }
 
-    const countStmt = db.prepare(`SELECT COUNT(*) as total FROM books_meta b ${whereClause}`);
+    // Gunakan UNION ALL: search di main + tambahan
+    const countStmt = db.prepare(`SELECT COUNT(*) as total FROM ${booksMeta()} b ${whereClause}`);
     const total = countStmt.get(...params).total;
 
     const stmt = db.prepare(`
       SELECT b.bkid, b.bk, b.inf, a.auth as author_name, c.name as category_name
-      FROM books_meta b
-      LEFT JOIN authors a ON b.authno = a.authid
-      LEFT JOIN categories c ON b.cat = c.id
+      FROM ${booksMeta()} b
+      LEFT JOIN ${authorsUnion()} a ON b.authno = a.authid
+      LEFT JOIN main.categories c ON b.cat = c.id
       ${whereClause}
       ORDER BY b.bk ASC
       LIMIT ? OFFSET ?
     `);
-    
+
     params.push(limit, offset);
     const data = stmt.all(...params);
 
@@ -1342,6 +1452,70 @@ app.get('/api/search_titles', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// ============================================================
+// ENDPOINTS BARU: TAFSIR (Multi-DB Integration)
+// ============================================================
+
+/**
+ * GET /api/quran/tafsir/:surahId
+ * Mengambil daftar kitab tafsir untuk surah tertentu dari tafsir_relasi.db.
+ * Dilakukan JOIN ke gabungan books_meta (main + tambahan) untuk nama kitab.
+ */
+app.get('/api/quran/tafsir/:surahId', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
+  if (!hasTafsir) return res.json({ data: [], error: null, message: 'tafsir_relasi.db tidak tersedia' });
+  try {
+    const surahId = parseInt(req.params.surahId);
+    // JOIN dengan UNION books_meta untuk mendapatkan tafsir_name dari kitab
+    const data = db.prepare(`
+      SELECT
+        m.id,
+        m.surah_id,
+        m.ayah_no,
+        m.book_id,
+        m.page_id,
+        COALESCE(m.tafsir_name, bm.bk, 'Tafsir #' || m.book_id) as tafsir_name
+      FROM tafsir.tafsir_ayah_mapping m
+      LEFT JOIN (
+        SELECT bkid, bk FROM main.books_meta
+        ${hasTambahan ? 'UNION ALL SELECT bkid, bk FROM tambahan.books_meta' : ''}
+      ) bm ON m.book_id = bm.bkid
+      WHERE m.surah_id = ?
+      ORDER BY m.ayah_no ASC, m.id ASC
+    `).all(surahId);
+    res.json({ data, error: null });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/quran/tafsir-page/:bookId/:pageId
+ * Mengambil isi halaman tafsir berdasarkan book_id + page_id.
+ * Mencari di main.pages dulu, lalu tambahan.pages jika tidak ada.
+ */
+app.get('/api/quran/tafsir-page/:bookId/:pageId', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
+  try {
+    const bookId = parseInt(req.params.bookId);
+    const pageId = parseInt(req.params.pageId);
+
+    // Cari di main.pages dulu
+    let data = db.prepare(`SELECT id, book_id, part, page, nass as text FROM main.pages WHERE book_id = ? AND id = ?`).get(bookId, pageId);
+
+    // Jika tidak ketemu di main, cari di tambahan.pages
+    if (!data && hasTambahan) {
+      data = db.prepare(`SELECT id, book_id, part, page, nass as text FROM tambahan.pages WHERE book_id = ? AND id = ?`).get(bookId, pageId);
+    }
+
+    res.json({ data: data || null, error: null });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 app.get('/api/search_scholarium', async (req, res) => {
   try {

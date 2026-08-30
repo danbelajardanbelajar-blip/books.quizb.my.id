@@ -205,5 +205,23 @@ export const webAPI = {
   },
   getRecentQuestions: async () => {
     return fetchAPI(`/recent-questions`);
-  }
+  },
+
+  // ===== TAFSIR (Multi-DB) =====
+  /**
+   * Ambil daftar kitab tafsir untuk surah tertentu.
+   * Mengembalikan array: { id, surah_id, ayah_no, book_id, page_id, tafsir_name }
+   */
+  getTafsirBySurah: async (surahId: number) => {
+    return fetchAPI(`/quran/tafsir/${surahId}`);
+  },
+
+  /**
+   * Ambil isi halaman tafsir berdasarkan book_id + page_id dari tafsir_ayah_mapping.
+   * Mengembalikan: { data: { id, book_id, part, page, text } }
+   */
+  getTafsirPage: async (bookId: number, pageId: number) => {
+    return fetchAPI(`/quran/tafsir-page/${bookId}/${pageId}`);
+  },
 };
+
