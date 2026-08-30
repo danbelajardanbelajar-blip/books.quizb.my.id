@@ -56,6 +56,40 @@ try {
             response TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
+
+          CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            name TEXT,
+            message TEXT NOT NULL,
+            rating INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+          CREATE TABLE IF NOT EXISTS book_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            name TEXT,
+            book_title TEXT NOT NULL,
+            book_author TEXT,
+            category_id INTEGER,
+            notes TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+          CREATE TABLE IF NOT EXISTS book_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            name TEXT,
+            book_title TEXT NOT NULL,
+            book_author TEXT,
+            category_id INTEGER,
+            notes TEXT,
+            file_name TEXT,
+            file_path TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
         `);
     } catch(e) { console.error("Gagal membuat tabel log:", e.message); }
   } else {
@@ -369,6 +403,28 @@ app.post('/api/book-submit', (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+
+
+// ========= PUBLIC SUBMISSIONS =========
+app.post('/api/feedback', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  const { email, name, message, rating } = req.body;
+  if (!email || !message) return res.status(400).json({ error: 'Email dan pesan wajib diisi' });
+  try {
+    db.prepare('INSERT INTO feedback (email, name, message, rating) VALUES (?, ?, ?, ?)').run(email, name, message, rating);
+    res.json({ message: 'Feedback berhasil dikirim' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/book-request', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  const { email, name, book_title, book_author, category_id, notes } = req.body;
+  if (!email || !book_title) return res.status(400).json({ error: 'Email dan Judul Kitab wajib diisi' });
+  try {
+    db.prepare('INSERT INTO book_requests (email, name, book_title, book_author, category_id, notes) VALUES (?, ?, ?, ?, ?, ?)').run(email, name, book_title, book_author, category_id || null, notes);
+    res.json({ message: 'Request kitab berhasil dikirim' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 // ========= ADMIN: FEEDBACK MANAGEMENT =========
 app.get('/api/admin/feedback', requireAdmin, (req, res) => {

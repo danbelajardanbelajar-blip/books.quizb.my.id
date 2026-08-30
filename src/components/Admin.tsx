@@ -432,7 +432,7 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
   const load = useCallback(async () => {
     setLoading(true);
     const res = await adminFetch(token, () => webAPI.getFeedback(token), onLogout, setError);
-    if (res) setData(res.data);
+    if (res) setData(res.data || []);
     setLoading(false);
   }, [token]);
   useEffect(() => { load(); }, [load]);
@@ -479,7 +479,7 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
   const load = useCallback(async () => {
     setLoading(true);
     const res = await adminFetch(token, () => webAPI.getBookRequests(token), onLogout, setError);
-    if (res) setData(res.data);
+    if (res) setData(res.data || []);
     setLoading(false);
   }, [token]);
   useEffect(() => { load(); }, [load]);
@@ -537,7 +537,7 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
   const load = useCallback(async () => {
     setLoading(true);
     const res = await adminFetch(token, () => webAPI.getBookSubmissions(token), onLogout, setError);
-    if (res) setData(res.data);
+    if (res) setData(res.data || []);
     setLoading(false);
   }, [token]);
   useEffect(() => { load(); }, [load]);
