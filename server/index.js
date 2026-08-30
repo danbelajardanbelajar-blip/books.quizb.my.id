@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import cors from 'cors';
 import Database from 'better-sqlite3';
 import path from 'path';
@@ -163,6 +164,72 @@ app.get('/api/test-gemini', async (req, res) => {
     fetchAvailable: typeof fetch !== 'undefined',
     results
   });
+});
+
+
+const activeTokens = new Set();
+function requireAdmin(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+  const token = authHeader.split(' ')[1];
+  if (token && activeTokens.has(token)) {
+    next();
+  } else {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+}
+
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === 'admin' && password === '123') {
+    const token = crypto.randomBytes(32).toString('hex');
+    activeTokens.add(token);
+    res.json({ success: true, token });
+  } else {
+    res.status(401).json({ success: false, error: 'Invalid credentials' });
+  }
+});
+
+app.get('/api/admin/books', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const query = req.query.q || '';
+    
+    let stmt, countStmt;
+    if (query) {
+      stmt = db.prepare(`SELECT bkid, bk, shortname FROM books_meta WHERE bk LIKE ? LIMIT ? OFFSET ?`);
+      const data = stmt.all(`%${query}%`, limit, offset);
+      countStmt = db.prepare(`SELECT COUNT(*) as total FROM books_meta WHERE bk LIKE ?`);
+      const total = countStmt.get(`%${query}%`).total;
+      res.json({ data, total, page, limit });
+    } else {
+      stmt = db.prepare(`SELECT bkid, bk, shortname FROM books_meta LIMIT ? OFFSET ?`);
+      const data = stmt.all(limit, offset);
+      countStmt = db.prepare(`SELECT COUNT(*) as total FROM books_meta`);
+      const total = countStmt.get().total;
+      res.json({ data, total, page, limit });
+    }
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/admin/book/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const { bk, shortname } = req.body;
+    const bookId = parseInt(req.params.id);
+    const stmt = db.prepare(`UPDATE books_meta SET bk = ?, shortname = ? WHERE bkid = ?`);
+    const info = stmt.run(bk, shortname || bk, bookId);
+    if (info.changes > 0) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Book not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.get('/api/search', (req, res) => {

@@ -10,6 +10,36 @@ async function fetchAPI(endpoint: string) {
 
 export const webAPI = {
 
+  adminLogin: async (credentials: any) => {
+    const res = await fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials)
+    });
+    if (!res.ok) throw new Error('Invalid credentials');
+    return res.json();
+  },
+  getAdminBooks: async (token: string, page = 1, query = '') => {
+    let url = `${API_BASE}/admin/books?page=${page}`;
+    if (query) url += `&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+  },
+  updateAdminBook: async (token: string, bookId: number, data: any) => {
+    const res = await fetch(`${API_BASE}/admin/book/${bookId}`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to update');
+    return res.json();
+  },
+
+
   askAI: async (query: string) => {
     const res = await fetch(`${API_BASE}/ask`, {
       method: 'POST',

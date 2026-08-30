@@ -7,6 +7,7 @@ import QuranReader from './components/QuranReader';
 import RowaDictionary from './components/RowaDictionary';
 import About from './components/About';
 import Privacy from './components/Privacy';
+import { Admin } from './components/Admin';
 import Catalog from './components/Catalog';
 import AskAI from './components/AskAI';
 import Settings, { THEMES } from './components/Settings';
@@ -14,7 +15,7 @@ import { useEffect, useRef } from 'react';
 
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask' | 'admin'>('search');
 
   // Search States
   const [searchMode, setSearchMode] = useState<'text' | 'title' | 'pdf'>('text');
@@ -309,6 +310,8 @@ function App() {
           <RowaDictionary />
         ) : activeTab === 'about' ? (
           <About />
+        ) : activeTab === 'admin' ? (
+          <Admin onClose={() => setActiveTab('search')} />
         ) : activeTab === 'privacy' ? (
           <Privacy />
         ) : activeTab === 'settings' ? (
@@ -340,6 +343,12 @@ function App() {
                 <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
               </button>
               <button onClick={() => setActiveTab('privacy')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                
+              <button onClick={() => setActiveTab('admin')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Admin Panel</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+
                 <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Privasi</span>
                 <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
               </button>
