@@ -1,3 +1,4 @@
+require('fs').writeFileSync(__dirname + '/started.log', 'App started at ' + new Date().toISOString());
 async function start() {
     try {
         await import('./server/index.js');
