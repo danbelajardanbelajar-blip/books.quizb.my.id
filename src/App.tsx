@@ -294,6 +294,10 @@ function App() {
                 <button onClick={() => setActiveTab('settings')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
                   <SettingsIcon size={18} className="text-[var(--app-primary)]" /> Pengaturan
                 </button>
+                
+                <button onClick={() => setActiveTab('admin')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
+                  <Shield size={18} className="text-[var(--app-primary)]" /> Admin Panel
+                </button>
                 <a href="https://maktabah.quizb.my.id" target="_blank" rel="noopener noreferrer" className="w-full text-left px-5 py-3 hover:bg-amber-50 text-amber-900 font-semibold transition-colors flex items-center gap-3 bg-amber-50/50">
                   <History size={18} className="text-amber-700" /> Web Versi Lama
                 </a>
