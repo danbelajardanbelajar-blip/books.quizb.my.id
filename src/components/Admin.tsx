@@ -152,7 +152,7 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
                       className="border-2 border-[var(--app-primary)] rounded-lg px-3 py-1.5 w-full text-right focus:outline-none text-lg"
                       style={{ fontFamily: 'var(--arabic-font)' }} />
                   ) : (
-                    <button onClick={() => onSelectCategory(cat)} className="text-right font-bold text-gray-800 hover:text-[var(--app-primary)] transition-colors text-lg w-full text-left" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                    <button onClick={() => onSelectCategory(cat)} className="font-bold text-gray-800 hover:text-[var(--app-primary)] transition-colors text-lg w-full text-right" dir="auto" style={{ fontFamily: 'var(--arabic-font)', textAlign: 'right' }}>
                       {cat.name}
                     </button>
                   )}
@@ -229,7 +229,7 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
       <div className="p-5 border-b bg-gray-50/50 flex flex-col md:flex-row gap-3 justify-between items-center">
         <h2 className="font-bold text-gray-800 flex items-center gap-2">
           <BookOpen size={20} className="text-[var(--app-primary)]" />
-          <span dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>{category.name}</span>
+          <span dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{category.name}</span>
           <span className="text-gray-400 text-sm font-normal">({total} kitab)</span>
         </h2>
         <form onSubmit={handleSearch} className="flex w-full md:w-64">
@@ -257,7 +257,7 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
                       className="border-2 border-[var(--app-primary)] rounded-lg px-3 py-1.5 w-full text-right focus:outline-none text-lg"
                       style={{ fontFamily: 'var(--arabic-font)' }} />
                   ) : (
-                    <button onClick={() => onSelectBook(book)} className="text-right font-bold text-gray-800 hover:text-[var(--app-primary)] transition-colors text-base w-full text-left" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                    <button onClick={() => onSelectBook(book)} className="font-bold text-gray-800 hover:text-[var(--app-primary)] transition-colors text-base w-full text-right" dir="auto" style={{ fontFamily: 'var(--arabic-font)', textAlign: 'right' }}>
                       {book.bk}
                     </button>
                   )}
@@ -317,7 +317,7 @@ const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLog
       <div className="p-5 border-b bg-gray-50/50">
         <h2 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
           <FileText size={18} className="text-[var(--app-primary)]" />
-          <span dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }} className="text-base">{book.bk}</span>
+          <span dir="auto" style={{ fontFamily: 'var(--arabic-font)' }} className="text-base">{book.bk}</span>
           <span className="text-gray-400 font-normal">({total} halaman)</span>
         </h2>
       </div>
@@ -337,7 +337,7 @@ const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLog
                 <td className="px-4 py-3 text-gray-600 font-semibold text-sm text-center">{pg.part}</td>
                 <td className="px-4 py-3 text-gray-600 text-sm text-center">{pg.page}</td>
                 <td className="px-4 py-3">
-                  <div className="text-gray-600 text-sm truncate max-w-xs" dir="rtl" style={{ fontFamily: 'var(--arabic-font)', direction: 'rtl', textAlign: 'right' }}>
+                  <div className="text-gray-600 text-sm truncate max-w-xs" dir="auto" style={{ fontFamily: 'var(--arabic-font)', textAlign: 'right' }}>
                     {pg.preview?.replace(/\n/g, ' ')?.substring(0, 100) || '—'}
                   </div>
                 </td>
@@ -460,7 +460,7 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
             {breadcrumb.map((b, i) => (
               <React.Fragment key={i}>
                 {i > 0 && <ChevronRight size={14} className="text-gray-400" />}
-                <button onClick={b.onClick} className={`font-semibold transition-colors max-w-[200px] truncate ${i === breadcrumb.length - 1 ? 'text-[var(--app-primary)]' : 'text-gray-500 hover:text-gray-800'}`} dir="rtl" style={i > 0 ? { fontFamily: 'var(--arabic-font)' } : {}}>
+                <button onClick={b.onClick} className={`font-semibold transition-colors max-w-[200px] truncate ${i === breadcrumb.length - 1 ? 'text-[var(--app-primary)]' : 'text-gray-500 hover:text-gray-800'}`} dir="auto" style={i > 0 ? { fontFamily: 'var(--arabic-font)' } : {}}>
                   {b.label}
                 </button>
               </React.Fragment>
