@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { webAPI } from '../api';
-import { ChevronLeft, ChevronRight, X, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, BookOpen, Heart, Bookmark, Download } from 'lucide-react';
 
 export interface ReaderModalProps {
   bookId: number;
   initialPageId?: number;
   highlightQuery?: string;
   settings?: any;
+  favorites?: any[];
+  setFavorites?: any;
+  bookmarks?: any[];
+  setBookmarks?: any;
   onClose: () => void;
 }
 
@@ -51,7 +55,7 @@ const highlightText = (text: string, query?: string) => {
 };
 
 
-const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highlightQuery, settings, onClose }) => {
+const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highlightQuery, settings, favorites = [], setFavorites, bookmarks = [], setBookmarks, onClose }) => {
   const [bookInfo, setBookInfo] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState<any>(null);
   const [currentPageId, setCurrentPageId] = useState<number | undefined>(initialPageId);
@@ -68,6 +72,38 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
   const [relatedBookInfo, setRelatedBookInfo] = useState<any>(null);
   const [showSplit, setShowSplit] = useState(false);
   const [loadingRelated, setLoadingRelated] = useState(false);
+
+  const isFavorite = favorites.some((f: any) => f.bkid === bookId);
+  const toggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!setFavorites) return;
+    if (isFavorite) {
+      setFavorites((prev: any[]) => prev.filter(f => f.bkid !== bookId));
+    } else if (bookInfo) {
+      setFavorites((prev: any[]) => [{ bkid: bookInfo.bkid, bk: bookInfo.bk, author: bookInfo.auth }, ...prev]);
+    }
+  };
+
+  const isBookmarked = currentPage && bookmarks.some((b: any) => b.bkid === bookId && b.id === currentPage.id);
+  const toggleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!setBookmarks || !currentPage || !bookInfo) return;
+    if (isBookmarked) {
+      setBookmarks((prev: any[]) => prev.filter(b => !(b.bkid === bookId && b.id === currentPage.id)));
+    } else {
+      let snippet = currentPage.text.replace(/<[^>]*>?/gm, '');
+      snippet = snippet.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+      setBookmarks((prev: any[]) => [{ 
+        bkid: bookInfo.bkid, 
+        bk: bookInfo.bk, 
+        id: currentPage.id, 
+        juz: currentPage.part, 
+        page: currentPage.page,
+        snippet: snippet.substring(0, 100) + '...'
+      }, ...prev]);
+    }
+  };
+
 
   useEffect(() => {
     loadBookAndPage();
@@ -231,6 +267,17 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
             >
               A-
             </button>
+          </div>
+          <div className="flex items-center gap-1 md:gap-2 ml-1">
+            <button onClick={toggleFavorite} className="p-1 md:p-2 rounded-full hover:bg-red-50 text-gray-500 transition-colors" title={isFavorite ? "Hapus dari Favorit" : "Tambahkan ke Favorit"}>
+              <Heart size={20} className={isFavorite ? "text-red-500" : ""} fill={isFavorite ? "currentColor" : "none"} />
+            </button>
+            <button onClick={toggleBookmark} className="p-1 md:p-2 rounded-full hover:bg-yellow-50 text-gray-500 transition-colors" title={isBookmarked ? "Hapus Bookmark Halaman" : "Bookmark Halaman Ini"}>
+              <Bookmark size={20} className={isBookmarked ? "text-yellow-500" : ""} fill={isBookmarked ? "currentColor" : "none"} />
+            </button>
+            <a href={`/api/download/${bookId}`} target="_blank" className="p-1 md:p-2 rounded-full hover:bg-green-50 text-gray-500 hover:text-green-600 transition-colors" title="Download Word" onClick={e => e.stopPropagation()}>
+              <Download size={20} />
+            </a>
           </div>
         </div>
         

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, History } from 'lucide-react';
+import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, History, Heart } from 'lucide-react';
 import './App.css';
 import { webAPI } from './api';
 import ReaderModal from './components/ReaderModal';
@@ -47,6 +47,18 @@ function App() {
 
   // States for Reader Modal
   const [readingConfig, setReadingConfig] = useState<{ bookId: number, pageId?: number, highlightQuery?: string } | null>(null);
+
+  const [favorites, setFavorites] = useState<any[]>(() => { try { return JSON.parse(localStorage.getItem('favorites') || '[]'); } catch(e){return []} });
+  const [bookmarks, setBookmarks] = useState<any[]>(() => { try { return JSON.parse(localStorage.getItem('bookmarks') || '[]'); } catch(e){return []} });
+
+  useEffect(() => {
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+  }, [bookmarks]);
+
 
   // Settings State
   
@@ -373,6 +385,40 @@ function App() {
                         </div>
                     </div>
                  </div>
+              )}
+              
+              {/* Favorites & Bookmarks */}
+              {activeTab === 'search' && results.length === 0 && !loading && query.trim() === '' && (favorites.length > 0 || bookmarks.length > 0) && (
+                   <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {favorites.length > 0 && (
+                        <div className="bg-[var(--reader-bg)] p-5 rounded-2xl shadow-sm border border-[var(--app-primary)]/10">
+                           <h3 className="font-bold text-[var(--app-primary)] mb-4 flex items-center gap-2"><Heart size={20} className="text-red-500" fill="currentColor" /> Kitab Favorit</h3>
+                           <div className="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar">
+                             {favorites.map(f => (
+                                <div key={f.bkid} onClick={() => { setSelectedBook(f.bkid); webAPI.getBookInfo(f.bkid).then(b => setBookInfo(b)); }} className="p-3 bg-white hover:bg-[var(--app-primary)]/5 rounded-lg cursor-pointer border border-gray-100 shadow-sm transition-all text-right group">
+                                  <div className="font-bold text-[#4e342e] group-hover:text-[var(--app-primary)] text-lg" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{f.bk}</div>
+                                  <div className="text-sm text-gray-500 truncate mt-1" dir="auto">{f.author || '-'}</div>
+                                </div>
+                             ))}
+                           </div>
+                        </div>
+                      )}
+                      
+                      {bookmarks.length > 0 && (
+                        <div className="bg-[var(--reader-bg)] p-5 rounded-2xl shadow-sm border border-[var(--app-primary)]/10">
+                           <h3 className="font-bold text-[var(--app-primary)] mb-4 flex items-center gap-2"><BookMarked size={20} className="text-yellow-500" fill="currentColor" /> Markah Buku</h3>
+                           <div className="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar">
+                             {bookmarks.map(b => (
+                                <div key={`${b.bkid}-${b.id}`} onClick={() => { openReader({ bookId: b.bkid, pageId: b.id }) }} className="p-3 bg-white hover:bg-[var(--app-primary)]/5 rounded-lg cursor-pointer border border-gray-100 shadow-sm transition-all text-right group">
+                                  <div className="font-bold text-[var(--app-primary)] mb-1" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{b.bk}</div>
+                                  <div className="text-xs font-semibold text-gray-500 mb-2">Juz {b.juz || 1} - Halaman {b.page || 1}</div>
+                                  <div className="text-sm text-gray-600 truncate opacity-80" dir="auto">{b.snippet}</div>
+                                </div>
+                             ))}
+                           </div>
+                        </div>
+                      )}
+                   </div>
               )}
               {activeTab === 'advanced_search' && (
               <div className="mb-6 bg-[var(--reader-bg)] p-5 rounded-2xl border border-[var(--app-primary)]/20 shadow-sm">
@@ -790,6 +836,10 @@ function App() {
           initialPageId={readingConfig.pageId}
           highlightQuery={readingConfig.highlightQuery}
           settings={settings}
+          favorites={favorites}
+          setFavorites={setFavorites}
+          bookmarks={bookmarks}
+          setBookmarks={setBookmarks}
           onClose={() => { window.history.back(); }} 
         />
       )}
