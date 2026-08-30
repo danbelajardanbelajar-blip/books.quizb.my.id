@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, History, Heart } from 'lucide-react';
+import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, History, Heart, MessageSquare, BookPlus, Upload } from 'lucide-react';
 import './App.css';
 import { webAPI } from './api';
 import ReaderModal from './components/ReaderModal';
@@ -8,6 +8,9 @@ import RowaDictionary from './components/RowaDictionary';
 import About from './components/About';
 import Privacy from './components/Privacy';
 import { Admin } from './components/Admin';
+import Feedback from './components/Feedback';
+import BookRequest from './components/BookRequest';
+import BookSubmit from './components/BookSubmit';
 import Catalog from './components/Catalog';
 import AskAI from './components/AskAI';
 import Settings, { THEMES } from './components/Settings';
@@ -15,7 +18,7 @@ import { useEffect, useRef } from 'react';
 
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask' | 'admin'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask' | 'admin' | 'feedback' | 'book_request' | 'book_submit'>('search');
 
   // Search States
   const [searchMode, setSearchMode] = useState<'text' | 'title' | 'pdf'>('text');
@@ -295,10 +298,40 @@ function App() {
                   <SettingsIcon size={18} className="text-[var(--app-primary)]" /> Pengaturan
                 </button>
                 
-                <button onClick={() => setActiveTab('admin')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
+                                <button onClick={() => setActiveTab('feedback')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
+                  <MessageSquare size={18} className="text-[var(--app-primary)]" /> Feedback
+                </button>
+                <button onClick={() => setActiveTab('book_request')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
+                  <BookPlus size={18} className="text-[var(--app-primary)]" /> Request Kitab
+                </button>
+                <button onClick={() => setActiveTab('book_submit')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
+                  <Upload size={18} className="text-[var(--app-primary)]" /> Submit Kitab
+                </button>
+                <button onClick={() => setActiveTab('feedback')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><MessageSquare className="text-[var(--app-primary)]" /> Feedback</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('book_request')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><BookPlus className="text-[var(--app-primary)]" /> Request Kitab</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('book_submit')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><Upload className="text-[var(--app-primary)]" /> Submit Kitab</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('admin')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
                   <Shield size={18} className="text-[var(--app-primary)]" /> Admin Panel
                 </button>
-                <a href="https://maktabah.quizb.my.id" target="_blank" rel="noopener noreferrer" className="w-full text-left px-5 py-3 hover:bg-amber-50 text-amber-900 font-semibold transition-colors flex items-center gap-3 bg-amber-50/50">
+                <li><button onClick={() => { setActiveTab('feedback'); window.scrollTo(0,0); }} className="hover:text-[var(--app-primary)] transition-colors pb-1 flex items-center gap-2 text-white/70 border-b-2 border-transparent">
+              <MessageSquare size={16} /> Feedback
+            </button></li>
+            <li><button onClick={() => { setActiveTab('book_request'); window.scrollTo(0,0); }} className="hover:text-[var(--app-primary)] transition-colors pb-1 flex items-center gap-2 text-white/70 border-b-2 border-transparent">
+              <BookPlus size={16} /> Request Kitab
+            </button></li>
+            <li><button onClick={() => { setActiveTab('book_submit'); window.scrollTo(0,0); }} className="hover:text-[var(--app-primary)] transition-colors pb-1 flex items-center gap-2 text-white/70 border-b-2 border-transparent">
+              <Upload size={16} /> Submit Kitab
+            </button></li>
+            <a target="_blank" rel="noopener noreferrer" className="w-full text-left px-5 py-3 hover:bg-amber-50 text-amber-900 font-semibold transition-colors flex items-center gap-3 bg-amber-50/50">
                   <History size={18} className="text-amber-700" /> Web Versi Lama
                 </a>
               </div>
@@ -320,6 +353,12 @@ function App() {
           <Privacy />
         ) : activeTab === 'settings' ? (
           <Settings settings={settings} setSettings={setSettings} />
+        ) : activeTab === 'feedback' ? (
+          <Feedback />
+        ) : activeTab === 'book_request' ? (
+          <BookRequest />
+        ) : activeTab === 'book_submit' ? (
+          <BookSubmit />
         ) : activeTab === 'catalog' ? (
           <Catalog openBook={openBookInfo} readBook={(bookId) => openReader({ bookId })} />
         ) : activeTab === 'ask' ? (
@@ -348,6 +387,18 @@ function App() {
               </button>
               <button onClick={() => setActiveTab('privacy')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
                 <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Privasi</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+                            <button onClick={() => setActiveTab('feedback')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><MessageSquare className="text-[var(--app-primary)]" /> Feedback</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('book_request')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><BookPlus className="text-[var(--app-primary)]" /> Request Kitab</span>
+                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
+              </button>
+              <button onClick={() => setActiveTab('book_submit')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><Upload className="text-[var(--app-primary)]" /> Submit Kitab</span>
                 <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
               </button>
               <button onClick={() => setActiveTab('admin')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
