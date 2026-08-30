@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { webAPI } from '../api';
-import { ChevronLeft, ChevronRight, X, BookOpen, Heart, Bookmark, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, BookOpen, Heart, Bookmark, Download , ChevronsLeft, ChevronsRight, SkipBack, SkipForward} from 'lucide-react';
 
 export interface ReaderModalProps {
   bookId: number;
@@ -228,6 +228,42 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
     setLoading(false);
   };
 
+  const firstPage = async () => {
+    setLoading(true);
+    try {
+      const res = await webAPI.getFirstPage(bookId);
+      if (res.data) setCurrentPageId(res.data.id);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+  const lastPage = async () => {
+    setLoading(true);
+    try {
+      const res = await webAPI.getLastPage(bookId);
+      if (res.data) setCurrentPageId(res.data.id);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+  const nextJuz = async () => {
+    if (currentPageId === undefined) return;
+    setLoading(true);
+    try {
+      const res = await webAPI.getNextJuz(bookId, currentPageId);
+      if (res.data) setCurrentPageId(res.data.id);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+  const prevJuz = async () => {
+    if (currentPageId === undefined) return;
+    setLoading(true);
+    try {
+      const res = await webAPI.getPrevJuz(bookId, currentPageId);
+      if (res.data) setCurrentPageId(res.data.id);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+
   if (!bookInfo || !currentPage) {
     return (
       <div className="fixed inset-0 bg-[#fbf8f1] flex justify-center items-center z-50">
@@ -365,29 +401,35 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
 
       {/* Floating Bottom Navigation */}
       <div className={`absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 flex items-center bg-white/95 backdrop-blur-lg shadow-2xl rounded-full p-1 md:p-2 border border-[#e0e0e0] z-30 font-sans w-[95%] md:w-auto justify-between md:justify-center transition-all duration-300 ${showUi ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"} lg:translate-y-0 lg:opacity-100 lg:pointer-events-auto`}>
-        {/* Previous is on the right visually in RTL */}
-        <button 
-          onClick={() => { setSlideDir('right'); prevPage(); }} 
-          disabled={loading}
-          className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
-        >
-          <ChevronLeft size={24} /> <span>Sebelumnya</span>
-        </button>
-        
-        <div className="px-2 md:px-6 font-bold text-[var(--app-primary)] flex flex-col items-center">
-          <span className="text-[10px] md:text-sm text-gray-500 uppercase tracking-widest">Posisi</span>
-          <span className="text-sm md:text-base">Hal {currentPage?.page || '-'}</span>
+        <div className="flex gap-1 md:gap-2">
+          <button onClick={(e) => { e.stopPropagation(); setSlideDir('right'); firstPage(); }} disabled={loading} className="bg-black/5 text-[var(--app-primary)] hover:bg-[var(--app-primary)] hover:text-white p-2 md:p-3 rounded-full transition-all disabled:opacity-50" title="Halaman Pertama">
+            <SkipBack size={20} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setSlideDir('right'); prevJuz(); }} disabled={loading} className="bg-black/5 text-[var(--app-primary)] hover:bg-[var(--app-primary)] hover:text-white p-2 md:p-3 rounded-full transition-all disabled:opacity-50" title="Juz/Jilid Sebelumnya">
+            <ChevronsLeft size={20} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setSlideDir('right'); prevPage(); }} disabled={loading} className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] p-2 md:p-3 rounded-full transition-all disabled:opacity-50 shadow-md" title="Halaman Sebelumnya">
+            <ChevronLeft size={24} />
+          </button>
         </div>
         
-        {/* Next is on the left visually in RTL */}
-        <button 
-          onClick={() => { setSlideDir('left'); nextPage(); }} 
-          disabled={loading}
-          className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] px-4 md:px-8 py-2 md:py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg flex items-center gap-1 md:gap-2 flex-1 md:flex-none justify-center"
-        >
-          <span>Selanjutnya</span> <ChevronRight size={24} />
-        </button>
-      </div>
+        <div className="px-2 md:px-6 font-bold text-[var(--app-primary)] flex flex-col items-center flex-1">
+          <span className="text-[10px] md:text-sm text-gray-500 uppercase tracking-widest truncate max-w-full">Posisi</span>
+          <span className="text-sm md:text-base whitespace-nowrap">Hal {currentPage?.page || '-'}</span>
+        </div>
+        
+        <div className="flex gap-1 md:gap-2">
+          <button onClick={(e) => { e.stopPropagation(); setSlideDir('left'); nextPage(); }} disabled={loading} className="bg-[var(--app-primary)] text-white hover:bg-[var(--app-primary-hover)] p-2 md:p-3 rounded-full transition-all disabled:opacity-50 shadow-md" title="Halaman Selanjutnya">
+            <ChevronRight size={24} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setSlideDir('left'); nextJuz(); }} disabled={loading} className="bg-black/5 text-[var(--app-primary)] hover:bg-[var(--app-primary)] hover:text-white p-2 md:p-3 rounded-full transition-all disabled:opacity-50" title="Juz/Jilid Selanjutnya">
+            <ChevronsRight size={20} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setSlideDir('left'); lastPage(); }} disabled={loading} className="bg-black/5 text-[var(--app-primary)] hover:bg-[var(--app-primary)] hover:text-white p-2 md:p-3 rounded-full transition-all disabled:opacity-50" title="Halaman Terakhir">
+            <SkipForward size={20} />
+          </button>
+        </div>
+</div>
 
     </div>
   );

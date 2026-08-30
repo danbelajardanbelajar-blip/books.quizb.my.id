@@ -60,6 +60,18 @@ export const webAPI = {
   getPage: async (bookId: number, pageId?: number) => {
     return fetchAPI(`/book/${bookId}/page${pageId ? `/${pageId}` : ''}`);
   },
+  getFirstPage: async (bookId: number) => {
+    return fetchAPI(`/book/${bookId}/first`);
+  },
+  getLastPage: async (bookId: number) => {
+    return fetchAPI(`/book/${bookId}/last`);
+  },
+  getNextJuz: async (bookId: number, currentPageId: number) => {
+    return fetchAPI(`/book/${bookId}/next_juz/${currentPageId}`);
+  },
+  getPrevJuz: async (bookId: number, currentPageId: number) => {
+    return fetchAPI(`/book/${bookId}/prev_juz/${currentPageId}`);
+  },
   getNextPage: async (bookId: number, currentPageId: number) => {
     return fetchAPI(`/book/${bookId}/next/${currentPageId}`);
   },

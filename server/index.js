@@ -417,6 +417,57 @@ app.get('/api/book/:id/next/:currentPageId', (req, res) => {
   }
 });
 
+
+app.get('/api/book/:id/first', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id ASC LIMIT 1`);
+    res.json({ data: stmt.get(parseInt(req.params.id)), error: null });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/book/:id/last', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? ORDER BY id DESC LIMIT 1`);
+    res.json({ data: stmt.get(parseInt(req.params.id)), error: null });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/book/:id/next_juz/:currentPageId', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const bookId = parseInt(req.params.id);
+    const currentPageId = parseInt(req.params.currentPageId);
+    const current = db.prepare('SELECT part FROM pages WHERE id = ?').get(currentPageId);
+    if (!current) return res.json({ data: null, error: null });
+    
+    // Get the first page of the next part
+    const nextPartRow = db.prepare('SELECT part FROM pages WHERE book_id = ? AND part > ? ORDER BY part ASC LIMIT 1').get(bookId, current.part);
+    if (!nextPartRow) return res.json({ data: null, error: null }); // no next juz
+    
+    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? AND part = ? ORDER BY id ASC LIMIT 1`);
+    res.json({ data: stmt.get(bookId, nextPartRow.part), error: null });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/book/:id/prev_juz/:currentPageId', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const bookId = parseInt(req.params.id);
+    const currentPageId = parseInt(req.params.currentPageId);
+    const current = db.prepare('SELECT part FROM pages WHERE id = ?').get(currentPageId);
+    if (!current) return res.json({ data: null, error: null });
+    
+    // Get the first page of the previous part
+    const prevPartRow = db.prepare('SELECT part FROM pages WHERE book_id = ? AND part < ? ORDER BY part DESC LIMIT 1').get(bookId, current.part);
+    if (!prevPartRow) return res.json({ data: null, error: null }); // no prev juz
+    
+    const stmt = db.prepare(`SELECT id, part, page, nass as text FROM pages WHERE book_id = ? AND part = ? ORDER BY id ASC LIMIT 1`);
+    res.json({ data: stmt.get(bookId, prevPartRow.part), error: null });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 app.get('/api/book/:id/prev/:currentPageId', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
