@@ -30,15 +30,38 @@ export default function BookSubmit() {
     setFile(f); setError('');
   };
 
+    const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.email || !form.book_title) { setError('Email dan judul kitab wajib diisi.'); return; }
     setLoading(true); setError(''); setSuccess('');
     try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      if (file) fd.append('file', file);
-      const res = await fetch(`${API_BASE}/book-submit`, { method: 'POST', body: fd });
+      let file_data = null;
+      let file_name = null;
+
+      if (file) {
+        file_data = await toBase64(file);
+        file_name = file.name;
+      }
+
+      const payload = {
+        ...form,
+        category_id: form.category_id ? parseInt(form.category_id) : null,
+        file_data,
+        file_name
+      };
+
+      const res = await fetch(`${API_BASE}/book-submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
       const data = await res.json();
       if (res.ok) {
         setSuccess(data.message);

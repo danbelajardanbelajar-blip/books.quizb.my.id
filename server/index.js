@@ -27,7 +27,8 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '60mb' }));
+app.use(express.urlencoded({ limit: '60mb', extended: true }));
 
 let db;
 // Gunakan variabel environment DB_PATH, atau fallback ke alamat PC
@@ -331,58 +332,42 @@ app.delete('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
 const uploadDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + '_' + Math.random().toString(36).slice(2) + ext);
-  }
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
-  fileFilter: (req, file, cb) => {
-    const allowed = ['.pdf', '.docx', '.doc'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('Hanya file PDF dan DOCX yang diizinkan'));
-  }
-});
-
-// ========= PUBLIC: CATEGORIES (no auth) =========
-app.get('/api/categories/list', (req, res) => {
+// ========= BOOK SUBMISSION (BASE64) =========
+app.post('/api/book-submit', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
-    const cats = db.prepare('SELECT id, name FROM categories ORDER BY name ASC').all();
-    res.json({ data: cats });
-  } catch (error) { res.status(500).json({ error: error.message }); }
-});
-
-// ========= PUBLIC: FEEDBACK =========
-app.post('/api/feedback', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
-  try {
-    const { email, name, message, rating } = req.body;
-    if (!email || !message) return res.status(400).json({ error: 'Email dan pesan wajib diisi' });
-    db.prepare('INSERT INTO feedback (email, name, message, rating) VALUES (?, ?, ?, ?)').run(email, name || null, message, rating || 0);
-    res.json({ success: true, message: 'Feedback berhasil dikirim. Terima kasih!' });
-  } catch (error) { res.status(500).json({ error: error.message }); }
-});
-
-// ========= PUBLIC: BOOK REQUEST =========
-app.post('/api/book-request', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
-  try {
-    const { email, name, book_title, book_author, category_id, notes } = req.body;
+    const { email, name, book_title, book_author, category_id, notes, file_data, file_name } = req.body;
     if (!email || !book_title) return res.status(400).json({ error: 'Email dan judul kitab wajib diisi' });
-    db.prepare('INSERT INTO book_requests (email, name, book_title, book_author, category_id, notes) VALUES (?, ?, ?, ?, ?, ?)').run(email, name || null, book_title, book_author || null, category_id || null, notes || null);
-    res.json({ success: true, message: 'Permintaan berhasil dikirim. Kami akan segera menindaklanjuti!' });
+
+    let savedFilePath = null;
+    let fileType = null;
+    let finalFileName = null;
+
+    if (file_data && file_name) {
+       const matches = file_data.match(/^data:(.+);base64,(.+)$/);
+       if (matches && matches.length === 3) {
+           const ext = path.extname(file_name).toLowerCase();
+           if (!['.pdf', '.docx', '.doc'].includes(ext)) {
+               return res.status(400).json({ error: 'Hanya file PDF dan DOCX yang diizinkan' });
+           }
+           fileType = ext;
+           finalFileName = file_name;
+           const buffer = Buffer.from(matches[2], 'base64');
+           const safeFileName = Date.now() + '_' + Math.random().toString(36).slice(2) + ext;
+           savedFilePath = path.join(uploadDir, safeFileName);
+           fs.writeFileSync(savedFilePath, buffer);
+       } else {
+           return res.status(400).json({ error: 'Format file tidak valid' });
+       }
+    }
+
+    db.prepare('INSERT INTO book_submissions (email, name, book_title, book_author, category_id, file_path, file_name, file_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+      email, name || null, book_title, book_author || null, category_id || null,
+      savedFilePath, finalFileName, fileType, notes || null
+    );
+    res.json({ success: true, message: 'Kitab berhasil dikirimkan. Terima kasih atas kontribusinya!' });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
-
-// ========= PUBLIC: BOOK SUBMISSION =========
-app.post('/api/book-submit', upload.single('file'), (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
     const { email, name, book_title, book_author, category_id, notes } = req.body;
     if (!email || !book_title) return res.status(400).json({ error: 'Email dan judul kitab wajib diisi' });
