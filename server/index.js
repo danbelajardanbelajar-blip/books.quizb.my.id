@@ -638,15 +638,17 @@ app.get('/api/search', (req, res) => {
 
     // Helper: bangun SQL search untuk satu skema FTS
     // dbPrefix: 'main' atau 'tambahan'
+    // PENTING: snippet() di SQLite FTS TIDAK menerima schema-qualified name (main.pages_fts).
+    // Gunakan nama tabel tanpa prefix, SQLite otomatis resolve dari konteks query.
     const buildFtsQuery = (dbPrefix, isCount, isExact) => {
       const selectFields = isCount
         ? 'COUNT(*) as total'
-        : `p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(${dbPrefix}.pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, ${isExact ? 1 : 0} as is_exact`;
+        : `p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, ${isExact ? 1 : 0} as is_exact`;
       let sql = `
         SELECT ${selectFields}
         FROM ${dbPrefix}.pages_fts f
         JOIN ${dbPrefix}.pages p ON f.rowid = p.rowid
-        JOIN (SELECT bkid, bk, cat FROM main.books_meta ${hasTambahan ? 'UNION ALL SELECT bkid, bk, cat FROM tambahan.books_meta' : ''}) b ON p.book_id = b.bkid
+        JOIN (SELECT bkid, bk, cat FROM main.books_meta${hasTambahan ? ' UNION ALL SELECT bkid, bk, cat FROM tambahan.books_meta' : ''}) b ON p.book_id = b.bkid
         WHERE ${dbPrefix}.pages_fts MATCH ?
       `;
       if (cat_ids.length > 0) {
@@ -672,9 +674,12 @@ app.get('/api/search', (req, res) => {
           return stmt.all(...params);
         }
       } catch(e) {
+        // Log error agar tidak silent — bantu debug masalah di server
+        console.error(`[execSearch] Error querying ${dbPrefix}.pages_fts:`, e.message);
         return isCount ? 0 : [];
       }
     };
+
 
     // Tentukan prefixes yang akan diquery
     const prefixes = hasTambahan ? ['main', 'tambahan'] : ['main'];
