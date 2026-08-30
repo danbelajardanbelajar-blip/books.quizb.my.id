@@ -1536,17 +1536,17 @@ app.get('/api/quran/tafsir/:surahId', (req, res) => {
     const data = db.prepare(`
       SELECT
         m.surah_id,
-        m.ayah_no,
-        m.book_id,
+        m.ayah_id as ayah_no,
+        m.tafsir_bkid as book_id,
         m.page_id,
-        COALESCE(m.tafsir_name, bm.bk, 'Tafsir #' || m.book_id) as tafsir_name
+        COALESCE(bm.bk, 'Tafsir #' || m.tafsir_bkid) as tafsir_name
       FROM tafsir.tafsir_ayah_mapping m
       LEFT JOIN (
         SELECT bkid, bk FROM main.books_meta
         ${hasTambahan ? 'UNION ALL SELECT bkid, bk FROM tambahan.books_meta' : ''}
-      ) bm ON m.book_id = bm.bkid
+      ) bm ON m.tafsir_bkid = bm.bkid
       WHERE m.surah_id = ?
-      ORDER BY m.ayah_no ASC, m.book_id ASC
+      ORDER BY m.ayah_id ASC, m.tafsir_bkid ASC
     `).all(surahId);
     res.json({ data, error: null });
   } catch (error) {
