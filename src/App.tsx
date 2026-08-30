@@ -234,8 +234,8 @@ function App() {
     <div className="flex flex-col min-h-screen font-sans pb-[70px] md:pb-0 transition-colors duration-300" dir="ltr" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
       {!readingConfig && (
         <>
-          <header className="bg-[var(--app-primary)] text-white shadow-lg relative z-40 sticky top-0 transition-colors duration-300 backdrop-blur-md bg-opacity-95" style={{ fontFamily: 'var(--latin-font)' }}>
-        <div className="flex justify-between items-center p-4 md:px-8 md:py-0 max-w-7xl mx-auto md:h-[80px]">
+          <header className="bg-transparent md:bg-[var(--app-primary)] md:text-white md:shadow-lg relative z-40 md:sticky md:top-0 transition-colors duration-300 md:backdrop-blur-md md:bg-opacity-95" style={{ fontFamily: 'var(--latin-font)' }}>
+        <div className="flex justify-center md:justify-between items-center pt-6 pb-2 md:px-8 md:py-0 max-w-7xl mx-auto md:h-[80px]">
                     {/* Logo & Title */}
           <a 
             href="/" 
@@ -248,8 +248,8 @@ function App() {
             }} 
             className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
           >
-            <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
-            <h1 className="text-xl md:text-2xl font-bold" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h1>
+            <img src="/logo.png" alt="Logo Pesantren Assunniyyah" className="w-20 h-20 md:w-12 md:h-12 object-contain" />
+            <h1 className="hidden md:block text-xl md:text-2xl font-bold" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>المكتبة السنية</h1>
           </a>
 
           {/* Navigation Menu (Hidden on mobile, uses bottom tabs instead) */}
