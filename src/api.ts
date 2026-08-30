@@ -10,6 +10,7 @@ async function fetchAPI(endpoint: string) {
 
 export const webAPI = {
 
+  // ===== ADMIN AUTH =====
   adminLogin: async (credentials: any) => {
     const res = await fetch(`${API_BASE}/admin/login`, {
       method: 'POST',
@@ -19,25 +20,81 @@ export const webAPI = {
     if (!res.ok) throw new Error('Invalid credentials');
     return res.json();
   },
-  getAdminBooks: async (token: string, page = 1, query = '') => {
+
+  // ===== ADMIN CATEGORIES =====
+  getAdminCategories: async (token: string) => {
+    const res = await fetch(`${API_BASE}/admin/categories`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
+  updateAdminCategory: async (token: string, id: number, data: any) => {
+    const res = await fetch(`${API_BASE}/admin/category/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${res.status}`); }
+    return res.json();
+  },
+  deleteAdminCategory: async (token: string, id: number) => {
+    const res = await fetch(`${API_BASE}/admin/category/${id}`, {
+      method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${res.status}`); }
+    return res.json();
+  },
+
+  // ===== ADMIN BOOKS =====
+  getAdminBooks: async (token: string, page = 1, query = '', catId?: number) => {
     let url = `${API_BASE}/admin/books?page=${page}`;
     if (query) url += `&q=${encodeURIComponent(query)}`;
+    if (catId) url += `&cat=${catId}`;
     const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-    if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+    if (!res.ok) throw new Error(`${res.status}`);
     return res.json();
   },
   updateAdminBook: async (token: string, bookId: number, data: any) => {
     const res = await fetch(`${API_BASE}/admin/book/${bookId}`, {
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error(`Failed to update: ${res.status}`);
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${res.status}`); }
     return res.json();
   },
+  deleteAdminBook: async (token: string, bookId: number) => {
+    const res = await fetch(`${API_BASE}/admin/book/${bookId}`, {
+      method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${res.status}`); }
+    return res.json();
+  },
+
+  // ===== ADMIN PAGES =====
+  getAdminBookPages: async (token: string, bookId: number, page = 1) => {
+    const res = await fetch(`${API_BASE}/admin/book/${bookId}/pages?page=${page}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
+  getAdminPage: async (token: string, bookId: number, pageId: number) => {
+    const res = await fetch(`${API_BASE}/admin/page/${bookId}/${pageId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
+  updateAdminPage: async (token: string, bookId: number, pageId: number, data: any) => {
+    const res = await fetch(`${API_BASE}/admin/page/${bookId}/${pageId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${res.status}`); }
+    return res.json();
+  },
+  deleteAdminPage: async (token: string, bookId: number, pageId: number) => {
+    const res = await fetch(`${API_BASE}/admin/page/${bookId}/${pageId}`, {
+      method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${res.status}`); }
+    return res.json();
+  },
+
 
 
   askAI: async (query: string) => {

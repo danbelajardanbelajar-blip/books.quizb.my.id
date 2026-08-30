@@ -190,47 +190,140 @@ app.post('/api/admin/login', (req, res) => {
   }
 });
 
+// ========= ADMIN: CATEGORIES =========
+
+app.get('/api/admin/categories', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const cats = db.prepare(`
+      SELECT c.id, c.name, c.catord, c.lvl, COUNT(b.bkid) as book_count
+      FROM categories c
+      LEFT JOIN books_meta b ON b.cat = c.id
+      GROUP BY c.id
+      ORDER BY c.catord ASC, c.name ASC
+    `).all();
+    res.json({ data: cats, total: cats.length });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/admin/category/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const { name } = req.body;
+    const id = parseInt(req.params.id);
+    const info = db.prepare(`UPDATE categories SET name = ? WHERE id = ?`).run(name, id);
+    if (info.changes > 0) res.json({ success: true });
+    else res.status(404).json({ error: 'Category not found' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/admin/category/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const id = parseInt(req.params.id);
+    const bookCount = db.prepare(`SELECT COUNT(*) as cnt FROM books_meta WHERE cat = ?`).get(id).cnt;
+    if (bookCount > 0) {
+      return res.status(400).json({ error: `Kategori memiliki ${bookCount} kitab. Pindahkan kitab terlebih dahulu.` });
+    }
+    const info = db.prepare(`DELETE FROM categories WHERE id = ?`).run(id);
+    if (info.changes > 0) res.json({ success: true });
+    else res.status(404).json({ error: 'Category not found' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ========= ADMIN: BOOKS =========
+
 app.get('/api/admin/books', requireAdmin, (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = parseInt(req.query.limit) || 30;
     const offset = (page - 1) * limit;
+    const catId = req.query.cat ? parseInt(req.query.cat) : null;
     const query = req.query.q || '';
-    
-    let stmt, countStmt;
-    if (query) {
-      stmt = db.prepare(`SELECT bkid, bk FROM books_meta WHERE bk LIKE ? LIMIT ? OFFSET ?`);
-      const data = stmt.all(`%${query}%`, limit, offset);
-      countStmt = db.prepare(`SELECT COUNT(*) as total FROM books_meta WHERE bk LIKE ?`);
-      const total = countStmt.get(`%${query}%`).total;
-      res.json({ data, total, page, limit });
-    } else {
-      stmt = db.prepare(`SELECT bkid, bk FROM books_meta LIMIT ? OFFSET ?`);
-      const data = stmt.all(limit, offset);
-      countStmt = db.prepare(`SELECT COUNT(*) as total FROM books_meta`);
-      const total = countStmt.get().total;
-      res.json({ data, total, page, limit });
-    }
+
+    let whereClause = '';
+    let params = [];
+    if (catId) { whereClause += (whereClause ? ' AND' : ' WHERE') + ' b.cat = ?'; params.push(catId); }
+    if (query) { whereClause += (whereClause ? ' AND' : ' WHERE') + ' b.bk LIKE ?'; params.push(`%${query}%`); }
+
+    const data = db.prepare(`SELECT b.bkid, b.bk, b.cat, c.name as cat_name FROM books_meta b LEFT JOIN categories c ON b.cat = c.id ${whereClause} ORDER BY b.bk ASC LIMIT ? OFFSET ?`).all(...params, limit, offset);
+    const total = db.prepare(`SELECT COUNT(*) as total FROM books_meta b ${whereClause}`).get(...params).total;
+    res.json({ data, total, page, limit });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.put('/api/admin/book/:id', requireAdmin, (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
-    const { bk } = req.body;
+    const { bk, cat, inf } = req.body;
     const bookId = parseInt(req.params.id);
-    const stmt = db.prepare(`UPDATE books_meta SET bk = ? WHERE bkid = ?`);
-    const info = stmt.run(bk, bookId);
-    if (info.changes > 0) {
-      res.json({ success: true });
-    } else {
-      res.status(404).json({ error: 'Book not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    const info = db.prepare(`UPDATE books_meta SET bk = ?, cat = ?, inf = ? WHERE bkid = ?`).run(bk, cat || null, inf || null, bookId);
+    if (info.changes > 0) res.json({ success: true });
+    else res.status(404).json({ error: 'Book not found' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
+
+app.delete('/api/admin/book/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const bookId = parseInt(req.params.id);
+    db.prepare(`DELETE FROM pages WHERE book_id = ?`).run(bookId);
+    const info = db.prepare(`DELETE FROM books_meta WHERE bkid = ?`).run(bookId);
+    if (info.changes > 0) res.json({ success: true });
+    else res.status(404).json({ error: 'Book not found' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ========= ADMIN: PAGES (CONTENT) =========
+
+app.get('/api/admin/book/:id/pages', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const bookId = parseInt(req.params.id);
+    const pageNum = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (pageNum - 1) * limit;
+    const data = db.prepare(`SELECT id, book_id, part, page, SUBSTR(nass, 1, 200) as preview FROM pages WHERE book_id = ? ORDER BY part ASC, page ASC LIMIT ? OFFSET ?`).all(bookId, limit, offset);
+    const total = db.prepare(`SELECT COUNT(*) as total FROM pages WHERE book_id = ?`).get(bookId).total;
+    res.json({ data, total, page: pageNum, limit });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const bookId = parseInt(req.params.bookId);
+    const pageId = parseInt(req.params.pageId);
+    const data = db.prepare(`SELECT id, book_id, part, page, nass FROM pages WHERE book_id = ? AND id = ?`).get(bookId, pageId);
+    if (data) res.json({ data });
+    else res.status(404).json({ error: 'Page not found' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const bookId = parseInt(req.params.bookId);
+    const pageId = parseInt(req.params.pageId);
+    const { nass, part, page } = req.body;
+    const info = db.prepare(`UPDATE pages SET nass = ?, part = ?, page = ? WHERE book_id = ? AND id = ?`).run(nass, part, page, bookId, pageId);
+    if (info.changes > 0) res.json({ success: true });
+    else res.status(404).json({ error: 'Page not found' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const bookId = parseInt(req.params.bookId);
+    const pageId = parseInt(req.params.pageId);
+    const info = db.prepare(`DELETE FROM pages WHERE book_id = ? AND id = ?`).run(bookId, pageId);
+    if (info.changes > 0) res.json({ success: true });
+    else res.status(404).json({ error: 'Page not found' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 
 app.get('/api/search', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
