@@ -32,7 +32,17 @@ app.use(express.urlencoded({ limit: '60mb', extended: true }));
 
 let db;
 // Gunakan variabel environment DB_PATH, atau fallback ke alamat PC
-const dbPath = process.env.DB_PATH || "D:\\database_maktabah_golden\\maktabah.db";
+// Cari database secara berurutan
+let dbPath = process.env.DB_PATH;
+if (!dbPath) {
+  if (fs.existsSync('maktabah3.db')) {
+    dbPath = 'maktabah3.db';
+  } else if (fs.existsSync('maktabah.db')) {
+    dbPath = 'maktabah.db';
+  } else {
+    dbPath = "D:\\database_maktabah_golden\\maktabah.db";
+  }
+}
 
 // Cache untuk query AI
 const askCache = new Map();
