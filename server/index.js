@@ -54,6 +54,7 @@ const tafsirDbPath = process.env.TAFSIR_DB_PATH || path.join(rootDir, 'tafsir_re
 
 // Flag keberadaan database tambahan
 let hasTambahan = false;
+let hasTambahanAuthors = false;
 let hasTafsir = false;
 
 // Cache untuk query AI
@@ -74,6 +75,12 @@ try {
         db.exec(`ATTACH DATABASE '${safeTambPath}' AS tambahan`);
         hasTambahan = true;
         console.log("Database tambahan attached:", tambDbPath);
+
+        // Cek apakah tabel authors ada di tambahan
+        try {
+          const row = db.prepare("SELECT name FROM tambahan.sqlite_master WHERE type='table' AND name='authors'").get();
+          hasTambahanAuthors = !!row;
+        } catch(e) {}
       } else {
         console.log("Database tambahan tidak ditemukan (opsional):", tambDbPath);
       }
@@ -163,7 +170,7 @@ function booksMeta() {
 }
 
 function authorsUnion() {
-  if (hasTambahan) {
+  if (hasTambahan && hasTambahanAuthors) {
     return `(SELECT authid, auth, inf, HigriD, AD FROM main.authors UNION ALL SELECT authid, auth, inf, HigriD, AD FROM tambahan.authors)`;
   }
   return `main.authors`;

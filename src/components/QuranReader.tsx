@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { webAPI } from '../api';
-import { ChevronRight, ChevronLeft, BookOpen, Loader2, X, BookMarked } from 'lucide-react';
+import { ChevronRight, ChevronLeft, BookOpen, Loader2, X, BookMarked, Menu } from 'lucide-react';
 
 // ============================================================
 // Type Definitions
@@ -223,6 +223,9 @@ const QuranReader: React.FC = () => {
     setTafsirLoading(false);
   }, [ayahs, currentAyahIndex, tafsirMappings, openTafsir]);
 
+  const [showMobileSurah, setShowMobileSurah] = useState(false);
+  const [showMobileTafsir, setShowMobileTafsir] = useState(false);
+
   // ============================================================
   // Derived
   // ============================================================
@@ -235,15 +238,18 @@ const QuranReader: React.FC = () => {
   // ============================================================
   return (
     <div
-      className="flex w-full h-screen bg-[#faf6ef] overflow-hidden"
+      className="flex w-full h-screen bg-[#faf6ef] overflow-hidden relative"
       dir="rtl"
       style={{ fontFamily: 'var(--arabic-font, "Amiri", serif)' }}
     >
       {/* ===== KANAN (20%): Sidebar Daftar Surah ===== */}
-      <div className="w-[20%] min-w-[180px] flex flex-col bg-[#3e2723] text-white border-l border-[#5d4037] shadow-xl flex-shrink-0">
-        <div className="bg-[#2e1a17] px-4 py-4 text-center sticky top-0 z-10 shadow-md">
-          <div className="text-[#d4a853] font-bold text-lg">القرآن الكريم</div>
-          <div className="text-[#a1887f] text-xs mt-1" style={{ fontFamily: 'sans-serif' }}>فهرس السور</div>
+      <div className={`fixed md:relative z-30 h-full w-[250px] md:w-[20%] md:min-w-[180px] flex flex-col bg-[#3e2723] text-white border-l border-[#5d4037] shadow-xl flex-shrink-0 transition-transform duration-300 ${showMobileSurah ? 'translate-x-0' : 'translate-x-[100%] md:translate-x-0'}`}>
+        <div className="bg-[#2e1a17] px-4 py-4 text-center sticky top-0 z-10 shadow-md flex justify-between items-center md:block">
+          <div className="text-[#d4a853] font-bold text-lg w-full text-center">القرآن الكريم</div>
+          <button className="md:hidden text-[#d4a853] absolute left-4" onClick={() => setShowMobileSurah(false)}>
+            <X size={20} />
+          </button>
+          <div className="text-[#a1887f] text-xs mt-1 md:block hidden" style={{ fontFamily: 'sans-serif' }}>فهرس السور</div>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {surahLoading ? (
@@ -252,7 +258,7 @@ const QuranReader: React.FC = () => {
             surahs.map(s => (
               <button
                 key={s.id}
-                onClick={() => setSelectedSurah(s.id)}
+                onClick={() => { setSelectedSurah(s.id); setShowMobileSurah(false); }}
                 className={`w-full text-right px-4 py-3 border-b border-[#4e342e]/50 transition-all duration-150 flex items-center justify-between gap-2 ${
                   selectedSurah === s.id
                     ? 'bg-[#d4a853] text-[#2e1a17] font-bold'
@@ -273,14 +279,18 @@ const QuranReader: React.FC = () => {
       </div>
 
       {/* ===== TENGAH (20%): Sidebar Daftar Kitab Tafsir ===== */}
-      <div className="w-[20%] min-w-[160px] flex flex-col bg-[#f0e9d6] border-l border-[#d7ccc8] flex-shrink-0">
-        <div className="bg-[#5d4037] text-white px-3 py-4 sticky top-0 z-10 shadow-md">
-          <div className="font-bold text-sm text-center" style={{ fontFamily: 'sans-serif' }}>
+      <div className={`fixed md:relative z-30 h-full w-[250px] md:w-[20%] md:min-w-[160px] flex flex-col bg-[#f0e9d6] border-l border-[#d7ccc8] flex-shrink-0 transition-transform duration-300 right-0 md:right-auto ${showMobileTafsir ? 'translate-x-0' : 'translate-x-[100%] md:translate-x-0'} md:block`}
+           style={ { left: showMobileTafsir ? 0 : 'auto', right: showMobileTafsir ? 'auto' : 0 } }>
+        <div className="bg-[#5d4037] text-white px-3 py-4 sticky top-0 z-10 shadow-md flex justify-between items-center md:block">
+          <div className="font-bold text-sm text-center w-full" style={{ fontFamily: 'sans-serif' }}>
             <BookOpen size={14} className="inline ml-1 mb-0.5" />
             كتب التفسير
           </div>
+          <button className="md:hidden text-[#f0e9d6] absolute left-4" onClick={() => setShowMobileTafsir(false)}>
+            <X size={20} />
+          </button>
           {currentAyah && (
-            <div className="text-[#d7ccc8] text-xs text-center mt-1" style={{ fontFamily: 'sans-serif' }}>
+            <div className="text-[#d7ccc8] text-xs text-center mt-1 md:block hidden" style={{ fontFamily: 'sans-serif' }}>
               الآية {currentAyah.ayah_no}
             </div>
           )}
@@ -333,21 +343,30 @@ const QuranReader: React.FC = () => {
       <div className="flex-1 flex flex-col bg-[#fffdf7] overflow-hidden">
 
         {/* Header Navigation */}
-        <div className="bg-[#faf6ef] border-b border-[#e8dcc8] px-6 py-3 flex-shrink-0 shadow-sm">
-          <div className="flex items-center justify-between gap-4" dir="ltr">
+        <div className="bg-[#faf6ef] border-b border-[#e8dcc8] px-3 md:px-6 py-3 flex-shrink-0 shadow-sm relative">
+          <div className="flex items-center justify-between gap-2 md:gap-4" dir="ltr">
+            
+            {/* Mobile Toggle Surah List */}
+            <button 
+              onClick={() => setShowMobileSurah(prev => !prev)}
+              className="md:hidden flex items-center justify-center p-2 rounded-lg bg-[#3e2723] text-white hover:bg-[#2e1a17] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+
             <button
               onClick={goToPrevAyah}
               disabled={currentAyahIndex === 0 || ayahLoading}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#5d4037] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4e342e] transition-colors text-sm"
+              className="flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg bg-[#5d4037] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4e342e] transition-colors text-sm"
               style={{ fontFamily: 'sans-serif' }}
             >
               <ChevronRight size={16} />
-              <span>السابق</span>
+              <span className="hidden sm:inline">السابق</span>
             </button>
 
             <div className="flex flex-col items-center gap-1 flex-1" dir="rtl">
               {selectedSurahData && (
-                <div className="text-[#4e342e] font-bold text-lg" style={{ fontFamily: 'var(--arabic-font, serif)' }}>
+                <div className="text-[#4e342e] font-bold text-base md:text-lg" style={{ fontFamily: 'var(--arabic-font, serif)' }}>
                   سورة {selectedSurahData.name}
                 </div>
               )}
@@ -355,7 +374,7 @@ const QuranReader: React.FC = () => {
                 <select
                   value={currentAyahIndex}
                   onChange={e => goToAyah(parseInt(e.target.value))}
-                  className="border border-[#d7ccc8] rounded-lg px-3 py-1.5 bg-white text-[#4e342e] text-sm focus:outline-none focus:ring-2 focus:ring-[#8d6e63]"
+                  className="border border-[#d7ccc8] rounded-lg px-2 py-1 md:px-3 md:py-1.5 bg-white text-[#4e342e] text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#8d6e63] w-[100px] md:w-auto"
                   style={{ fontFamily: 'var(--arabic-font, serif)', direction: 'rtl' }}
                 >
                   {ayahs.map((a, idx) => (
@@ -370,12 +389,21 @@ const QuranReader: React.FC = () => {
             <button
               onClick={goToNextAyah}
               disabled={currentAyahIndex >= ayahs.length - 1 || ayahLoading}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#5d4037] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4e342e] transition-colors text-sm"
+              className="flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg bg-[#5d4037] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4e342e] transition-colors text-sm"
               style={{ fontFamily: 'sans-serif' }}
             >
-              <span>التالي</span>
+              <span className="hidden sm:inline">التالي</span>
               <ChevronLeft size={16} />
             </button>
+            
+            {/* Mobile Toggle Tafsir List */}
+            <button 
+              onClick={() => setShowMobileTafsir(prev => !prev)}
+              className="md:hidden flex items-center justify-center p-2 rounded-lg bg-[#f0e9d6] border border-[#d7ccc8] text-[#5d4037] hover:bg-[#e0d8cc] transition-colors"
+            >
+              <BookOpen size={20} />
+            </button>
+            
           </div>
         </div>
 
