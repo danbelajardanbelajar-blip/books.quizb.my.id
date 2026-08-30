@@ -1535,7 +1535,6 @@ app.get('/api/quran/tafsir/:surahId', (req, res) => {
     // JOIN dengan UNION books_meta untuk mendapatkan tafsir_name dari kitab
     const data = db.prepare(`
       SELECT
-        m.id,
         m.surah_id,
         m.ayah_no,
         m.book_id,
@@ -1547,7 +1546,7 @@ app.get('/api/quran/tafsir/:surahId', (req, res) => {
         ${hasTambahan ? 'UNION ALL SELECT bkid, bk FROM tambahan.books_meta' : ''}
       ) bm ON m.book_id = bm.bkid
       WHERE m.surah_id = ?
-      ORDER BY m.ayah_no ASC, m.id ASC
+      ORDER BY m.ayah_no ASC, m.book_id ASC
     `).all(surahId);
     res.json({ data, error: null });
   } catch (error) {
