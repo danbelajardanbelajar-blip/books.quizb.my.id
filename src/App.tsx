@@ -395,7 +395,7 @@ function App() {
                            <h3 className="font-bold text-[var(--app-primary)] mb-4 flex items-center gap-2"><Heart size={20} className="text-red-500" fill="currentColor" /> Kitab Favorit</h3>
                            <div className="flex flex-col gap-2 max-h-64 overflow-y-auto custom-scrollbar">
                              {favorites.map(f => (
-                                <div key={f.bkid} onClick={() => { setSelectedBook(f.bkid); webAPI.getBookInfo(f.bkid).then(b => setBookInfo(b)); }} className="p-3 bg-white hover:bg-[var(--app-primary)]/5 rounded-lg cursor-pointer border border-gray-100 shadow-sm transition-all text-right group">
+                                <div key={f.bkid} onClick={() => openReader({ bookId: f.bkid })} className="p-3 bg-white hover:bg-[var(--app-primary)]/5 rounded-lg cursor-pointer border border-gray-100 shadow-sm transition-all text-right group">
                                   <div className="font-bold text-[#4e342e] group-hover:text-[var(--app-primary)] text-lg" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{f.bk}</div>
                                   <div className="text-sm text-gray-500 truncate mt-1" dir="auto">{f.author || '-'}</div>
                                 </div>
