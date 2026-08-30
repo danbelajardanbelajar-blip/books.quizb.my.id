@@ -9,7 +9,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { Document, Packer, Paragraph, TextRun, AlignmentType } = require('./vendor/docx.cjs');
 import 'dotenv/config';
-import multer from 'multer';
+
 import https from 'https';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -368,17 +368,7 @@ app.post('/api/book-submit', (req, res) => {
     res.json({ success: true, message: 'Kitab berhasil dikirimkan. Terima kasih atas kontribusinya!' });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
-  try {
-    const { email, name, book_title, book_author, category_id, notes } = req.body;
-    if (!email || !book_title) return res.status(400).json({ error: 'Email dan judul kitab wajib diisi' });
-    const file = req.file;
-    db.prepare('INSERT INTO book_submissions (email, name, book_title, book_author, category_id, file_path, file_name, file_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
-      email, name || null, book_title, book_author || null, category_id || null,
-      file ? file.path : null, file ? file.originalname : null, file ? path.extname(file.originalname) : null, notes || null
-    );
-    res.json({ success: true, message: 'Kitab berhasil dikirimkan. Terima kasih atas kontribusinya!' });
-  } catch (error) { res.status(500).json({ error: error.message }); }
-});
+
 
 // ========= ADMIN: FEEDBACK MANAGEMENT =========
 app.get('/api/admin/feedback', requireAdmin, (req, res) => {
