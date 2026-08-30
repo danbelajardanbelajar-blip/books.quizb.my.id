@@ -552,11 +552,17 @@ app.get('/api/search', (req, res) => {
     const words = query.split(/\s+/).filter(w => w.length > 0);
     
     if (words.length > 1 && !query.includes('"')) {
-      exactPhrase = '"' + words.join(' ') + '"';
-      andMatch = '(' + words.join(' AND ') + ') NOT ' + exactPhrase;
+      const safeQuery = query.replace(/"/g, '');
+      exactPhrase = '"' + safeQuery + '"';
+      const quotedWords = words.map(w => `"${w.replace(/"/g, '')}"`);
+      andMatch = '(' + quotedWords.join(' AND ') + ') NOT ' + exactPhrase;
     } else {
       // If single word or already contains quotes
-      exactPhrase = query;
+      if (!query.includes('"')) {
+          exactPhrase = '"' + query.replace(/"/g, '') + '"';
+      } else {
+          exactPhrase = query;
+      }
       andMatch = '';
     }
 
