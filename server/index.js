@@ -200,13 +200,13 @@ app.get('/api/admin/books', requireAdmin, (req, res) => {
     
     let stmt, countStmt;
     if (query) {
-      stmt = db.prepare(`SELECT bkid, bk, shortname FROM books_meta WHERE bk LIKE ? LIMIT ? OFFSET ?`);
+      stmt = db.prepare(`SELECT bkid, bk FROM books_meta WHERE bk LIKE ? LIMIT ? OFFSET ?`);
       const data = stmt.all(`%${query}%`, limit, offset);
       countStmt = db.prepare(`SELECT COUNT(*) as total FROM books_meta WHERE bk LIKE ?`);
       const total = countStmt.get(`%${query}%`).total;
       res.json({ data, total, page, limit });
     } else {
-      stmt = db.prepare(`SELECT bkid, bk, shortname FROM books_meta LIMIT ? OFFSET ?`);
+      stmt = db.prepare(`SELECT bkid, bk FROM books_meta LIMIT ? OFFSET ?`);
       const data = stmt.all(limit, offset);
       countStmt = db.prepare(`SELECT COUNT(*) as total FROM books_meta`);
       const total = countStmt.get().total;
@@ -218,10 +218,10 @@ app.get('/api/admin/books', requireAdmin, (req, res) => {
 app.put('/api/admin/book/:id', requireAdmin, (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
   try {
-    const { bk, shortname } = req.body;
+    const { bk } = req.body;
     const bookId = parseInt(req.params.id);
-    const stmt = db.prepare(`UPDATE books_meta SET bk = ?, shortname = ? WHERE bkid = ?`);
-    const info = stmt.run(bk, shortname || bk, bookId);
+    const stmt = db.prepare(`UPDATE books_meta SET bk = ? WHERE bkid = ?`);
+    const info = stmt.run(bk, bookId);
     if (info.changes > 0) {
       res.json({ success: true });
     } else {
