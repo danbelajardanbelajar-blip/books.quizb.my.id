@@ -9,6 +9,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { Document, Packer, Paragraph, TextRun, AlignmentType } = require('./vendor/docx.cjs');
 import 'dotenv/config';
+import multer from 'multer';
 import https from 'https';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -324,6 +325,158 @@ app.delete('/api/admin/page/:bookId/:pageId', requireAdmin, (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+
+
+// ========= FILE UPLOAD SETUP =========
+const uploadDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + '_' + Math.random().toString(36).slice(2) + ext);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.pdf', '.docx', '.doc'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) cb(null, true);
+    else cb(new Error('Hanya file PDF dan DOCX yang diizinkan'));
+  }
+});
+
+// ========= PUBLIC: CATEGORIES (no auth) =========
+app.get('/api/categories/list', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const cats = db.prepare('SELECT id, name FROM categories ORDER BY name ASC').all();
+    res.json({ data: cats });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ========= PUBLIC: FEEDBACK =========
+app.post('/api/feedback', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const { email, name, message, rating } = req.body;
+    if (!email || !message) return res.status(400).json({ error: 'Email dan pesan wajib diisi' });
+    db.prepare('INSERT INTO feedback (email, name, message, rating) VALUES (?, ?, ?, ?)').run(email, name || null, message, rating || 0);
+    res.json({ success: true, message: 'Feedback berhasil dikirim. Terima kasih!' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ========= PUBLIC: BOOK REQUEST =========
+app.post('/api/book-request', (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const { email, name, book_title, book_author, category_id, notes } = req.body;
+    if (!email || !book_title) return res.status(400).json({ error: 'Email dan judul kitab wajib diisi' });
+    db.prepare('INSERT INTO book_requests (email, name, book_title, book_author, category_id, notes) VALUES (?, ?, ?, ?, ?, ?)').run(email, name || null, book_title, book_author || null, category_id || null, notes || null);
+    res.json({ success: true, message: 'Permintaan berhasil dikirim. Kami akan segera menindaklanjuti!' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ========= PUBLIC: BOOK SUBMISSION =========
+app.post('/api/book-submit', upload.single('file'), (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const { email, name, book_title, book_author, category_id, notes } = req.body;
+    if (!email || !book_title) return res.status(400).json({ error: 'Email dan judul kitab wajib diisi' });
+    const file = req.file;
+    db.prepare('INSERT INTO book_submissions (email, name, book_title, book_author, category_id, file_path, file_name, file_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+      email, name || null, book_title, book_author || null, category_id || null,
+      file ? file.path : null, file ? file.originalname : null, file ? path.extname(file.originalname) : null, notes || null
+    );
+    res.json({ success: true, message: 'Kitab berhasil dikirimkan. Terima kasih atas kontribusinya!' });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ========= ADMIN: FEEDBACK MANAGEMENT =========
+app.get('/api/admin/feedback', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const offset = (page - 1) * limit;
+    const data = db.prepare('SELECT * FROM feedback ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset);
+    const total = db.prepare('SELECT COUNT(*) as total FROM feedback').get().total;
+    res.json({ data, total, page, limit });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/admin/feedback/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    db.prepare('DELETE FROM feedback WHERE id = ?').run(parseInt(req.params.id));
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ========= ADMIN: BOOK REQUESTS =========
+app.get('/api/admin/book-requests', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const offset = (page - 1) * limit;
+    const data = db.prepare('SELECT r.*, c.name as category_name FROM book_requests r LEFT JOIN categories c ON r.category_id = c.id ORDER BY r.created_at DESC LIMIT ? OFFSET ?').all(limit, offset);
+    const total = db.prepare('SELECT COUNT(*) as total FROM book_requests').get().total;
+    res.json({ data, total, page, limit });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/admin/book-request/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const { status } = req.body;
+    db.prepare('UPDATE book_requests SET status = ? WHERE id = ?').run(status, parseInt(req.params.id));
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/admin/book-request/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    db.prepare('DELETE FROM book_requests WHERE id = ?').run(parseInt(req.params.id));
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// ========= ADMIN: BOOK SUBMISSIONS =========
+app.get('/api/admin/book-submissions', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const offset = (page - 1) * limit;
+    const data = db.prepare('SELECT s.*, c.name as category_name FROM book_submissions s LEFT JOIN categories c ON s.category_id = c.id ORDER BY s.created_at DESC LIMIT ? OFFSET ?').all(limit, offset);
+    const total = db.prepare('SELECT COUNT(*) as total FROM book_submissions').get().total;
+    res.json({ data, total, page, limit });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/admin/book-submission/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const { status } = req.body;
+    db.prepare('UPDATE book_submissions SET status = ? WHERE id = ?').run(status, parseInt(req.params.id));
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/admin/book-submission/:id', requireAdmin, (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not loaded' });
+  try {
+    const row = db.prepare('SELECT file_path FROM book_submissions WHERE id = ?').get(parseInt(req.params.id));
+    if (row?.file_path && fs.existsSync(row.file_path)) fs.unlinkSync(row.file_path);
+    db.prepare('DELETE FROM book_submissions WHERE id = ?').run(parseInt(req.params.id));
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
 
 app.get('/api/search', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded' });
