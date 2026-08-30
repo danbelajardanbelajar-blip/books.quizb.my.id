@@ -200,7 +200,7 @@ app.get('/api/admin/categories', requireAdmin, (req, res) => {
       FROM categories c
       LEFT JOIN books_meta b ON b.cat = c.id
       GROUP BY c.id
-      ORDER BY c.id ASC
+      ORDER BY c.name ASC
     `).all();
     res.json({ data: cats, total: cats.length });
   } catch (error) { res.status(500).json({ error: error.message }); }
