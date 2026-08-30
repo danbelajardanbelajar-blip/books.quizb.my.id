@@ -234,7 +234,7 @@ function App() {
     <div className="flex flex-col min-h-screen font-sans pb-[70px] md:pb-0 transition-colors duration-300" dir="ltr" style={{ backgroundColor: 'var(--app-bg)', color: 'var(--app-text)', fontFamily: 'var(--latin-font)' }}>
       {!readingConfig && (
         <>
-          <header className="bg-transparent md:bg-[var(--app-primary)] md:text-white md:shadow-lg relative z-40 md:sticky md:top-0 transition-colors duration-300 md:backdrop-blur-md md:bg-opacity-95" style={{ fontFamily: 'var(--latin-font)' }}>
+          <header className="hidden md:block bg-transparent md:bg-[var(--app-primary)] md:text-white md:shadow-lg relative z-40 md:sticky md:top-0 transition-colors duration-300 md:backdrop-blur-md md:bg-opacity-95" style={{ fontFamily: 'var(--latin-font)' }}>
         <div className="flex justify-center md:justify-between items-center pt-6 pb-2 md:px-8 md:py-0 max-w-7xl mx-auto md:h-[80px]">
                     {/* Logo & Title */}
           <a 
