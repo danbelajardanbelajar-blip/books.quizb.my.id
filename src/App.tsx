@@ -588,6 +588,9 @@ function App() {
                       <button onClick={() => openReader({ bookId: r.bkid })} className="bg-[var(--app-primary)] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[var(--app-primary-hover)] transition-colors flex items-center gap-2">
                         <BookOpen size={16} /> Baca Kitab
                       </button>
+                      <a href={`/api/download/${r.bkid}`} target="_blank" className="bg-[#2e7d32] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#1b5e20] transition-colors flex items-center gap-2">
+                        <Download size={16} /> Word
+                      </a>
                     </div>
                   </div>
                 </div>
