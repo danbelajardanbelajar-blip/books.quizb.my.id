@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, History, Heart, MessageSquare, BookPlus, Upload } from 'lucide-react';
+import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, Heart, MessageSquare, BookPlus, Upload } from 'lucide-react';
 import './App.css';
 import { webAPI } from './api';
 import ReaderModal from './components/ReaderModal';
@@ -310,9 +310,6 @@ function App() {
                 <button onClick={() => setActiveTab('admin')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
                   <Shield size={18} className="text-[var(--app-primary)]" /> Admin Panel
                 </button>
-            <a target="_blank" rel="noopener noreferrer" className="w-full text-left px-5 py-3 hover:bg-amber-50 text-amber-900 font-semibold transition-colors flex items-center gap-3 bg-amber-50/50">
-                  <History size={18} className="text-amber-700" /> Web Versi Lama
-                </a>
               </div>
             </div>
           </nav>
@@ -380,15 +377,6 @@ function App() {
                 <span className="flex items-center gap-3"><Upload className="text-[var(--app-primary)]" /> Submit Kitab</span>
                 <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
               </button>
-              <button onClick={() => setActiveTab('admin')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
-                <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Admin Panel</span>
-                <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
-              </button>
-              
-              <a href="https://maktabah.quizb.my.id" target="_blank" rel="noopener noreferrer" className="mt-4 text-right p-4 bg-amber-50 text-amber-900 rounded-xl font-bold text-lg border border-amber-200 hover:bg-amber-100 hover:shadow-md transition-all flex justify-between items-center group shadow-sm">
-                <span className="flex items-center gap-3"><History className="text-amber-700" /> Web Versi Lama</span>
-                <ChevronLeft className="text-amber-400 group-hover:text-amber-700 transition-colors" />
-              </a>
             </div>
           </div>
         ) : (
@@ -722,14 +710,6 @@ function App() {
             >
               <Shield size={16} /> Kebijakan Privasi
             </button>
-            <a 
-              href="https://maktabah.quizb.my.id" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-white/70 hover:text-white transition-colors pb-1 flex items-center gap-2 border-b-2 border-transparent hover:border-white"
-            >
-              <History size={16} /> Web Versi Lama
-            </a>
           </div>
         </div>
       </footer>
@@ -894,4 +874,6 @@ function App() {
 }
 
 export default App;
+
+
 
