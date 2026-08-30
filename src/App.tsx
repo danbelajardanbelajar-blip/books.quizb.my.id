@@ -23,6 +23,7 @@ function App() {
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState('');
   const [stats, setStats] = useState<{ total_books?: number, total_categories?: number, total_searches?: number, online_users?: number } | null>(null);
 
@@ -169,6 +170,7 @@ function App() {
         setTotalResults((scholariumRes.total || (scholariumRes.data?.length || 0)) + (archiveRes.response?.numFound || 0));
       }
       setCurrentPage(page);
+      setHasSearched(true);
     } catch (err: any) {
       setError(err.message);
       setResults([]);
@@ -465,7 +467,7 @@ function App() {
                 <input 
                   type="text" 
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => { setQuery(e.target.value); setHasSearched(false); }}
                   placeholder="Cari di sini..." 
                   className="w-full pl-4 pr-12 py-4 rounded-xl border-2 border-black/10 text-lg md:text-xl focus:outline-none focus:border-[var(--app-primary)] bg-[var(--reader-paper)] shadow-inner transition-all"
                 />
@@ -624,7 +626,7 @@ function App() {
                 }
               })}
 
-              {!loading && results.length === 0 && query && !error && (
+              {hasSearched && !loading && results.length === 0 && query && !error && (
                 <div className="text-center py-12 bg-[var(--reader-bg)] rounded-2xl border border-black/5">
                   <Search className="mx-auto text-gray-300 mb-3" size={48} />
                   <p className="text-[var(--app-text)] opacity-60 text-lg">Tidak ada hasil ditemukan.</p>
