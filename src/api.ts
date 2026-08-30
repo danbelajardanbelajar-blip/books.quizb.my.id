@@ -3,7 +3,12 @@ const API_BASE = '/api'; // Use relative path for production (served by Express)
 async function fetchAPI(endpoint: string) {
   const res = await fetch(`${API_BASE}${endpoint}`);
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    let errText = `${res.status}`;
+    try {
+        const errObj = await res.clone().json();
+        errText = errObj.error || errObj.message || errText;
+    } catch (e) {}
+    throw new Error(`API error: ${errText}`);
   }
   return res.json();
 }
