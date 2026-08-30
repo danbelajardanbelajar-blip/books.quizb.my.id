@@ -636,115 +636,171 @@ app.get('/api/search', (req, res) => {
     let total = 0;
     let results = [];
 
-    // Helper: bangun SQL search untuk satu skema FTS
-    // dbPrefix: 'main' atau 'tambahan'
-    // PENTING: snippet() di SQLite FTS TIDAK menerima schema-qualified name (main.pages_fts).
-    // Gunakan nama tabel tanpa prefix, SQLite otomatis resolve dari konteks query.
-    const buildFtsQuery = (dbPrefix, isCount, isExact) => {
-      const selectFields = isCount
-        ? 'COUNT(*) as total'
-        : `p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, ${isExact ? 1 : 0} as is_exact`;
-      let sql = `
-        SELECT ${selectFields}
-        FROM ${dbPrefix}.pages_fts f
-        JOIN ${dbPrefix}.pages p ON f.rowid = p.rowid
-        JOIN (SELECT bkid, bk, cat FROM main.books_meta${hasTambahan ? ' UNION ALL SELECT bkid, bk, cat FROM tambahan.books_meta' : ''}) b ON p.book_id = b.bkid
-        WHERE ${dbPrefix}.pages_fts MATCH ?
-      `;
-      if (cat_ids.length > 0) {
-        const placeholders = cat_ids.map(() => '?').join(',');
-        sql += ` AND b.cat IN (${placeholders})`;
-      }
-      if (!isCount) {
-        sql += ` LIMIT ? OFFSET ?`;
-      }
-      return sql;
-    };
+    // ============================================================
+    // PATH A: Single DB (hasTambahan = false)
+    // Gunakan query IDENTIK dengan versi original — terbukti bekerja.
+    // JANGAN gunakan schema prefix (main.pages_fts) karena snippet()
+    // dan beberapa versi SQLite tidak mendukungnya di MATCH clause.
+    // ============================================================
+    if (!hasTambahan) {
+      const getQuery = (isCount, isExact) => {
+        const selectFields = isCount
+          ? 'COUNT(*) as total'
+          : `p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(pages_fts, -1, '<b>', '</b>', '...', 15) as snippet, ${isExact ? 1 : 0} as is_exact`;
+        let sql = `
+          SELECT ${selectFields}
+          FROM pages_fts f
+          JOIN pages p ON f.rowid = p.rowid
+          JOIN books_meta b ON p.book_id = b.bkid
+          WHERE pages_fts MATCH ?
+        `;
+        if (cat_ids.length > 0) {
+          const placeholders = cat_ids.map(() => '?').join(',');
+          sql += ` AND b.cat IN (${placeholders})`;
+        }
+        if (!isCount) {
+          sql += ` LIMIT ? OFFSET ?`;
+        }
+        return sql;
+      };
 
-    // Fungsi untuk eksekusi query di satu database prefix
-    const execSearch = (dbPrefix, ftsQuery, isCount, isExact, limitVal, offsetVal) => {
-      try {
-        const sql = buildFtsQuery(dbPrefix, isCount, isExact);
-        const stmt = db.prepare(sql);
-        if (isCount) {
-          const row = cat_ids.length > 0 ? stmt.get(ftsQuery, ...cat_ids) : stmt.get(ftsQuery);
-          return row ? row.total : 0;
+      if (andMatch !== '') {
+        const countExactStmt = db.prepare(getQuery(true, true));
+        const totalExact = cat_ids.length > 0 ? countExactStmt.get(exactPhrase, ...cat_ids).total : countExactStmt.get(exactPhrase).total;
+
+        const countAndStmt = db.prepare(getQuery(true, false));
+        const totalAnd = cat_ids.length > 0 ? countAndStmt.get(andMatch, ...cat_ids).total : countAndStmt.get(andMatch).total;
+
+        total = totalExact + totalAnd;
+
+        if (offset < totalExact) {
+          const fetchExactStmt = db.prepare(getQuery(false, true));
+          const params = cat_ids.length > 0 ? [exactPhrase, ...cat_ids, limit, offset] : [exactPhrase, limit, offset];
+          results = fetchExactStmt.all(...params);
+
+          if (results.length < limit && totalAnd > 0) {
+            const remLimit = limit - results.length;
+            const fetchAndStmt = db.prepare(getQuery(false, false));
+            const params2 = cat_ids.length > 0 ? [andMatch, ...cat_ids, remLimit, 0] : [andMatch, remLimit, 0];
+            results = results.concat(fetchAndStmt.all(...params2));
+          }
         } else {
-          const params = cat_ids.length > 0 ? [ftsQuery, ...cat_ids, limitVal, offsetVal] : [ftsQuery, limitVal, offsetVal];
-          return stmt.all(...params);
+          const andOffset = offset - totalExact;
+          const fetchAndStmt = db.prepare(getQuery(false, false));
+          const params = cat_ids.length > 0 ? [andMatch, ...cat_ids, limit, andOffset] : [andMatch, limit, andOffset];
+          results = fetchAndStmt.all(...params);
         }
-      } catch(e) {
-        // Log error agar tidak silent — bantu debug masalah di server
-        console.error(`[execSearch] Error querying ${dbPrefix}.pages_fts:`, e.message);
-        return isCount ? 0 : [];
+      } else {
+        const countStmt = db.prepare(getQuery(true, true));
+        total = cat_ids.length > 0 ? countStmt.get(exactPhrase, ...cat_ids).total : countStmt.get(exactPhrase).total;
+
+        const fetchStmt = db.prepare(getQuery(false, true));
+        const params = cat_ids.length > 0 ? [exactPhrase, ...cat_ids, limit, offset] : [exactPhrase, limit, offset];
+        results = fetchStmt.all(...params);
       }
-    };
 
+    } else {
+      // ============================================================
+      // PATH B: Multi-DB (hasTambahan = true)
+      // Query ke main.pages_fts DAN tambahan.pages_fts secara terpisah.
+      // ============================================================
+      const buildFtsQuery = (dbPrefix, isCount, isExact) => {
+        // Untuk 'main': tanpa prefix (backward compatible)
+        // Untuk 'tambahan': dengan prefix schema
+        const ftsTable = dbPrefix === 'main' ? 'pages_fts' : `${dbPrefix}.pages_fts`;
+        const pagesTable = dbPrefix === 'main' ? 'pages' : `${dbPrefix}.pages`;
+        const selectFields = isCount
+          ? 'COUNT(*) as total'
+          : `p.id as page_id, p.book_id, p.part, p.page, b.bk as book_name, snippet(${ftsTable}, -1, '<b>', '</b>', '...', 15) as snippet, ${isExact ? 1 : 0} as is_exact`;
+        let sql = `
+          SELECT ${selectFields}
+          FROM ${ftsTable} f
+          JOIN ${pagesTable} p ON f.rowid = p.rowid
+          JOIN (SELECT bkid, bk, cat FROM main.books_meta UNION ALL SELECT bkid, bk, cat FROM tambahan.books_meta) b ON p.book_id = b.bkid
+          WHERE ${ftsTable} MATCH ?
+        `;
+        if (cat_ids.length > 0) {
+          const placeholders = cat_ids.map(() => '?').join(',');
+          sql += ` AND b.cat IN (${placeholders})`;
+        }
+        if (!isCount) sql += ` LIMIT ? OFFSET ?`;
+        return sql;
+      };
 
-    // Tentukan prefixes yang akan diquery
-    const prefixes = hasTambahan ? ['main', 'tambahan'] : ['main'];
+      const execSearch = (dbPrefix, ftsQuery, isCount, isExact, limitVal, offsetVal) => {
+        try {
+          const sql = buildFtsQuery(dbPrefix, isCount, isExact);
+          const stmt = db.prepare(sql);
+          if (isCount) {
+            const row = cat_ids.length > 0 ? stmt.get(ftsQuery, ...cat_ids) : stmt.get(ftsQuery);
+            return row ? row.total : 0;
+          } else {
+            const params = cat_ids.length > 0 ? [ftsQuery, ...cat_ids, limitVal, offsetVal] : [ftsQuery, limitVal, offsetVal];
+            return stmt.all(...params);
+          }
+        } catch(e) {
+          console.error(`[execSearch] Error di ${dbPrefix}.pages_fts:`, e.message);
+          return isCount ? 0 : [];
+        }
+      };
 
-    if (andMatch !== '') {
-      // Dual query mode (Exact Phrase priority)
-      let totalExact = 0;
-      let totalAnd = 0;
-      for (const pfx of prefixes) {
-        totalExact += execSearch(pfx, exactPhrase, true, true);
-        totalAnd += execSearch(pfx, andMatch, true, false);
-      }
-      total = totalExact + totalAnd;
+      const prefixes = ['main', 'tambahan'];
 
-      if (offset < totalExact) {
-        // Fetch exact matches dari semua prefixes
-        let remaining = limit;
-        let off = offset;
+      if (andMatch !== '') {
+        let totalExact = 0;
+        let totalAnd = 0;
         for (const pfx of prefixes) {
-          const r = execSearch(pfx, exactPhrase, false, true, remaining, off);
-          results = results.concat(r);
-          remaining -= r.length;
-          off = Math.max(0, off - (execSearch(pfx, exactPhrase, true, true)));
-          if (remaining <= 0) break;
+          totalExact += execSearch(pfx, exactPhrase, true, true);
+          totalAnd += execSearch(pfx, andMatch, true, false);
         }
-        // Jika belum penuh, ambil dari AND matches
-        if (results.length < limit && totalAnd > 0) {
-          const remLimit = limit - results.length;
+        total = totalExact + totalAnd;
+
+        if (offset < totalExact) {
+          let remaining = limit;
+          let off = offset;
           for (const pfx of prefixes) {
-            const r = execSearch(pfx, andMatch, false, false, remLimit, 0);
+            const r = execSearch(pfx, exactPhrase, false, true, remaining, off);
             results = results.concat(r);
-            if (results.length >= limit) break;
+            remaining -= r.length;
+            off = Math.max(0, off - execSearch(pfx, exactPhrase, true, true));
+            if (remaining <= 0) break;
+          }
+          if (results.length < limit && totalAnd > 0) {
+            const remLimit = limit - results.length;
+            for (const pfx of prefixes) {
+              const r = execSearch(pfx, andMatch, false, false, remLimit, 0);
+              results = results.concat(r);
+              if (results.length >= limit) break;
+            }
+          }
+        } else {
+          const andOffset = offset - totalExact;
+          let remaining = limit;
+          let off = andOffset;
+          for (const pfx of prefixes) {
+            const r = execSearch(pfx, andMatch, false, false, remaining, off);
+            results = results.concat(r);
+            remaining -= r.length;
+            off = Math.max(0, off - execSearch(pfx, andMatch, true, false));
+            if (remaining <= 0) break;
           }
         }
       } else {
-        // Hanya AND matches (offset adjusted)
-        const andOffset = offset - totalExact;
+        for (const pfx of prefixes) total += execSearch(pfx, exactPhrase, true, true);
         let remaining = limit;
-        let off = andOffset;
+        let off = offset;
         for (const pfx of prefixes) {
-          const r = execSearch(pfx, andMatch, false, false, remaining, off);
-          results = results.concat(r);
-          remaining -= r.length;
-          off = Math.max(0, off - (execSearch(pfx, andMatch, true, false)));
+          const pfxTotal = execSearch(pfx, exactPhrase, true, true);
+          if (off < pfxTotal) {
+            const r = execSearch(pfx, exactPhrase, false, true, remaining, off);
+            results = results.concat(r);
+            remaining -= r.length;
+            off = 0;
+          } else {
+            off -= pfxTotal;
+          }
           if (remaining <= 0) break;
         }
-      }
-    } else {
-      // Single query mode
-      for (const pfx of prefixes) {
-        total += execSearch(pfx, exactPhrase, true, true);
-      }
-      let remaining = limit;
-      let off = offset;
-      for (const pfx of prefixes) {
-        const pfxTotal = execSearch(pfx, exactPhrase, true, true);
-        if (off < pfxTotal) {
-          const r = execSearch(pfx, exactPhrase, false, true, remaining, off);
-          results = results.concat(r);
-          remaining -= r.length;
-          off = 0;
-        } else {
-          off -= pfxTotal;
-        }
-        if (remaining <= 0) break;
       }
     }
 
@@ -756,6 +812,10 @@ app.get('/api/search', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+
+
 
 
 
