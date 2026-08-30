@@ -343,13 +343,11 @@ function App() {
                 <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
               </button>
               <button onClick={() => setActiveTab('privacy')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
-                
-              <button onClick={() => setActiveTab('admin')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
-                <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Admin Panel</span>
+                <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Privasi</span>
                 <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
               </button>
-
-                <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Privasi</span>
+              <button onClick={() => setActiveTab('admin')} className="text-right p-4 bg-[var(--reader-paper)] rounded-xl font-bold text-lg border border-black/5 hover:border-[var(--app-primary)]/30 hover:shadow-md transition-all flex justify-between items-center group">
+                <span className="flex items-center gap-3"><Shield className="text-[var(--app-primary)]" /> Admin Panel</span>
                 <ChevronLeft className="text-gray-400 group-hover:text-[var(--app-primary)] transition-colors" />
               </button>
               
