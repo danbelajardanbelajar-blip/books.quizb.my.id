@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { webAPI } from '../api';
-import {
-  LogIn, Edit2, Trash2, Save, X, Search, ChevronLeft, ChevronRight,
-  LogOut, FolderOpen, BookOpen, FileText, ArrowLeft, Eye, AlertTriangle
-} from 'lucide-react';
+import { LogIn, Edit2, Trash2, Save, X, Search, ChevronLeft, ChevronRight, LogOut, FolderOpen, BookOpen, FileText, ArrowLeft, Eye, AlertTriangle, MessageSquare, BookPlus, Upload } from 'lucide-react';
 
 // ==================== TYPES ====================
-type AdminView = 'categories' | 'books' | 'pages' | 'edit_page';
+type AdminView = 'categories' | 'books' | 'pages' | 'edit_page' | 'feedback' | 'requests' | 'submissions';
 interface Category { id: number; name: string; catord: number; lvl: number; book_count: number; }
 interface Book { bkid: number; bk: string; cat: number; cat_name: string; }
 interface PageRow { id: number; book_id: number; part: number; page: number; preview: string; }
@@ -425,7 +422,179 @@ const EditPageView = ({ token, onLogout, book, pageRow, onSaved }: { token: stri
   );
 };
 
+
+// ==================== FEEDBACK VIEW ====================
+const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await adminFetch(token, () => webAPI.getFeedback(token), onLogout, setError);
+    if (res) setData(res.data);
+    setLoading(false);
+  }, [token]);
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Yakin ingin menghapus feedback ini?')) return;
+    const res = await adminFetch(token, () => webAPI.deleteFeedback(token, id), onLogout, setError);
+    if (res && res.success) load();
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><MessageSquare size={18} className="text-gray-500" /> Feedback Pengguna</div>
+      {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
+      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Email</th><th className="p-3">Rating</th><th className="p-3">Pesan</th><th className="p-3 text-center">Aksi</th></tr></thead>
+            <tbody>
+              {data.map(d => (
+                <tr key={d.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
+                  <td className="p-3">{d.email}</td>
+                  <td className="p-3 font-bold text-amber-500">{d.rating}/5</td>
+                  <td className="p-3 min-w-[300px]">{d.message}</td>
+                  <td className="p-3 text-center"><button onClick={() => handleDelete(d.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="Hapus"><Trash2 size={16}/></button></td>
+                </tr>
+              ))}
+              {data.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">Belum ada feedback.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==================== REQUESTS VIEW ====================
+const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await adminFetch(token, () => webAPI.getBookRequests(token), onLogout, setError);
+    if (res) setData(res.data);
+    setLoading(false);
+  }, [token]);
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Yakin ingin menghapus request ini?')) return;
+    const res = await adminFetch(token, () => webAPI.deleteBookRequest(token, id), onLogout, setError);
+    if (res && res.success) load();
+  };
+  const handleStatus = async (id: number, status: string) => {
+    const res = await adminFetch(token, () => webAPI.updateBookRequestStatus(token, id, status), onLogout, setError);
+    if (res && res.success) load();
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><BookPlus size={18} className="text-gray-500" /> Request Kitab</div>
+      {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
+      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Pengusul</th><th className="p-3">Judul Kitab</th><th className="p-3">Keterangan</th><th className="p-3">Status</th><th className="p-3 text-center">Aksi</th></tr></thead>
+            <tbody>
+              {data.map(d => (
+                <tr key={d.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
+                  <td className="p-3">{d.email}<br/><span className="text-gray-400 text-xs">{d.name}</span></td>
+                  <td className="p-3 font-semibold">{d.book_title}<br/><span className="text-gray-500 font-normal">{d.book_author}</span></td>
+                  <td className="p-3 min-w-[200px]">{d.notes}</td>
+                  <td className="p-3">
+                    <select value={d.status || 'pending'} onChange={(e) => handleStatus(d.id, e.target.value)} className="border rounded p-1 text-xs">
+                      <option value="pending">Pending</option>
+                      <option value="approved">Disetujui</option>
+                      <option value="rejected">Ditolak</option>
+                    </select>
+                  </td>
+                  <td className="p-3 text-center"><button onClick={() => handleDelete(d.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></td>
+                </tr>
+              ))}
+              {data.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Belum ada request.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==================== SUBMISSIONS VIEW ====================
+const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await adminFetch(token, () => webAPI.getBookSubmissions(token), onLogout, setError);
+    if (res) setData(res.data);
+    setLoading(false);
+  }, [token]);
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Yakin ingin menghapus kiriman ini?')) return;
+    const res = await adminFetch(token, () => webAPI.deleteBookSubmission(token, id), onLogout, setError);
+    if (res && res.success) load();
+  };
+  const handleStatus = async (id: number, status: string) => {
+    const res = await adminFetch(token, () => webAPI.updateBookSubmissionStatus(token, id, status), onLogout, setError);
+    if (res && res.success) load();
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><Upload size={18} className="text-gray-500" /> Submit Kitab (File)</div>
+      {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
+      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Pengirim</th><th className="p-3">Judul Kitab</th><th className="p-3">File</th><th className="p-3">Status</th><th className="p-3 text-center">Aksi</th></tr></thead>
+            <tbody>
+              {data.map(d => (
+                <tr key={d.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
+                  <td className="p-3">{d.email}<br/><span className="text-gray-400 text-xs">{d.name}</span></td>
+                  <td className="p-3 font-semibold">{d.book_title}<br/><span className="text-gray-500 font-normal">{d.book_author}</span></td>
+                  <td className="p-3">
+                    {d.file_name ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono text-xs max-w-[150px] truncate" title={d.file_name}>{d.file_name}</span>
+                        <a href={`/uploads/${(d.file_path || '').split(/\\|\//).pop()}`} target="_blank" rel="noreferrer" className="text-[var(--app-primary)] hover:underline flex items-center gap-1 text-xs"><Upload size={12}/> Unduh</a>
+                      </div>
+                    ) : <span className="text-gray-400 italic">Tanpa File</span>}
+                  </td>
+                  <td className="p-3">
+                    <select value={d.status || 'pending'} onChange={(e) => handleStatus(d.id, e.target.value)} className="border rounded p-1 text-xs">
+                      <option value="pending">Pending</option>
+                      <option value="approved">Disetujui</option>
+                      <option value="rejected">Ditolak</option>
+                    </select>
+                  </td>
+                  <td className="p-3 text-center"><button onClick={() => handleDelete(d.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></td>
+                </tr>
+              ))}
+              {data.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-500">Belum ada kiriman file.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ==================== DASHBOARD ====================
+
 const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout: () => void, onClose: () => void }) => {
   const [view, setView] = useState<AdminView>('categories');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -433,10 +602,10 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
   const [selectedPage, setSelectedPage] = useState<PageRow | null>(null);
 
   const breadcrumb = [
-    { label: 'Kategori', onClick: () => { setView('categories'); setSelectedCategory(null); setSelectedBook(null); setSelectedPage(null); } },
-    ...(selectedCategory ? [{ label: selectedCategory.name, onClick: () => { setView('books'); setSelectedBook(null); setSelectedPage(null); } }] : []),
-    ...(selectedBook ? [{ label: selectedBook.bk, onClick: () => { setView('pages'); setSelectedPage(null); } }] : []),
-    ...(selectedPage ? [{ label: `Juz ${selectedPage.part} Hal ${selectedPage.page}`, onClick: () => {} }] : []),
+    { label: view === 'feedback' ? 'Feedback' : view === 'requests' ? 'Request Kitab' : view === 'submissions' ? 'Submit Kitab' : 'Database Kitab', onClick: () => { setView(view === 'feedback' ? 'feedback' : view === 'requests' ? 'requests' : view === 'submissions' ? 'submissions' : 'categories'); setSelectedCategory(null); setSelectedBook(null); setSelectedPage(null); } },
+    ...(view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedCategory ? [{ label: selectedCategory.name, onClick: () => { setView('books'); setSelectedBook(null); setSelectedPage(null); } }] : []),
+    ...(view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedBook ? [{ label: selectedBook.bk, onClick: () => { setView('pages'); setSelectedPage(null); } }] : []),
+    ...(view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedPage ? [{ label: `Juz ${selectedPage.part} Hal ${selectedPage.page}`, onClick: () => {} }] : []),
   ];
 
   const goBack = () => {
@@ -473,6 +642,15 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
         </div>
       </div>
 
+      
+      {/* Sub Navigation */}
+      <div className="bg-white border-b px-6 flex gap-4 overflow-x-auto shadow-sm">
+        <button onClick={() => { setView('categories'); setSelectedCategory(null); setSelectedBook(null); setSelectedPage(null); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${['categories', 'books', 'pages', 'edit_page'].includes(view) ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Database Kitab</button>
+        <button onClick={() => { setView('feedback'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'feedback' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Feedback</button>
+        <button onClick={() => { setView('requests'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'requests' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Request Kitab</button>
+        <button onClick={() => { setView('submissions'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'submissions' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Submit Kitab</button>
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-auto p-4 md:p-6">
         <div className="max-w-5xl mx-auto">
@@ -488,11 +666,15 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
           {view === 'edit_page' && selectedBook && selectedPage && (
             <EditPageView token={token} onLogout={onLogout} book={selectedBook} pageRow={selectedPage} onSaved={() => { setView('pages'); setSelectedPage(null); }} />
           )}
+          {view === 'feedback' && <FeedbackView token={token} onLogout={onLogout} />}
+          {view === 'requests' && <RequestsView token={token} onLogout={onLogout} />}
+          {view === 'submissions' && <SubmissionsView token={token} onLogout={onLogout} />}
         </div>
       </div>
     </div>
   );
-};
+}
+;
 
 // ==================== MAIN EXPORT ====================
 export const Admin = ({ onClose }: { onClose: () => void }) => {

@@ -42,6 +42,15 @@ export const webAPI = {
     if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${res.status}`); }
     return res.json();
   },
+  // ===== ADMIN SUBMISSIONS =====
+  getFeedback: async (token: string, page = 1) => { const r = await fetch(`${API_BASE}/admin/feedback?page=${page}`, { headers: { 'Authorization': `Bearer ${token}` } }); return r.json(); },
+  deleteFeedback: async (token: string, id: number) => { const r = await fetch(`${API_BASE}/admin/feedback/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); return r.json(); },
+  getBookRequests: async (token: string, page = 1) => { const r = await fetch(`${API_BASE}/admin/book-requests?page=${page}`, { headers: { 'Authorization': `Bearer ${token}` } }); return r.json(); },
+  updateBookRequestStatus: async (token: string, id: number, status: string) => { const r = await fetch(`${API_BASE}/admin/book-request/${id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); return r.json(); },
+  deleteBookRequest: async (token: string, id: number) => { const r = await fetch(`${API_BASE}/admin/book-request/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); return r.json(); },
+  getBookSubmissions: async (token: string, page = 1) => { const r = await fetch(`${API_BASE}/admin/book-submissions?page=${page}`, { headers: { 'Authorization': `Bearer ${token}` } }); return r.json(); },
+  updateBookSubmissionStatus: async (token: string, id: number, status: string) => { const r = await fetch(`${API_BASE}/admin/book-submission/${id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); return r.json(); },
+  deleteBookSubmission: async (token: string, id: number) => { const r = await fetch(`${API_BASE}/admin/book-submission/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); return r.json(); },
 
   // ===== ADMIN BOOKS =====
   getAdminBooks: async (token: string, page = 1, query = '', catId?: number) => {
