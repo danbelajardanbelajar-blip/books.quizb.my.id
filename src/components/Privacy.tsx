@@ -2,7 +2,7 @@ import React from 'react';
 
 const Privacy: React.FC = () => {
   const LAST_UPDATED = '21 Juni 2026';
-  const SITE_URL     = 'https://books.quizb.my.id';
+  const SITE_URL     = 'https://maktabah.quizb.my.id';
   const CONTACT      = '085743399595';
 
   return (
