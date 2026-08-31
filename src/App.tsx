@@ -261,7 +261,8 @@ function App() {
               e.preventDefault(); 
               setActiveTab('search'); 
               setQuery(''); 
-              setResults([]); 
+              setResults([]);
+              setTotalResults(0);
               window.scrollTo(0, 0); 
             }} 
             className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
