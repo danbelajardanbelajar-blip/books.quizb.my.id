@@ -23,6 +23,7 @@ process.on('unhandledRejection', (reason, promise) => {
     try { fs.appendFileSync(logPath, new Date().toISOString() + ' unhandledRejection: ' + (reason && reason.stack ? reason.stack : reason) + '\n'); } catch(e) {}
 });
 
+const stripHarakat = (text) => text ? text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '') : '';
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -746,18 +747,19 @@ app.get('/api/search', (req, res) => {
 
     let exactPhrase = '';
     let andMatch = '';
-    const words = query.split(/\s+/).filter(w => w.length > 0);
+    const cleanQuery = stripHarakat(query);
+    const words = cleanQuery.split(/\s+/).filter(w => w.length > 0);
 
-    if (words.length > 1 && !query.includes('"')) {
-      const safeQuery = query.replace(/"/g, '');
+    if (words.length > 1 && !cleanQuery.includes('"')) {
+      const safeQuery = cleanQuery.replace(/"/g, '');
       exactPhrase = '"' + safeQuery + '"';
       const quotedWords = words.map(w => `"${w.replace(/"/g, '')}"`);
       andMatch = '(' + quotedWords.join(' AND ') + ') NOT ' + exactPhrase;
     } else {
-      if (!query.includes('"')) {
-          exactPhrase = '"' + query.replace(/"/g, '') + '"';
+      if (!cleanQuery.includes('"')) {
+          exactPhrase = '"' + cleanQuery.replace(/"/g, '') + '"';
       } else {
-          exactPhrase = query;
+          exactPhrase = cleanQuery;
       }
       andMatch = '';
     }
@@ -1209,7 +1211,7 @@ app.get('/api/quran/surah/:id', (req, res) => {
 app.get('/api/rowa/search', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
-    const queryStr = req.query.q;
+    const queryStr = stripHarakat(req.query.q || '');
     if (!queryStr || typeof queryStr !== 'string' || queryStr.trim() === '') {
       return res.status(400).json({ data: [], error: 'Query is empty' });
     }
@@ -1620,7 +1622,7 @@ app.get('/api/category/:id/books', (req, res) => {
 app.get('/api/search_titles', (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
-    const query = req.query.q;
+    const query = stripHarakat(req.query.q || '');
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
