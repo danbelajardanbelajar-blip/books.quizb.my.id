@@ -74,6 +74,25 @@ export const webAPI = {
     if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `${res.status}`); }
     return res.json();
   },
+  
+  bulkMoveBooks: async (token: string, bookIds: number[], newCategoryId: number) => {
+    const res = await fetch(`${API_BASE}/admin/books/bulk-move`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookIds, newCategoryId })
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
+  bulkDeleteBooks: async (token: string, bookIds: number[]) => {
+    const res = await fetch(`${API_BASE}/admin/books/bulk-delete`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookIds })
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
   deleteAdminBook: async (token: string, bookId: number) => {
     const res = await fetch(`${API_BASE}/admin/book/${bookId}`, {
       method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }

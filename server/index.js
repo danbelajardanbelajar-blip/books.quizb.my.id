@@ -373,6 +373,28 @@ app.post('/api/admin/logout', requireAdmin, (req, res) => {
 });
 
 
+
+app.put('/api/admin/books/bulk-move', requireAdmin, (req, res) => {
+    const { bookIds, newCategoryId } = req.body;
+    if (!Array.isArray(bookIds) || !newCategoryId) return res.status(400).json({error: 'Invalid data'});
+    try {
+        const placeholders = bookIds.map(() => '?').join(',');
+        db.prepare(`UPDATE books_meta SET cat = ? WHERE bkid IN (${placeholders})`).run(newCategoryId, ...bookIds);
+        res.json({success: true});
+    } catch(e) { res.status(500).json({error: e.message}); }
+});
+
+app.delete('/api/admin/books/bulk-delete', requireAdmin, (req, res) => {
+    const { bookIds } = req.body;
+    if (!Array.isArray(bookIds)) return res.status(400).json({error: 'Invalid data'});
+    try {
+        const placeholders = bookIds.map(() => '?').join(',');
+        db.prepare(`DELETE FROM books_meta WHERE bkid IN (${placeholders})`).run(...bookIds);
+        db.prepare(`DELETE FROM pages WHERE bkid IN (${placeholders})`).run(...bookIds);
+        res.json({success: true});
+    } catch(e) { res.status(500).json({error: e.message}); }
+});
+
 // ========= ADMIN: CATEGORIES =========
 
 

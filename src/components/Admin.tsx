@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { webAPI } from '../api';
-import { LogIn, Edit2, Trash2, Save, X, Search, ChevronLeft, ChevronRight, LogOut, FolderOpen, BookOpen, FileText, ArrowLeft, Eye, AlertTriangle, MessageSquare, BookPlus, Upload } from 'lucide-react';
+import { LogIn, Edit2, Trash2, Save, X, Search, ChevronLeft, ChevronRight, LogOut, FolderOpen, BookOpen, FileText, ArrowLeft, Eye, AlertTriangle, MessageSquare, BookPlus, Upload , Download, FolderSync } from 'lucide-react';
 
 // ==================== TYPES ====================
 type AdminView = 'categories' | 'books' | 'pages' | 'edit_page' | 'feedback' | 'requests' | 'submissions' | 'log_search' | 'log_download' | 'log_visit' | 'log_quran' | 'log_rowa';
@@ -9,6 +9,39 @@ interface Book { bkid: number; bk: string; cat: number; cat_name: string; }
 interface PageRow { id: number; book_id: number; part: number; page: number; preview: string; }
 
 // ==================== HELPERS ====================
+
+const downloadCSV = (data: any[], filename: string) => {
+  if (!data || data.length === 0) return;
+  const keys = Object.keys(data[0]);
+  const csvContent = [
+    keys.join(','),
+    ...data.map(row => keys.map(k => '"' + String(row[k] || '').replace(/"/g, '""') + '"').join(','))
+  ].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const SelectionBar = ({ count, onDownload, extraActions }: { count: number, onDownload: () => void, extraActions?: React.ReactNode }) => {
+  if (count === 0) return null;
+  return (
+    <div className="bg-[var(--app-primary)] text-white px-4 py-3 flex items-center justify-between mb-4 rounded-xl shadow-md">
+      <span className="font-bold">{count} item dipilih</span>
+      <div className="flex gap-2">
+        {extraActions}
+        <button onClick={onDownload} className="bg-white text-[var(--app-primary)] px-3 py-1.5 rounded font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors">
+          <Download size={16}/> Download CSV
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const adminFetch = (_token: string, fn: () => Promise<any>, onLogout: () => void, setErr: (e: string) => void) =>
   fn().catch((err: any) => {
     if (err.message === '401') { onLogout(); } else { setErr(err.message || 'Terjadi kesalahan'); }
@@ -87,6 +120,21 @@ const LoginForm = ({ onLogin, onClose }: { onLogin: (t: string) => void, onClose
 // ==================== CATEGORIES VIEW ====================
 const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, onLogout: () => void, onSelectCategory: (cat: Category) => void }) => {
   const [cats, setCats] = useState<Category[]>([]);
+  const [selected, setSelected] = useState<any[]>([]);
+  const toggleAll = (e: any, list: any[]) => {
+    if (e.target.checked) {
+      const newSel = [...selected];
+      list.forEach(item => { if (!newSel.find(s => s.id === item.id)) newSel.push(item); });
+      setSelected(newSel);
+    } else {
+      setSelected(selected.filter(s => !list.find(item => item.id === s.id)));
+    }
+  };
+  const toggleOne = (e: any, item: any) => {
+    if (e.target.checked) setSelected([...selected, item]);
+    else setSelected(selected.filter(s => s.id !== item.id));
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
   const LIMIT = 15;
   const [loading, setLoading] = useState(false);
@@ -133,10 +181,12 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
         </div>
       </div>
       {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
+      
+      <SelectionBar count={selected.length} onDownload={() => downloadCSV(selected, 'categoriesview_export.csv')} />
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase border-b">
-            <tr><th className="px-4 py-3 w-12">ID</th><th className="px-4 py-3">Nama Kategori</th><th className="px-4 py-3 w-20 text-center">Kitab</th><th className="px-4 py-3 w-28 text-center">Aksi</th></tr>
+            <tr><th className="p-3 w-10 text-center"><input type="checkbox" checked={filtered.length > 0 && filtered.every((item: any) => selected.find((s: any) => s.id === item.id))} onChange={(e) => toggleAll(e, filtered)} /></th><th className="px-4 py-3 w-12">ID</th><th className="px-4 py-3">Nama Kategori</th><th className="px-4 py-3 w-20 text-center">Kitab</th><th className="px-4 py-3 w-28 text-center">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
@@ -145,6 +195,7 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
               <tr><td colSpan={4} className="p-8 text-center text-gray-400">Tidak ada kategori</td></tr>
             ) : paginated.map(cat => (
               <tr key={cat.id} className="hover:bg-gray-50/50">
+                <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === cat.id)} onChange={(e) => toggleOne(e, cat)} onClick={(e) => e.stopPropagation()} /></td>
                 <td className="px-4 py-3 text-gray-400 text-sm">{cat.id}</td>
                 <td className="px-4 py-3">
                   {editingId === cat.id ? (
@@ -190,6 +241,48 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
 // ==================== BOOKS VIEW ====================
 const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string, onLogout: () => void, category: Category, onSelectBook: (book: Book) => void }) => {
   const [books, setBooks] = useState<Book[]>([]);
+  const [selected, setSelected] = useState<any[]>([]);
+  const toggleAll = (e: any, list: any[]) => {
+    if (e.target.checked) {
+      const newSel = [...selected];
+      list.forEach(item => { if (!newSel.find(s => s.bkid === item.bkid)) newSel.push(item); });
+      setSelected(newSel);
+    } else {
+      setSelected(selected.filter(s => !list.find(item => item.bkid === s.bkid)));
+    }
+  };
+  const toggleOne = (e: any, item: any) => {
+    if (e.target.checked) setSelected([...selected, item]);
+    else setSelected(selected.filter(s => s.bkid !== item.bkid));
+  };
+
+  const [bulkMoveMode, setBulkMoveMode] = useState(false);
+  const [targetCat, setTargetCat] = useState('');
+  const [allCategories, setAllCategories] = useState<any[]>([]);
+  const [moving, setMoving] = useState(false);
+
+  useEffect(() => {
+    if (bulkMoveMode && allCategories.length === 0) {
+      adminFetch(token, () => webAPI.getAdminCategories(token), onLogout, setError).then(res => { if (res) setAllCategories(res); });
+    }
+  }, [bulkMoveMode]);
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Yakin ingin menghapus ${selected.length} kitab?`)) return;
+    const ids = selected.map(s => s.bkid);
+    const res = await adminFetch(token, () => webAPI.bulkDeleteBooks(token, ids), onLogout, setError);
+    if (res?.success) { setSelected([]); load(); }
+  };
+  
+  const handleBulkMove = async () => {
+    if (!targetCat) return;
+    setMoving(true);
+    const ids = selected.map(s => s.bkid);
+    const res = await adminFetch(token, () => webAPI.bulkMoveBooks(token, ids, parseInt(targetCat)), onLogout, setError);
+    if (res?.success) { setSelected([]); setBulkMoveMode(false); load(); }
+    setMoving(false);
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -240,10 +333,29 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
         </form>
       </div>
       {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
+      
+      <SelectionBar count={selected.length} onDownload={() => downloadCSV(selected, 'books_export.csv')} extraActions={
+        <>
+          <button onClick={() => setBulkMoveMode(true)} className="bg-yellow-500 text-white px-3 py-1.5 rounded font-bold text-sm flex items-center gap-2 hover:bg-yellow-600 transition-colors"><FolderSync size={16}/> Pindah Kategori</button>
+          <button onClick={handleBulkDelete} className="bg-red-500 text-white px-3 py-1.5 rounded font-bold text-sm flex items-center gap-2 hover:bg-red-600 transition-colors"><Trash2 size={16}/> Hapus</button>
+        </>
+      } />
+      {bulkMoveMode && (
+        <div className="mb-4 p-4 border rounded-xl bg-gray-50 flex items-center gap-3">
+          <span className="font-bold">Pindah ke kategori:</span>
+          <select value={targetCat} onChange={e => setTargetCat(e.target.value)} className="border p-2 rounded flex-1">
+            <option value="">-- Pilih Kategori --</option>
+            {allCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <button onClick={handleBulkMove} disabled={!targetCat || moving} className="bg-[var(--app-primary)] text-white px-4 py-2 rounded font-bold hover:bg-[var(--app-primary-hover)] disabled:opacity-50">{moving ? 'Memproses...' : 'Pindahkan'}</button>
+          <button onClick={() => setBulkMoveMode(false)} className="text-gray-500 hover:text-gray-800">Batal</button>
+        </div>
+      )}
+      
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase border-b">
-            <tr><th className="px-4 py-3 w-12">ID</th><th className="px-4 py-3">Judul Kitab</th><th className="px-4 py-3 w-32 text-center">Aksi</th></tr>
+            <tr><th className="p-3 w-10 text-center"><input type="checkbox" checked={books.length > 0 && books.every((item: any) => selected.find((s: any) => s.bkid === item.bkid))} onChange={(e) => toggleAll(e, books)} /></th><th className="px-4 py-3 w-12">ID</th><th className="px-4 py-3">Judul Kitab</th><th className="px-4 py-3 w-32 text-center">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
@@ -252,6 +364,7 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
               <tr><td colSpan={3} className="p-8 text-center text-gray-400">Tidak ada kitab</td></tr>
             ) : books.map(book => (
               <tr key={book.bkid} className="hover:bg-gray-50/50">
+                <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.bkid === book.bkid)} onChange={(e) => toggleOne(e, book)} onClick={(e) => e.stopPropagation()} /></td>
                 <td className="px-4 py-3 text-gray-400 text-sm">{book.bkid}</td>
                 <td className="px-4 py-3">
                   {editingId === book.bkid ? (
@@ -293,6 +406,21 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
 // ==================== PAGES VIEW ====================
 const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLogout: () => void, book: Book, onEditPage: (p: PageRow) => void }) => {
   const [pages, setPages] = useState<PageRow[]>([]);
+  const [selected, setSelected] = useState<any[]>([]);
+  const toggleAll = (e: any, list: any[]) => {
+    if (e.target.checked) {
+      const newSel = [...selected];
+      list.forEach(item => { if (!newSel.find(s => s.id === item.id)) newSel.push(item); });
+      setSelected(newSel);
+    } else {
+      setSelected(selected.filter(s => !list.find(item => item.id === s.id)));
+    }
+  };
+  const toggleOne = (e: any, item: any) => {
+    if (e.target.checked) setSelected([...selected, item]);
+    else setSelected(selected.filter(s => s.id !== item.id));
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
@@ -324,10 +452,12 @@ const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLog
         </h2>
       </div>
       {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
+      
+      <SelectionBar count={selected.length} onDownload={() => downloadCSV(selected, 'pagesview_export.csv')} />
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase border-b">
-            <tr><th className="px-4 py-3 w-16">Juz</th><th className="px-4 py-3 w-16">Hal</th><th className="px-4 py-3">Pratinjau Isi</th><th className="px-4 py-3 w-24 text-center">Aksi</th></tr>
+            <tr><th className="p-3 w-10 text-center"><input type="checkbox" checked={pages.length > 0 && pages.every((item: any) => selected.find((s: any) => s.id === item.id))} onChange={(e) => toggleAll(e, pages)} /></th><th className="px-4 py-3 w-16">Juz</th><th className="px-4 py-3 w-16">Hal</th><th className="px-4 py-3">Pratinjau Isi</th><th className="px-4 py-3 w-24 text-center">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
@@ -336,6 +466,7 @@ const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLog
               <tr><td colSpan={4} className="p-8 text-center text-gray-400">Tidak ada halaman</td></tr>
             ) : pages.map(pg => (
               <tr key={pg.id} className="hover:bg-gray-50/50">
+                <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === pg.id)} onChange={(e) => toggleOne(e, pg)} onClick={(e) => e.stopPropagation()} /></td>
                 <td className="px-4 py-3 text-gray-600 font-semibold text-sm text-center">{pg.part}</td>
                 <td className="px-4 py-3 text-gray-600 text-sm text-center">{pg.page}</td>
                 <td className="px-4 py-3">
@@ -431,6 +562,21 @@ const EditPageView = ({ token, onLogout, book, pageRow, onSaved }: { token: stri
 // ==================== FEEDBACK VIEW ====================
 const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
   const [data, setData] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any[]>([]);
+  const toggleAll = (e: any, list: any[]) => {
+    if (e.target.checked) {
+      const newSel = [...selected];
+      list.forEach(item => { if (!newSel.find(s => s.id === item.id)) newSel.push(item); });
+      setSelected(newSel);
+    } else {
+      setSelected(selected.filter(s => !list.find(item => item.id === s.id)));
+    }
+  };
+  const toggleOne = (e: any, item: any) => {
+    if (e.target.checked) setSelected([...selected, item]);
+    else setSelected(selected.filter(s => s.id !== item.id));
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
   const LIMIT = 15;
   const [loading, setLoading] = useState(false);
@@ -455,13 +601,15 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><MessageSquare size={18} className="text-gray-500" /> Feedback Pengguna</div>
       {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
-      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : (
-        <div className="overflow-x-auto">
+      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : ( <>
+      <SelectionBar count={selected.length} onDownload={() => downloadCSV(selected, 'feedbackview_export.csv')} />
+      <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Email</th><th className="p-3">Rating</th><th className="p-3">Pesan</th><th className="p-3 text-center">Aksi</th></tr></thead>
+            <thead className="bg-gray-100 text-left"><tr><th className="p-3 w-10 text-center"><input type="checkbox" checked={data.length > 0 && data.every((item: any) => selected.find((s: any) => s.id === item.id))} onChange={(e) => toggleAll(e, data)} /></th><th className="p-3">Waktu</th><th className="p-3">Email</th><th className="p-3">Rating</th><th className="p-3">Pesan</th><th className="p-3 text-center">Aksi</th></tr></thead>
             <tbody>
               {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
+                <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
                   <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
                   <td className="p-3">{d.email}</td>
                   <td className="p-3 font-bold text-amber-500">{d.rating}/5</td>
@@ -473,6 +621,7 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
             </tbody>
           </table>
         </div>
+      </>
       )}
     
       <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
@@ -483,6 +632,21 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
 // ==================== REQUESTS VIEW ====================
 const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
   const [data, setData] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any[]>([]);
+  const toggleAll = (e: any, list: any[]) => {
+    if (e.target.checked) {
+      const newSel = [...selected];
+      list.forEach(item => { if (!newSel.find(s => s.id === item.id)) newSel.push(item); });
+      setSelected(newSel);
+    } else {
+      setSelected(selected.filter(s => !list.find(item => item.id === s.id)));
+    }
+  };
+  const toggleOne = (e: any, item: any) => {
+    if (e.target.checked) setSelected([...selected, item]);
+    else setSelected(selected.filter(s => s.id !== item.id));
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
   const LIMIT = 15;
   const [loading, setLoading] = useState(false);
@@ -511,13 +675,15 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><BookPlus size={18} className="text-gray-500" /> Request Kitab</div>
       {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
-      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : (
-        <div className="overflow-x-auto">
+      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : ( <>
+      <SelectionBar count={selected.length} onDownload={() => downloadCSV(selected, 'requestsview_export.csv')} />
+      <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Pengusul</th><th className="p-3">Judul Kitab</th><th className="p-3">Keterangan</th><th className="p-3">Status</th><th className="p-3 text-center">Aksi</th></tr></thead>
+            <thead className="bg-gray-100 text-left"><tr><th className="p-3 w-10 text-center"><input type="checkbox" checked={data.length > 0 && data.every((item: any) => selected.find((s: any) => s.id === item.id))} onChange={(e) => toggleAll(e, data)} /></th><th className="p-3">Waktu</th><th className="p-3">Pengusul</th><th className="p-3">Judul Kitab</th><th className="p-3">Keterangan</th><th className="p-3">Status</th><th className="p-3 text-center">Aksi</th></tr></thead>
             <tbody>
               {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
+                <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
                   <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
                   <td className="p-3">{d.email}<br/><span className="text-gray-400 text-xs">{d.name}</span></td>
                   <td className="p-3 font-semibold">{d.book_title}<br/><span className="text-gray-500 font-normal">{d.book_author}</span></td>
@@ -536,6 +702,7 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
             </tbody>
           </table>
         </div>
+      </>
       )}
     
       <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
@@ -546,6 +713,21 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
 // ==================== SUBMISSIONS VIEW ====================
 const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
   const [data, setData] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any[]>([]);
+  const toggleAll = (e: any, list: any[]) => {
+    if (e.target.checked) {
+      const newSel = [...selected];
+      list.forEach(item => { if (!newSel.find(s => s.id === item.id)) newSel.push(item); });
+      setSelected(newSel);
+    } else {
+      setSelected(selected.filter(s => !list.find(item => item.id === s.id)));
+    }
+  };
+  const toggleOne = (e: any, item: any) => {
+    if (e.target.checked) setSelected([...selected, item]);
+    else setSelected(selected.filter(s => s.id !== item.id));
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
   const LIMIT = 15;
   const [loading, setLoading] = useState(false);
@@ -574,13 +756,15 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><Upload size={18} className="text-gray-500" /> Submit Kitab (File)</div>
       {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
-      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : (
-        <div className="overflow-x-auto">
+      {loading ? <div className="p-8 text-center text-gray-500">Memuat...</div> : ( <>
+      <SelectionBar count={selected.length} onDownload={() => downloadCSV(selected, 'submissionsview_export.csv')} />
+      <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Pengirim</th><th className="p-3">Judul Kitab</th><th className="p-3">File</th><th className="p-3">Status</th><th className="p-3 text-center">Aksi</th></tr></thead>
+            <thead className="bg-gray-100 text-left"><tr><th className="p-3 w-10 text-center"><input type="checkbox" checked={paginated.length > 0 && paginated.every((item: any) => selected.find((s: any) => s.id === item.id))} onChange={(e) => toggleAll(e, paginated)} /></th><th className="p-3">Waktu</th><th className="p-3">Pengirim</th><th className="p-3">Judul Kitab</th><th className="p-3">File</th><th className="p-3">Status</th><th className="p-3 text-center">Aksi</th></tr></thead>
             <tbody>
               {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
+                <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
                   <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
                   <td className="p-3">{d.email}<br/><span className="text-gray-400 text-xs">{d.name}</span></td>
                   <td className="p-3 font-semibold">{d.book_title}<br/><span className="text-gray-500 font-normal">{d.book_author}</span></td>
@@ -606,6 +790,7 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
             </tbody>
           </table>
         </div>
+      </>
       )}
     
       <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
@@ -617,6 +802,21 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
 // ==================== LOGS VIEW ====================
 const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: () => void, type: string, title: string }) => {
   const [data, setData] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any[]>([]);
+  const toggleAll = (e: any, list: any[]) => {
+    if (e.target.checked) {
+      const newSel = [...selected];
+      list.forEach(item => { if (!newSel.find(s => s.id === item.id)) newSel.push(item); });
+      setSelected(newSel);
+    } else {
+      setSelected(selected.filter(s => !list.find(item => item.id === s.id)));
+    }
+  };
+  const toggleOne = (e: any, item: any) => {
+    if (e.target.checked) setSelected([...selected, item]);
+    else setSelected(selected.filter(s => s.id !== item.id));
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
   const LIMIT = 20;
   const [loading, setLoading] = useState(true);
@@ -637,10 +837,12 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold text-gray-800">{title}</div>
       {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
+      
+      <SelectionBar count={selected.length} onDownload={() => downloadCSV(selected, 'logsview_export.csv')} />
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-100">
-            <tr>
+            <tr><th className="p-3 w-10 text-center"><input type="checkbox" checked={paginated.length > 0 && paginated.every((item: any) => selected.find((s: any) => s.id === item.id))} onChange={(e) => toggleAll(e, paginated)} /></th>
               <th className="p-3 w-16">ID</th>
               <th className="p-3 w-48">Waktu</th>
               <th className="p-3">Data</th>
@@ -651,6 +853,7 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
               data.length === 0 ? <tr><td colSpan={3} className="p-8 text-center text-gray-400">Belum ada log</td></tr> :
               paginated.map(d => (
                 <tr key={d.id} className="hover:bg-gray-50">
+                <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
                   <td className="p-3 text-gray-500">{d.id}</td>
                   <td className="p-3 whitespace-nowrap text-gray-600">{new Date(d.created_at).toLocaleString('id-ID')}</td>
                   <td className="p-3 font-medium">
