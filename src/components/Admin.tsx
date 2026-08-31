@@ -610,7 +610,7 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
               {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
                 <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
-                  <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
+                  <td className="p-3 whitespace-nowrap">{new Date((d.created_at || '').replace(' ', 'T') + 'Z').toLocaleDateString()}</td>
                   <td className="p-3">{d.email}</td>
                   <td className="p-3 font-bold text-amber-500">{d.rating}/5</td>
                   <td className="p-3 min-w-[300px]">{d.message}</td>
@@ -684,7 +684,7 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
               {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
                 <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
-                  <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
+                  <td className="p-3 whitespace-nowrap">{new Date((d.created_at || '').replace(' ', 'T') + 'Z').toLocaleDateString()}</td>
                   <td className="p-3">{d.email}<br/><span className="text-gray-400 text-xs">{d.name}</span></td>
                   <td className="p-3 font-semibold">{d.book_title}<br/><span className="text-gray-500 font-normal">{d.book_author}</span></td>
                   <td className="p-3 min-w-[200px]">{d.notes}</td>
@@ -765,7 +765,7 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
               {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
                 <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
-                  <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
+                  <td className="p-3 whitespace-nowrap">{new Date((d.created_at || '').replace(' ', 'T') + 'Z').toLocaleDateString()}</td>
                   <td className="p-3">{d.email}<br/><span className="text-gray-400 text-xs">{d.name}</span></td>
                   <td className="p-3 font-semibold">{d.book_title}<br/><span className="text-gray-500 font-normal">{d.book_author}</span></td>
                   <td className="p-3">
@@ -855,7 +855,7 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
                 <tr key={d.id} className="hover:bg-gray-50">
                 <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
                   <td className="p-3 text-gray-500">{d.id}</td>
-                  <td className="p-3 whitespace-nowrap text-gray-600">{new Date(d.created_at).toLocaleString('id-ID')}</td>
+                  <td className="p-3 whitespace-nowrap text-gray-600">{new Date((d.created_at || '').replace(' ', 'T') + 'Z').toLocaleString('id-ID')}</td>
                   <td className="p-3 font-medium">
                     {type === 'search' && <span>{d.query}</span>}
                     {type === 'download' && (() => {
