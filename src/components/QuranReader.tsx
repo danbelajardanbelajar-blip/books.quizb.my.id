@@ -296,7 +296,7 @@ const QuranReader: React.FC = () => {
       </div>
 
       {/* ===== TENGAH (20%): Sidebar Daftar Kitab Tafsir ===== */}
-      <div className={`fixed md:relative z-30 h-full w-[250px] md:w-[20%] md:min-w-[160px] flex flex-col bg-[#f0e9d6] border-l border-[#d7ccc8] flex-shrink-0 transition-transform duration-300 right-0 md:right-auto ${showMobileTafsir ? 'translate-x-0' : 'translate-x-[100%] md:translate-x-0'} md:block`}
+      <div className={`fixed md:relative z-30 h-full w-[250px] md:w-[20%] md:min-w-[160px] flex flex-col bg-[#f0e9d6] border-l border-[#d7ccc8] flex-shrink-0 transition-transform duration-300 right-0 md:right-auto ${showMobileTafsir ? 'translate-x-0' : 'translate-x-[100%] md:translate-x-0'}`}
            style={ { left: showMobileTafsir ? 0 : 'auto', right: showMobileTafsir ? 'auto' : 0 } }>
         <div className="bg-[#5d4037] text-white px-3 py-4 sticky top-0 z-10 shadow-md flex justify-between items-center md:block">
           <div className="font-bold text-sm text-center w-full" style={{ fontFamily: 'sans-serif' }}>
