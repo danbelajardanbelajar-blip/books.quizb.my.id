@@ -87,6 +87,8 @@ const LoginForm = ({ onLogin, onClose }: { onLogin: (t: string) => void, onClose
 // ==================== CATEGORIES VIEW ====================
 const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, onLogout: () => void, onSelectCategory: (cat: Category) => void }) => {
   const [cats, setCats] = useState<Category[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const LIMIT = 15;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -120,6 +122,7 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
     if (res?.success) load();
   };
 
+  const paginated = filtered.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-5 border-b bg-gray-50/50 flex flex-col md:flex-row gap-3 justify-between items-center">
@@ -140,7 +143,7 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
               <tr><td colSpan={4} className="p-8 text-center text-gray-400">Memuat...</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={4} className="p-8 text-center text-gray-400">Tidak ada kategori</td></tr>
-            ) : filtered.map(cat => (
+            ) : paginated.map(cat => (
               <tr key={cat.id} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3 text-gray-400 text-sm">{cat.id}</td>
                 <td className="px-4 py-3">
@@ -178,6 +181,8 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
           </tbody>
         </table>
       </div>
+    
+      <Pagination page={currentPage} total={filtered.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
@@ -426,6 +431,8 @@ const EditPageView = ({ token, onLogout, book, pageRow, onSaved }: { token: stri
 // ==================== FEEDBACK VIEW ====================
 const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
   const [data, setData] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const LIMIT = 15;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -443,6 +450,7 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
     if (res && res.success) load();
   };
 
+  const paginated = data.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><MessageSquare size={18} className="text-gray-500" /> Feedback Pengguna</div>
@@ -452,7 +460,7 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
           <table className="w-full text-sm">
             <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Email</th><th className="p-3">Rating</th><th className="p-3">Pesan</th><th className="p-3 text-center">Aksi</th></tr></thead>
             <tbody>
-              {data.map(d => (
+              {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
                   <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
                   <td className="p-3">{d.email}</td>
@@ -466,6 +474,8 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
           </table>
         </div>
       )}
+    
+      <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
@@ -473,6 +483,8 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
 // ==================== REQUESTS VIEW ====================
 const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
   const [data, setData] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const LIMIT = 15;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -494,6 +506,7 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
     if (res && res.success) load();
   };
 
+  const paginated = data.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><BookPlus size={18} className="text-gray-500" /> Request Kitab</div>
@@ -503,7 +516,7 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
           <table className="w-full text-sm">
             <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Pengusul</th><th className="p-3">Judul Kitab</th><th className="p-3">Keterangan</th><th className="p-3">Status</th><th className="p-3 text-center">Aksi</th></tr></thead>
             <tbody>
-              {data.map(d => (
+              {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
                   <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
                   <td className="p-3">{d.email}<br/><span className="text-gray-400 text-xs">{d.name}</span></td>
@@ -524,6 +537,8 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
           </table>
         </div>
       )}
+    
+      <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
@@ -531,6 +546,8 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
 // ==================== SUBMISSIONS VIEW ====================
 const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => void }) => {
   const [data, setData] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const LIMIT = 15;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -552,6 +569,7 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
     if (res && res.success) load();
   };
 
+  const paginated = data.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><Upload size={18} className="text-gray-500" /> Submit Kitab (File)</div>
@@ -561,7 +579,7 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
           <table className="w-full text-sm">
             <thead className="bg-gray-100 text-left"><tr><th className="p-3">Waktu</th><th className="p-3">Pengirim</th><th className="p-3">Judul Kitab</th><th className="p-3">File</th><th className="p-3">Status</th><th className="p-3 text-center">Aksi</th></tr></thead>
             <tbody>
-              {data.map(d => (
+              {paginated.map(d => (
                 <tr key={d.id} className="border-b hover:bg-gray-50">
                   <td className="p-3 whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
                   <td className="p-3">{d.email}<br/><span className="text-gray-400 text-xs">{d.name}</span></td>
@@ -589,6 +607,8 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
           </table>
         </div>
       )}
+    
+      <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
@@ -597,6 +617,8 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
 // ==================== LOGS VIEW ====================
 const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: () => void, type: string, title: string }) => {
   const [data, setData] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const LIMIT = 20;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -610,6 +632,7 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
     load();
   }, [token, type]);
 
+  const paginated = data.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold text-gray-800">{title}</div>
@@ -626,7 +649,7 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
           <tbody className="divide-y">
             {loading ? <tr><td colSpan={3} className="p-8 text-center text-gray-400">Memuat...</td></tr> : 
               data.length === 0 ? <tr><td colSpan={3} className="p-8 text-center text-gray-400">Belum ada log</td></tr> :
-              data.map(d => (
+              paginated.map(d => (
                 <tr key={d.id} className="hover:bg-gray-50">
                   <td className="p-3 text-gray-500">{d.id}</td>
                   <td className="p-3 whitespace-nowrap text-gray-600">{new Date(d.created_at).toLocaleString('id-ID')}</td>
@@ -643,6 +666,8 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
           </tbody>
         </table>
       </div>
+    
+      <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
