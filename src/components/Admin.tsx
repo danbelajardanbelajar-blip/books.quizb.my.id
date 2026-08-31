@@ -655,7 +655,30 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
                   <td className="p-3 whitespace-nowrap text-gray-600">{new Date(d.created_at).toLocaleString('id-ID')}</td>
                   <td className="p-3 font-medium">
                     {type === 'search' && <span>{d.query}</span>}
-                    {type === 'download' && <span>{d.book_title} (ID: {d.book_id})</span>}
+                    {type === 'download' && (() => {
+                      let t = d.book_title || '';
+                      let badge = 'Kitab (Word)';
+                      let badgeColor = 'bg-green-100 text-green-800';
+                      let idText = d.book_id ? ` (ID: ${d.book_id})` : '';
+                      
+                      if (t.startsWith('[PDF Scholarium] ')) {
+                        badge = 'Scholarium (PDF)';
+                        badgeColor = 'bg-yellow-100 text-yellow-800';
+                        t = t.replace('[PDF Scholarium] ', '');
+                        idText = '';
+                      } else if (t.startsWith('[PDF Archive] ')) {
+                        badge = 'Archive (PDF)';
+                        badgeColor = 'bg-blue-100 text-blue-800';
+                        t = t.replace('[PDF Archive] ', '');
+                        idText = '';
+                      }
+                      return (
+                        <div className="flex flex-col md:flex-row md:items-center gap-2">
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase ${badgeColor} whitespace-nowrap`}>{badge}</span>
+                          <span>{t}{idText}</span>
+                        </div>
+                      );
+                    })()}
                     {type === 'visit' && <span>Path: {d.path}</span>}
                     {type === 'quran' && <span>Surah ID: {d.surah_id}</span>}
                     {type === 'rowa' && <span>{d.rowa_name} (ID: {d.rowa_id})</span>}
