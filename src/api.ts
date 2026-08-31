@@ -26,6 +26,12 @@ export const webAPI = {
     return res.json();
   },
 
+  getAdminStats: async (token: string) => {
+    const res = await fetch(`${API_BASE}/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
+
   // ===== ADMIN CATEGORIES =====
   getAdminCategories: async (token: string) => {
     const res = await fetch(`${API_BASE}/admin/categories`, { headers: { 'Authorization': `Bearer ${token}` } });

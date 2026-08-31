@@ -424,6 +424,27 @@ app.post('/api/log/visit', (req, res) => {
     }
 });
 
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    try {
+        const stats = {
+            categories: db.prepare("SELECT COUNT(*) as c FROM main.categories").get().c,
+            books: db.prepare(`SELECT COUNT(*) as c FROM ${booksMeta()}`).get().c,
+            feedback: db.prepare("SELECT COUNT(*) as c FROM feedback").get().c,
+            requests: db.prepare("SELECT COUNT(*) as c FROM book_requests").get().c,
+            submissions: db.prepare("SELECT COUNT(*) as c FROM book_submissions").get().c,
+            log_search: db.prepare("SELECT COUNT(*) as c FROM search_logs").get().c,
+            log_download: db.prepare("SELECT COUNT(*) as c FROM download_logs").get().c,
+            log_visit: db.prepare("SELECT COUNT(*) as c FROM visit_logs").get().c,
+            log_quran: db.prepare("SELECT COUNT(*) as c FROM quran_logs").get().c,
+            log_rowa: db.prepare("SELECT COUNT(*) as c FROM rowa_logs").get().c
+        };
+        res.json({ success: true, data: stats });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/admin/logs/:type', requireAdmin, (req, res) => {
     if (!db) return res.status(500).json({ error: 'Database not loaded' });
     const { type } = req.params;
