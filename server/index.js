@@ -140,6 +140,11 @@ try {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
 
+          
+          CREATE TABLE IF NOT EXISTS admin_tokens (
+            token TEXT PRIMARY KEY,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
           CREATE TABLE IF NOT EXISTS feedback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL,
@@ -328,11 +333,17 @@ function requireAdmin(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
   const token = authHeader.split(' ')[1];
-  if (token && activeTokens.has(token)) {
-    next();
-  } else {
-    res.status(401).json({ error: 'Unauthorized' });
+  if (token) {
+    if (activeTokens.has(token)) return next();
+    try {
+        const row = db.prepare("SELECT * FROM admin_tokens WHERE token = ?").get(token);
+        if (row) {
+            activeTokens.add(token);
+            return next();
+        }
+    } catch(e) {}
   }
+  res.status(401).json({ error: 'Unauthorized' });
 }
 
 app.post('/api/admin/login', (req, res) => {
@@ -340,11 +351,27 @@ app.post('/api/admin/login', (req, res) => {
   if (username === 'admin' && password === '123') {
     const token = crypto.randomBytes(32).toString('hex');
     activeTokens.add(token);
+    try {
+        db.prepare("INSERT INTO admin_tokens (token) VALUES (?)").run(token);
+    } catch(e) {}
     res.json({ success: true, token });
   } else {
     res.status(401).json({ success: false, error: 'Invalid credentials' });
   }
 });
+
+app.post('/api/admin/logout', requireAdmin, (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+      const token = authHeader.split(' ')[1];
+      activeTokens.delete(token);
+      try {
+          db.prepare("DELETE FROM admin_tokens WHERE token = ?").run(token);
+      } catch(e) {}
+  }
+  res.json({ success: true });
+});
+
 
 // ========= ADMIN: CATEGORIES =========
 

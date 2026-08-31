@@ -18,7 +18,7 @@ import { useEffect, useRef } from 'react';
 
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask' | 'admin' | 'feedback' | 'book_request' | 'book_submit'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'advanced_search' | 'catalog' | 'quran' | 'rowa' | 'about' | 'privacy' | 'settings' | 'more' | 'ask' | 'admin' | 'feedback' | 'book_request' | 'book_submit'>(new URLSearchParams(window.location.search).get('admin') === '1' ? 'admin' : 'search');
 
   // Search States
   const [searchMode, setSearchMode] = useState<'text' | 'title' | 'pdf'>('text');
@@ -314,9 +314,7 @@ function App() {
                 <button onClick={() => setActiveTab('book_submit')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
                   <Upload size={18} className="text-[var(--app-primary)]" /> Submit Kitab
                 </button>
-                <button onClick={() => setActiveTab('admin')} className="w-full text-left px-5 py-3 hover:bg-[var(--app-primary)]/10 font-semibold transition-colors flex items-center gap-3 border-b border-black/5">
-                  <Shield size={18} className="text-[var(--app-primary)]" /> Admin Panel
-                </button>
+
               </div>
             </div>
           </nav>
