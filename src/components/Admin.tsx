@@ -3,7 +3,7 @@ import { webAPI } from '../api';
 import { LogIn, Edit2, Trash2, Save, X, Search, ChevronLeft, ChevronRight, LogOut, FolderOpen, BookOpen, FileText, ArrowLeft, Eye, AlertTriangle, MessageSquare, BookPlus, Upload } from 'lucide-react';
 
 // ==================== TYPES ====================
-type AdminView = 'categories' | 'books' | 'pages' | 'edit_page' | 'feedback' | 'requests' | 'submissions';
+type AdminView = 'categories' | 'books' | 'pages' | 'edit_page' | 'feedback' | 'requests' | 'submissions' | 'log_search' | 'log_download' | 'log_visit' | 'log_quran' | 'log_rowa';
 interface Category { id: number; name: string; catord: number; lvl: number; book_count: number; }
 interface Book { bkid: number; bk: string; cat: number; cat_name: string; }
 interface PageRow { id: number; book_id: number; part: number; page: number; preview: string; }
@@ -593,6 +593,60 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
   );
 };
 
+
+// ==================== LOGS VIEW ====================
+const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: () => void, type: string, title: string }) => {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const res = await adminFetch(token, () => webAPI.getAdminLogs(token, type), onLogout, setError);
+      if (res) setData(res);
+      setLoading(false);
+    };
+    load();
+  }, [token, type]);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="p-4 border-b bg-gray-50 font-bold text-gray-800">{title}</div>
+      {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-3 w-16">ID</th>
+              <th className="p-3 w-48">Waktu</th>
+              <th className="p-3">Data</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {loading ? <tr><td colSpan={3} className="p-8 text-center text-gray-400">Memuat...</td></tr> : 
+              data.length === 0 ? <tr><td colSpan={3} className="p-8 text-center text-gray-400">Belum ada log</td></tr> :
+              data.map(d => (
+                <tr key={d.id} className="hover:bg-gray-50">
+                  <td className="p-3 text-gray-500">{d.id}</td>
+                  <td className="p-3 whitespace-nowrap text-gray-600">{new Date(d.created_at).toLocaleString('id-ID')}</td>
+                  <td className="p-3 font-medium">
+                    {type === 'search' && <span>{d.query}</span>}
+                    {type === 'download' && <span>{d.book_title} (ID: {d.book_id})</span>}
+                    {type === 'visit' && <span>Path: {d.path}</span>}
+                    {type === 'quran' && <span>Surah ID: {d.surah_id}</span>}
+                    {type === 'rowa' && <span>{d.rowa_name} (ID: {d.rowa_id})</span>}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 // ==================== DASHBOARD ====================
 
 const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout: () => void, onClose: () => void }) => {
@@ -602,10 +656,10 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
   const [selectedPage, setSelectedPage] = useState<PageRow | null>(null);
 
   const breadcrumb = [
-    { label: view === 'feedback' ? 'Feedback' : view === 'requests' ? 'Request Kitab' : view === 'submissions' ? 'Submit Kitab' : 'Database Kitab', onClick: () => { setView(view === 'feedback' ? 'feedback' : view === 'requests' ? 'requests' : view === 'submissions' ? 'submissions' : 'categories'); setSelectedCategory(null); setSelectedBook(null); setSelectedPage(null); } },
-    ...(view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedCategory ? [{ label: selectedCategory.name, onClick: () => { setView('books'); setSelectedBook(null); setSelectedPage(null); } }] : []),
-    ...(view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedBook ? [{ label: selectedBook.bk, onClick: () => { setView('pages'); setSelectedPage(null); } }] : []),
-    ...(view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedPage ? [{ label: `Juz ${selectedPage.part} Hal ${selectedPage.page}`, onClick: () => {} }] : []),
+    { label: view.startsWith('log_') ? 'Logs' : view === 'feedback' ? 'Feedback' : view === 'requests' ? 'Request Kitab' : view === 'submissions' ? 'Submit Kitab' : 'Database Kitab', onClick: () => { setView(view.startsWith('log_') ? view : view === 'feedback' ? 'feedback' : view === 'requests' ? 'requests' : view === 'submissions' ? 'submissions' : 'categories'); setSelectedCategory(null); setSelectedBook(null); setSelectedPage(null); } },
+    ...(!view.startsWith('log_') && view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedCategory ? [{ label: selectedCategory.name, onClick: () => { setView('books'); setSelectedBook(null); setSelectedPage(null); } }] : []),
+    ...(!view.startsWith('log_') && view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedBook ? [{ label: selectedBook.bk, onClick: () => { setView('pages'); setSelectedPage(null); } }] : []),
+    ...(!view.startsWith('log_') && view !== 'feedback' && view !== 'requests' && view !== 'submissions' && selectedPage ? [{ label: `Juz ${selectedPage.part} Hal ${selectedPage.page}`, onClick: () => {} }] : []),
   ];
 
   const goBack = () => {
@@ -649,6 +703,12 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
         <button onClick={() => { setView('feedback'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'feedback' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Feedback</button>
         <button onClick={() => { setView('requests'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'requests' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Request Kitab</button>
         <button onClick={() => { setView('submissions'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'submissions' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Submit Kitab</button>
+      
+        <button onClick={() => { setView('log_search'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'log_search' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Pencarian</button>
+        <button onClick={() => { setView('log_download'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'log_download' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Download</button>
+        <button onClick={() => { setView('log_visit'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'log_visit' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Kunjungan</button>
+        <button onClick={() => { setView('log_quran'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'log_quran' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Qur'an</button>
+        <button onClick={() => { setView('log_rowa'); }} className={`py-3 font-semibold text-sm border-b-2 whitespace-nowrap transition-colors ${view === 'log_rowa' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Perawi</button>
       </div>
 
       {/* Content */}
@@ -668,7 +728,12 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
           )}
           {view === 'feedback' && <FeedbackView token={token} onLogout={onLogout} />}
           {view === 'requests' && <RequestsView token={token} onLogout={onLogout} />}
-          {view === 'submissions' && <SubmissionsView token={token} onLogout={onLogout} />}
+                    {view === 'submissions' && <SubmissionsView token={token} onLogout={onLogout} />}
+          {view === 'log_search' && <LogsView token={token} onLogout={onLogout} type="search" title="Log Pencarian" />}
+          {view === 'log_download' && <LogsView token={token} onLogout={onLogout} type="download" title="Log Download" />}
+          {view === 'log_visit' && <LogsView token={token} onLogout={onLogout} type="visit" title="Log Kunjungan Halaman" />}
+          {view === 'log_quran' && <LogsView token={token} onLogout={onLogout} type="quran" title="Log Penggunaan Al Qur'an" />}
+          {view === 'log_rowa' && <LogsView token={token} onLogout={onLogout} type="rowa" title="Log Kamus Perawi" />}
         </div>
       </div>
     </div>

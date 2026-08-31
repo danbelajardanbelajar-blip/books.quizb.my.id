@@ -223,5 +223,23 @@ export const webAPI = {
   getTafsirPage: async (bookId: number, pageId: number) => {
     return fetchAPI(`/quran/tafsir-page/${bookId}/${pageId}`);
   },
+  // ===== ADMIN LOGS =====
+  getAdminLogs: async (token: string, type: string) => {
+    const res = await fetch(`${API_BASE}/admin/logs/${type}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
+  
+  // ===== CLIENT LOGS =====
+  logVisit: async (path: string) => {
+    const res = await fetch(`${API_BASE}/log/visit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path })
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
+
 };
 

@@ -109,6 +109,30 @@ try {
             query TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
+          
+          CREATE TABLE IF NOT EXISTS download_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            book_id INTEGER,
+            book_title TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+          CREATE TABLE IF NOT EXISTS visit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+          CREATE TABLE IF NOT EXISTS quran_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            surah_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+          CREATE TABLE IF NOT EXISTS rowa_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rowa_id INTEGER,
+            rowa_name TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
           CREATE TABLE IF NOT EXISTS ask_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             question TEXT NOT NULL,
@@ -202,7 +226,10 @@ app.get('/api/stats', (req, res) => {
             totalSearches = db.prepare("SELECT COUNT(id) as count FROM main.search_logs").get().count;
         } catch(e) { } // Table might not exist
         
-        let totalVisits = 105432; // Placeholder if no activity log
+        let totalVisits = 0;
+        try {
+            totalVisits = db.prepare("SELECT COUNT(id) as count FROM main.visit_logs").get().count;
+        } catch(e) {}
         let onlineUsers = Math.floor(Math.random() * 15) + 5;
         
         res.json({
@@ -320,6 +347,40 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ========= ADMIN: CATEGORIES =========
+
+
+app.post('/api/log/visit', (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    try {
+        const { path } = req.body;
+        if (path) {
+            db.prepare("INSERT INTO visit_logs (path) VALUES (?)").run(path);
+        }
+        res.json({ success: true });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/admin/logs/:type', requireAdmin, (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    const { type } = req.params;
+    let query = "";
+    try {
+        if (type === 'search') query = "SELECT * FROM search_logs ORDER BY id DESC LIMIT 500";
+        else if (type === 'download') query = "SELECT * FROM download_logs ORDER BY id DESC LIMIT 500";
+        else if (type === 'visit') query = "SELECT * FROM visit_logs ORDER BY id DESC LIMIT 500";
+        else if (type === 'quran') query = "SELECT * FROM quran_logs ORDER BY id DESC LIMIT 500";
+        else if (type === 'rowa') query = "SELECT * FROM rowa_logs ORDER BY id DESC LIMIT 500";
+        else return res.status(400).json({ error: 'Invalid log type' });
+
+        const data = db.prepare(query).all();
+        res.json(data);
+    } catch(err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 app.get('/api/admin/categories', requireAdmin, (req, res) => {
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
@@ -827,6 +888,14 @@ app.get('/api/search', (req, res) => {
 
 
 app.get('/api/download/:id', async (req, res) => {
+    try {
+        const bookId = parseInt(req.params.id);
+        const bookStmt = db.prepare(`SELECT bk as title FROM books_meta WHERE bkid = ?`);
+        const book = bookStmt.get(bookId);
+        if (book) {
+            db.prepare("INSERT INTO download_logs (book_id, book_title) VALUES (?, ?)").run(bookId, book.title);
+        }
+    } catch(e) {}
     if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
     try {
         const bookId = parseInt(req.params.id);
@@ -1063,6 +1132,9 @@ app.get('/api/quran/surahs', (req, res) => {
 });
 
 app.get('/api/quran/surah/:id', (req, res) => {
+    try {
+        db.prepare("INSERT INTO quran_logs (surah_id) VALUES (?)").run(parseInt(req.params.id));
+    } catch(e) {}
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const surahId = parseInt(req.params.id);
@@ -1098,6 +1170,14 @@ app.get('/api/rowa/search', (req, res) => {
 });
 
 app.get('/api/rowa/:id', (req, res) => {
+    try {
+        const rowaId = parseInt(req.params.id);
+        const rowaStmt = db.prepare(`SELECT name FROM rowa WHERE id = ?`);
+        const rowa = rowaStmt.get(rowaId);
+        if (rowa) {
+            db.prepare("INSERT INTO rowa_logs (rowa_id, rowa_name) VALUES (?, ?)").run(rowaId, rowa.name);
+        }
+    } catch(e) {}
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
     const rowaId = parseInt(req.params.id);

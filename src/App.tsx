@@ -28,6 +28,13 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  useEffect(() => {
+    try {
+      webAPI.logVisit(activeTab).catch(() => {});
+    } catch(e) {}
+  }, [activeTab]);
+
   const [error, setError] = useState('');
   const [stats, setStats] = useState<{ total_books?: number, total_categories?: number, total_searches?: number, online_users?: number } | null>(null);
 
