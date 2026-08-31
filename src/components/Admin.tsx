@@ -263,7 +263,7 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
 
   useEffect(() => {
     if (bulkMoveMode && allCategories.length === 0) {
-      adminFetch(token, () => webAPI.getAdminCategories(token), onLogout, setError).then(res => { if (res) setAllCategories(res); });
+      adminFetch(token, () => webAPI.getAdminCategories(token), onLogout, setError).then(res => { if (res && res.data) setAllCategories(res.data); });
     }
   }, [bulkMoveMode]);
 
