@@ -231,6 +231,16 @@ export const webAPI = {
   },
   
   // ===== CLIENT LOGS =====
+  
+  logDownload: async (title: string, id?: number) => {
+    const res = await fetch(`${API_BASE}/log/download`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ book_title: title, book_id: id })
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
   logVisit: async (path: string) => {
     const res = await fetch(`${API_BASE}/log/visit`, {
       method: 'POST',

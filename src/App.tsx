@@ -637,24 +637,24 @@ function App() {
               {searchMode === 'pdf' && results.map((r, i) => {
                 if (r._source === 'scholarium') {
                   return (
-                    <div key={i} onClick={() => window.open(r.link, '_blank')} className="bg-yellow-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-yellow-200 transition-all relative overflow-hidden cursor-pointer group">
+                    <div key={i} onClick={() => { webAPI.logDownload('[PDF Scholarium] ' + r.name).catch(()=>{}); window.open(r.link, '_blank'); }} className="bg-yellow-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-yellow-200 transition-all relative overflow-hidden cursor-pointer group">
                       <div className="absolute top-0 right-0 bg-yellow-200 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase">Scholarium</div>
                       <h3 className="text-lg font-bold text-yellow-900 group-hover:text-yellow-700 break-words pr-16">{r.name}</h3>
-                      <a href={r.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="mt-3 bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-yellow-700 transition-colors inline-flex items-center gap-2">
+                      <a href={r.link} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.stopPropagation(); webAPI.logDownload('[PDF Scholarium] ' + r.name).catch(()=>{}); }} className="mt-3 bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-yellow-700 transition-colors inline-flex items-center gap-2">
                          Buka File / Download
                       </a>
                     </div>
                   );
                 } else {
                   return (
-                    <div key={i} onClick={() => window.open(`https://archive.org/details/${r.identifier}`, '_blank')} className="bg-blue-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-blue-200 transition-all relative overflow-hidden cursor-pointer group">
+                    <div key={i} onClick={() => { webAPI.logDownload('[PDF Archive] ' + r.title).catch(()=>{}); window.open(`https://archive.org/details/${r.identifier}`, '_blank'); }} className="bg-blue-50 p-5 rounded-2xl shadow-sm hover:shadow-md border border-blue-200 transition-all relative overflow-hidden cursor-pointer group">
                       <div className="absolute top-0 right-0 bg-blue-200 text-blue-800 text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase">Archive.org</div>
                       <h3 className="text-lg font-bold text-blue-900 group-hover:text-blue-700 break-words pr-16">{r.title}</h3>
                       <p className="text-sm text-blue-700 mt-1">
                         {r.creator && <span>Oleh: <strong>{Array.isArray(r.creator) ? r.creator.join(', ') : r.creator}</strong><br/></span>}
                         {r.date && <span>Tahun: {r.date}</span>}
                       </p>
-                      <a href={`https://archive.org/details/${r.identifier}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+                      <a href={`https://archive.org/details/${r.identifier}`} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.stopPropagation(); webAPI.logDownload('[PDF Archive] ' + r.title).catch(()=>{}); }} className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
                          Buka di Archive.org
                       </a>
                     </div>

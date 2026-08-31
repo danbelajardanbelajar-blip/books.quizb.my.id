@@ -349,6 +349,18 @@ app.post('/api/admin/login', (req, res) => {
 // ========= ADMIN: CATEGORIES =========
 
 
+
+app.post('/api/log/download', (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    try {
+        const { book_id, book_title } = req.body;
+        db.prepare("INSERT INTO download_logs (book_id, book_title) VALUES (?, ?)").run(book_id || null, book_title || 'Unknown');
+        res.json({ success: true });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/log/visit', (req, res) => {
     if (!db) return res.status(500).json({ error: 'Database not loaded' });
     try {
