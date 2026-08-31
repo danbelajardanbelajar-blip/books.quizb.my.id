@@ -158,70 +158,87 @@ const QuranReader: React.FC = () => {
     if (mainAreaRef.current) mainAreaRef.current.scrollTop = 0;
   }, [currentAyahIndex]);
 
+  const [activeTafsirBook, setActiveTafsirBook] = useState<{ bookId: number; tafsirName: string } | null>(null);
+
   // ============================================================
   // Navigasi Ayat
   // ============================================================
   const goToPrevAyah = useCallback(() => {
     setCurrentAyahIndex(i => Math.max(0, i - 1));
-    setOpenTafsir(null);
   }, []);
 
   const goToNextAyah = useCallback(() => {
     setCurrentAyahIndex(i => Math.min(ayahs.length - 1, i + 1));
-    setOpenTafsir(null);
   }, [ayahs.length]);
 
   const goToAyah = useCallback((index: number) => {
     setCurrentAyahIndex(index);
-    setOpenTafsir(null);
   }, []);
 
   // ============================================================
   // Load isi tafsir
   // ============================================================
-  const loadTafsirContent = useCallback(async (bookId: number, tafsirName: string) => {
-    if (!ayahs[currentAyahIndex]) return;
-    const currentAyah = ayahs[currentAyahIndex];
+  const toggleTafsirBook = useCallback((bookId: number, tafsirName: string) => {
+    if (activeTafsirBook?.bookId === bookId) {
+      setActiveTafsirBook(null);
+    } else {
+      setActiveTafsirBook({ bookId, tafsirName });
+    }
+  }, [activeTafsirBook]);
 
-    // Toggle: klik lagi kitab yang sama → tutup
-    if (openTafsir?.bookId === bookId) {
+  useEffect(() => {
+    if (!activeTafsirBook) {
       setOpenTafsir(null);
       return;
     }
 
+    const currentAyah = ayahs[currentAyahIndex];
+    if (!currentAyah) return;
+
     const mapping = tafsirMappings.find(
-      m => m.book_id === bookId && m.ayah_no === currentAyah.ayah_no
+      m => m.book_id === activeTafsirBook.bookId && m.ayah_no === currentAyah.ayah_no
     );
 
     if (!mapping) {
-      setOpenTafsir({ bookId, pageId: 0, tafsir_name: tafsirName, text: 'لا يوجد تفسير لهذه الآية في هذا الكتاب' });
+      setOpenTafsir({ 
+        bookId: activeTafsirBook.bookId, 
+        pageId: 0, 
+        tafsir_name: activeTafsirBook.tafsirName, 
+        text: 'لا يوجد تفسير لهذه الآية في هذا الكتاب' 
+      });
       return;
     }
 
+    let isMounted = true;
     setTafsirLoading(true);
     setOpenTafsir(null);
 
-    try {
-      const res = await (webAPI as any).getTafsirPage(mapping.book_id, mapping.page_id);
-      if (res.data) {
-        setOpenTafsir({
-          bookId,
-          pageId: mapping.page_id,
-          tafsir_name: tafsirName,
-          text: stripHtml(res.data.text || ''),
-          part: res.data.part,
-          page: res.data.page,
-        });
-      } else {
-        setOpenTafsir({ bookId, pageId: mapping.page_id, tafsir_name: tafsirName, text: 'لم يتم العثور على نص التفسير.' });
-      }
-    } catch (err) {
-      console.error('Gagal memuat tafsir:', err);
-      setOpenTafsir({ bookId, pageId: mapping.page_id, tafsir_name: tafsirName, text: 'حدث خطأ أثناء تحميل التفسير.' });
-    }
+    (webAPI as any).getTafsirPage(mapping.book_id, mapping.page_id)
+      .then((res: any) => {
+        if (!isMounted) return;
+        if (res.data) {
+          setOpenTafsir({
+            bookId: activeTafsirBook.bookId,
+            pageId: mapping.page_id,
+            tafsir_name: activeTafsirBook.tafsirName,
+            text: stripHtml(res.data.text || ''),
+            part: res.data.part,
+            page: res.data.page,
+          });
+        } else {
+          setOpenTafsir({ bookId: activeTafsirBook.bookId, pageId: mapping.page_id, tafsir_name: activeTafsirBook.tafsirName, text: 'لم يتم العثور على نص التفسير.' });
+        }
+      })
+      .catch((err: any) => {
+        console.error('Gagal memuat tafsir:', err);
+        if (isMounted) setOpenTafsir({ bookId: activeTafsirBook.bookId, pageId: mapping.page_id, tafsir_name: activeTafsirBook.tafsirName, text: 'حدث خطأ أثناء تحميل التفسير.' });
+      })
+      .finally(() => {
+        if (isMounted) setTafsirLoading(false);
+      });
 
-    setTafsirLoading(false);
-  }, [ayahs, currentAyahIndex, tafsirMappings, openTafsir]);
+    return () => { isMounted = false; };
+  }, [activeTafsirBook, currentAyahIndex, ayahs, tafsirMappings]);
 
   const [showMobileSurah, setShowMobileSurah] = useState(false);
   const [showMobileTafsir, setShowMobileTafsir] = useState(false);
@@ -306,14 +323,14 @@ const QuranReader: React.FC = () => {
           ) : (
             <div className="flex flex-col gap-1">
               {tafsirBooks.map(book => {
-                const isActive = openTafsir?.bookId === book.book_id;
+                const isActive = activeTafsirBook?.bookId === book.book_id;
                 const hasMapping = currentAyah
                   ? tafsirMappings.some(m => m.book_id === book.book_id && m.ayah_no === currentAyah.ayah_no)
                   : false;
                 return (
                   <button
                     key={book.book_id}
-                    onClick={() => loadTafsirContent(book.book_id, book.tafsir_name)}
+                    onClick={() => toggleTafsirBook(book.book_id, book.tafsir_name)}
                     className={`w-full text-right px-3 py-2.5 rounded-lg text-sm transition-all duration-150 border ${
                       isActive
                         ? 'bg-[#5d4037] text-white border-[#4e342e] shadow-md'
@@ -468,7 +485,7 @@ const QuranReader: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-3">
                         {openTafsir.page && <span className="text-[#a1887f] text-xs" style={{ fontFamily: 'sans-serif' }}>ص. {openTafsir.page}</span>}
-                        <button onClick={() => setOpenTafsir(null)} className="text-[#d7ccc8] hover:text-white transition-colors"><X size={18} /></button>
+                        <button onClick={() => setActiveTafsirBook(null)} className="text-[#d7ccc8] hover:text-white transition-colors"><X size={18} /></button>
                       </div>
                     </div>
                     <div
@@ -481,7 +498,7 @@ const QuranReader: React.FC = () => {
                 )}
 
                 {/* Hint */}
-                {!tafsirLoading && !openTafsir && tafsirBooks.length > 0 && (
+                {!tafsirLoading && !activeTafsirBook && tafsirBooks.length > 0 && (
                   <div className="text-center text-[#b0a090] text-sm py-4" style={{ fontFamily: 'sans-serif' }} dir="rtl">
                     <BookMarked size={18} className="inline ml-1 mb-0.5 text-[#c8b8a8]" />
                     اختر كتاباً من قائمة التفسير لعرض تفسير هذه الآية
