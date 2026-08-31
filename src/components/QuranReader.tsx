@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { webAPI } from '../api';
-import { ChevronRight, ChevronLeft, BookOpen, Loader2, X, BookMarked, Menu } from 'lucide-react';
+import { ChevronRight, ChevronLeft, BookOpen, Loader2, X, BookMarked, Menu, Search } from 'lucide-react';
 
 // ============================================================
 // Type Definitions
@@ -243,12 +243,24 @@ const QuranReader: React.FC = () => {
   const [showMobileSurah, setShowMobileSurah] = useState(false);
   const [showMobileTafsir, setShowMobileTafsir] = useState(false);
 
+  const [surahSearch, setSurahSearch] = useState('');
+  const [tafsirSearch, setTafsirSearch] = useState('');
+
   // ============================================================
   // Derived
   // ============================================================
   const currentAyah = ayahs[currentAyahIndex] ?? null;
   const selectedSurahData = surahs.find(s => s.id === selectedSurah);
   const hasBismillah = selectedSurah !== 9;
+
+  const filteredSurahs = surahs.filter(s => 
+    s.name.toLowerCase().includes(surahSearch.toLowerCase()) || 
+    s.id.toString().includes(surahSearch)
+  );
+
+  const filteredTafsirBooks = tafsirBooks.filter(b => 
+    b.tafsir_name.toLowerCase().includes(tafsirSearch.toLowerCase())
+  );
 
   // ============================================================
   // Render
@@ -267,12 +279,43 @@ const QuranReader: React.FC = () => {
             <X size={20} />
           </button>
           <div className="text-[#a1887f] text-xs mt-1 md:block hidden" style={{ fontFamily: 'sans-serif' }}>فهرس السور</div>
+          <div className="mt-3 relative w-full hidden md:block">
+            <input 
+              type="text" 
+              placeholder="Cari Surah..." 
+              value={surahSearch}
+              onChange={e => setSurahSearch(e.target.value)}
+              className="w-full bg-[#3e2723] border border-[#5d4037] text-sm text-[#efebe9] px-3 py-1.5 rounded outline-none focus:border-[#d4a853] transition-colors placeholder-[#8d6e63]"
+              style={{ fontFamily: 'sans-serif' }}
+              dir="ltr"
+            />
+            <Search size={14} className="absolute right-2.5 top-2 text-[#8d6e63]" />
+          </div>
         </div>
+        
+        {/* Mobile Search input */}
+        <div className="bg-[#2e1a17] px-4 pb-3 md:hidden sticky top-[60px] z-10 shadow-sm border-b border-[#3e2723]">
+          <div className="relative w-full">
+            <input 
+              type="text" 
+              placeholder="Cari Surah..." 
+              value={surahSearch}
+              onChange={e => setSurahSearch(e.target.value)}
+              className="w-full bg-[#3e2723] border border-[#5d4037] text-sm text-[#efebe9] px-3 py-1.5 rounded outline-none focus:border-[#d4a853] transition-colors placeholder-[#8d6e63]"
+              style={{ fontFamily: 'sans-serif' }}
+              dir="ltr"
+            />
+            <Search size={14} className="absolute right-2.5 top-2 text-[#8d6e63]" />
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {surahLoading ? (
             <div className="flex justify-center items-center h-32"><Loader2 className="animate-spin text-[#a1887f]" size={24} /></div>
+          ) : filteredSurahs.length === 0 ? (
+            <div className="text-center text-[#8d6e63] text-xs p-4" style={{ fontFamily: 'sans-serif' }}>Surah tidak ditemukan</div>
           ) : (
-            surahs.map(s => (
+            filteredSurahs.map(s => (
               <button
                 key={s.id}
                 onClick={() => { setSelectedSurah(s.id); setShowMobileSurah(false); }}
@@ -311,7 +354,36 @@ const QuranReader: React.FC = () => {
               الآية {currentAyah.ayah_no}
             </div>
           )}
+          <div className="mt-3 relative w-full hidden md:block">
+            <input 
+              type="text" 
+              placeholder="Cari Kitab..." 
+              value={tafsirSearch}
+              onChange={e => setTafsirSearch(e.target.value)}
+              className="w-full bg-[#4e342e] border border-[#3e2723] text-sm text-[#efebe9] px-3 py-1.5 rounded outline-none focus:border-[#d4a853] transition-colors placeholder-[#a1887f]"
+              style={{ fontFamily: 'sans-serif' }}
+              dir="ltr"
+            />
+            <Search size={14} className="absolute right-2.5 top-2 text-[#a1887f]" />
+          </div>
         </div>
+
+        {/* Mobile Search input */}
+        <div className="bg-[#5d4037] px-3 pb-3 md:hidden sticky top-[60px] z-10 shadow-sm border-b border-[#4e342e]">
+          <div className="relative w-full">
+            <input 
+              type="text" 
+              placeholder="Cari Kitab..." 
+              value={tafsirSearch}
+              onChange={e => setTafsirSearch(e.target.value)}
+              className="w-full bg-[#4e342e] border border-[#3e2723] text-sm text-[#efebe9] px-3 py-1.5 rounded outline-none focus:border-[#d4a853] transition-colors placeholder-[#a1887f]"
+              style={{ fontFamily: 'sans-serif' }}
+              dir="ltr"
+            />
+            <Search size={14} className="absolute right-2.5 top-2 text-[#a1887f]" />
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
           {tafsirListLoading ? (
             <div className="flex justify-center items-center h-24"><Loader2 className="animate-spin text-[#8d6e63]" size={20} /></div>
@@ -320,9 +392,11 @@ const QuranReader: React.FC = () => {
               لا توجد كتب تفسير
               <br /><span className="text-[10px]">(يتطلب tafsir_relasi.db)</span>
             </div>
+          ) : filteredTafsirBooks.length === 0 ? (
+            <div className="text-center text-[#8d6e63] text-xs p-4" style={{ fontFamily: 'sans-serif' }}>Kitab tidak ditemukan</div>
           ) : (
             <div className="flex flex-col gap-1">
-              {tafsirBooks.map(book => {
+              {filteredTafsirBooks.map(book => {
                 const isActive = activeTafsirBook?.bookId === book.book_id;
                 const hasMapping = currentAyah
                   ? tafsirMappings.some(m => m.book_id === book.book_id && m.ayah_no === currentAyah.ayah_no)
