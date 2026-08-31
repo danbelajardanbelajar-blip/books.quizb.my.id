@@ -152,7 +152,17 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
       if (!bookInfo) {
         // @ts-ignore
         const info = await webAPI.getBookInfo(bookId);
-        if (info.data) setBookInfo(info.data);
+        if (info.data) {
+          setBookInfo(info.data);
+          try {
+            let recent = JSON.parse(localStorage.getItem('recentBooks') || '[]');
+            recent = recent.filter((r:any) => r.bkid !== info.data.bkid);
+            recent.unshift({ bkid: info.data.bkid, bk: info.data.bk, author: info.data.auth });
+            if (recent.length > 10) recent = recent.slice(0, 10);
+            localStorage.setItem('recentBooks', JSON.stringify(recent));
+            window.dispatchEvent(new Event('recentBooksUpdated'));
+          } catch(e) {}
+        }
       }
 
       // @ts-ignore

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, Heart, MessageSquare, BookPlus, Upload } from 'lucide-react';
+import { Search, FolderSearch, Library, BookOpen, UserCircle, Settings as SettingsIcon, Menu, Info, Download, Shield, ChevronRight, ChevronLeft, BookMarked, Bot, Heart, MessageSquare, BookPlus, Upload, GitPullRequest } from 'lucide-react';
 import './App.css';
 import { webAPI } from './api';
 import ReaderModal from './components/ReaderModal';
@@ -45,6 +45,17 @@ function App() {
       .catch(err => console.error("Failed to load stats:", err));
   }, []);
   const [recentSearches, setRecentSearches] = useState<{query:string}[]>([]);
+  const [recentBooks, setRecentBooks] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem('recentBooks') || '[]'); } catch { return []; }
+  });
+
+  useEffect(() => {
+    const handler = () => {
+      try { setRecentBooks(JSON.parse(localStorage.getItem('recentBooks') || '[]')); } catch {}
+    };
+    window.addEventListener('recentBooksUpdated', handler);
+    return () => window.removeEventListener('recentBooksUpdated', handler);
+  }, []);
   const limit = 50;
   
   // Advanced Search States
@@ -543,24 +554,71 @@ function App() {
               {error && <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 shadow-sm">{error}</div>}
 
             {results.length === 0 && !loading && query.trim() === '' && (
-              <div className="mb-8 p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
-                <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><Search size={18} /> Pencarian Terakhir</h3>
-                {recentSearches.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {recentSearches.map((rs, idx) => (
-                      <button 
-                        key={idx}
-                        onClick={() => { setQuery(rs.query); executeSearch(rs.query, 1); }}
-                        className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-600 px-4 py-2 rounded-full text-sm transition-all shadow-sm"
-                        dir="auto"
-                      >
-                        {rs.query}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 italic">Belum ada riwayat pencarian. Riwayat pencarian pengguna akan muncul di sini.</p>
-                )}
+              <div className="space-y-6 mb-8">
+                {/* Pencarian Terakhir */}
+                <div className="p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
+                  <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><Search size={18} /> Pencarian Terakhir</h3>
+                  {recentSearches.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {recentSearches.map((rs, idx) => (
+                        <button 
+                          key={idx}
+                          onClick={() => { setQuery(rs.query); executeSearch(rs.query, 1); }}
+                          className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-600 px-4 py-2 rounded-full text-sm transition-all shadow-sm"
+                          dir="auto"
+                        >
+                          {rs.query}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Belum ada riwayat pencarian. Riwayat pencarian pengguna akan muncul di sini.</p>
+                  )}
+                </div>
+
+                {/* Baru Saja Dibuka */}
+                <div className="p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
+                  <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><BookOpen size={18} /> Baru Saja Dibuka</h3>
+                  {recentBooks.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {recentBooks.map((rb: any, idx: number) => (
+                        <div 
+                          key={idx}
+                          onClick={() => openReader({ bookId: rb.bkid })}
+                          className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-700 px-4 py-3 rounded-xl text-sm transition-all shadow-sm cursor-pointer flex justify-between items-center"
+                          dir="auto"
+                        >
+                          <span className="font-bold" style={{ fontFamily: 'var(--arabic-font)' }}>{rb.bk}</span>
+                          <span className="text-xs text-gray-400">{rb.author}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Belum ada kitab yang baru saja dibuka.</p>
+                  )}
+                </div>
+
+                {/* Submit, Request, Feedback Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <button onClick={() => setActiveTab('book_submit')} className="bg-[var(--reader-bg)] p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-3 text-gray-700 hover:text-[var(--app-primary)]">
+                    <div className="w-12 h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
+                        <Upload size={24} />
+                    </div>
+                    <span className="font-bold">Submit Kitab</span>
+                  </button>
+                  <button onClick={() => setActiveTab('book_request')} className="bg-[var(--reader-bg)] p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-3 text-gray-700 hover:text-[var(--app-primary)]">
+                    <div className="w-12 h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
+                        <GitPullRequest size={24} />
+                    </div>
+                    <span className="font-bold">Request Kitab</span>
+                  </button>
+                  <button onClick={() => setActiveTab('feedback')} className="bg-[var(--reader-bg)] p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-3 text-gray-700 hover:text-[var(--app-primary)]">
+                    <div className="w-12 h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
+                        <MessageSquare size={24} />
+                    </div>
+                    <span className="font-bold">Kirim Feedback</span>
+                  </button>
+                </div>
               </div>
             )}
 
