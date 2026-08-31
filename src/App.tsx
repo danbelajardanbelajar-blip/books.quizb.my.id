@@ -600,24 +600,27 @@ function App() {
                 </div>
 
                 {/* Submit, Request, Feedback Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <button onClick={() => setActiveTab('book_submit')} className="bg-[var(--reader-bg)] p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-3 text-gray-700 hover:text-[var(--app-primary)]">
-                    <div className="w-12 h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
-                        <Upload size={24} />
+                <div className="grid grid-cols-3 gap-2 md:gap-4">
+                  <button onClick={() => setActiveTab('book_submit')} className="bg-[var(--reader-bg)] p-3 md:p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-2 md:gap-3 text-gray-700 hover:text-[var(--app-primary)]">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
+                        <Upload size={20} className="md:hidden" />
+                        <Upload size={24} className="hidden md:block" />
                     </div>
-                    <span className="font-bold">Submit Kitab</span>
+                    <span className="font-bold text-[10px] sm:text-xs md:text-base text-center leading-tight">Submit Kitab</span>
                   </button>
-                  <button onClick={() => setActiveTab('book_request')} className="bg-[var(--reader-bg)] p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-3 text-gray-700 hover:text-[var(--app-primary)]">
-                    <div className="w-12 h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
-                        <GitPullRequest size={24} />
+                  <button onClick={() => setActiveTab('book_request')} className="bg-[var(--reader-bg)] p-3 md:p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-2 md:gap-3 text-gray-700 hover:text-[var(--app-primary)]">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
+                        <GitPullRequest size={20} className="md:hidden" />
+                        <GitPullRequest size={24} className="hidden md:block" />
                     </div>
-                    <span className="font-bold">Request Kitab</span>
+                    <span className="font-bold text-[10px] sm:text-xs md:text-base text-center leading-tight">Request Kitab</span>
                   </button>
-                  <button onClick={() => setActiveTab('feedback')} className="bg-[var(--reader-bg)] p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-3 text-gray-700 hover:text-[var(--app-primary)]">
-                    <div className="w-12 h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
-                        <MessageSquare size={24} />
+                  <button onClick={() => setActiveTab('feedback')} className="bg-[var(--reader-bg)] p-3 md:p-5 rounded-2xl border border-black/5 shadow-sm hover:shadow-md hover:border-[var(--app-primary)] transition-all flex flex-col items-center justify-center gap-2 md:gap-3 text-gray-700 hover:text-[var(--app-primary)]">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[var(--app-primary)]/10 flex items-center justify-center text-[var(--app-primary)]">
+                        <MessageSquare size={20} className="md:hidden" />
+                        <MessageSquare size={24} className="hidden md:block" />
                     </div>
-                    <span className="font-bold">Kirim Feedback</span>
+                    <span className="font-bold text-[10px] sm:text-xs md:text-base text-center leading-tight">Kirim Feedback</span>
                   </button>
                 </div>
               </div>
