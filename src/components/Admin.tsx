@@ -48,12 +48,27 @@ const adminFetch = (_token: string, fn: () => Promise<any>, onLogout: () => void
     return null;
   });
 
-const Pagination = ({ page, total, limit, onChange, loading }: any) => {
+const Pagination = ({ page, total, limit, onChange, loading, onLimitChange }: any) => {
   const totalPages = Math.ceil(total / limit);
-  if (total <= limit) return null;
+  if (total <= 0) return null;
   return (
-    <div className="flex justify-between items-center px-4 py-3 border-t bg-gray-50">
-      <span className="text-sm text-gray-500">Hal {page} dari {totalPages} ({total} item)</span>
+    <div className="flex justify-between items-center px-4 py-3 border-t bg-gray-50 flex-wrap gap-3">
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-gray-500">Hal {page} dari {totalPages} ({total} item)</span>
+        {onLimitChange && (
+          <select 
+            value={limit} 
+            onChange={(e) => onLimitChange(Number(e.target.value))}
+            className="text-sm border border-gray-300 rounded-md py-1 px-2 bg-white outline-none cursor-pointer"
+          >
+            <option value={15}>15 per hal</option>
+            <option value={25}>25 per hal</option>
+            <option value={50}>50 per hal</option>
+            <option value={100}>100 per hal</option>
+            <option value={500}>500 per hal</option>
+          </select>
+        )}
+      </div>
       <div className="flex gap-2">
         <button onClick={() => onChange(page - 1)} disabled={page === 1 || loading} className="p-2 rounded-lg border bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40"><ChevronLeft size={18} /></button>
         <button onClick={() => onChange(page + 1)} disabled={page >= totalPages || loading} className="p-2 rounded-lg border bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40"><ChevronRight size={18} /></button>
@@ -136,7 +151,7 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const LIMIT = 15;
+  const [limit, setLimit] = useState(15);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -170,7 +185,7 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
     if (res?.success) load();
   };
 
-  const paginated = filtered.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
+  const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-5 border-b bg-gray-50/50 flex flex-col md:flex-row gap-3 justify-between items-center">
@@ -233,7 +248,7 @@ const CategoriesView = ({ token, onLogout, onSelectCategory }: { token: string, 
         </table>
       </div>
     
-      <Pagination page={currentPage} total={filtered.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
+      <Pagination page={currentPage} total={filtered.length} limit={limit} onLimitChange={(l: any) => { setLimit(l); setCurrentPage(1); }} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
@@ -290,7 +305,7 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const LIMIT = 30;
+  const [limit, setLimit] = useState(30);
 
   const load = useCallback(async (p = 1, q = query) => {
     setLoading(true);
@@ -398,7 +413,7 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
           </tbody>
         </table>
       </div>
-      <Pagination page={page} total={total} limit={LIMIT} onChange={(p: number) => load(p)} loading={loading} />
+      <Pagination page={page} total={total} limit={limit} onLimitChange={(l: any) => { setLimit(l); setPage(1); }} onChange={(p: number) => load(p)} loading={loading} />
     </div>
   );
 };
@@ -425,7 +440,7 @@ const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLog
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const LIMIT = 20;
+  const [limit, setLimit] = useState(20);
 
   const load = useCallback(async (p = 1) => {
     setLoading(true);
@@ -485,7 +500,7 @@ const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLog
           </tbody>
         </table>
       </div>
-      <Pagination page={page} total={total} limit={LIMIT} onChange={(p: number) => load(p)} loading={loading} />
+      <Pagination page={page} total={total} limit={limit} onLimitChange={(l: any) => { setLimit(l); setPage(1); }} onChange={(p: number) => load(p)} loading={loading} />
     </div>
   );
 };
@@ -578,7 +593,7 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const LIMIT = 15;
+  const [limit, setLimit] = useState(15);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -596,7 +611,7 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
     if (res && res.success) load();
   };
 
-  const paginated = data.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
+  const paginated = data.slice((currentPage - 1) * limit, currentPage * limit);
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><MessageSquare size={18} className="text-gray-500" /> Feedback Pengguna</div>
@@ -624,7 +639,7 @@ const FeedbackView = ({ token, onLogout }: { token: string, onLogout: () => void
       </>
       )}
     
-      <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
+      <Pagination page={currentPage} total={data.length} limit={limit} onLimitChange={(l: any) => { setLimit(l); setCurrentPage(1); }} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
@@ -648,7 +663,7 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const LIMIT = 15;
+  const [limit, setLimit] = useState(15);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -670,7 +685,7 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
     if (res && res.success) load();
   };
 
-  const paginated = data.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
+  const paginated = data.slice((currentPage - 1) * limit, currentPage * limit);
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><BookPlus size={18} className="text-gray-500" /> Request Kitab</div>
@@ -705,7 +720,7 @@ const RequestsView = ({ token, onLogout }: { token: string, onLogout: () => void
       </>
       )}
     
-      <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
+      <Pagination page={currentPage} total={data.length} limit={limit} onLimitChange={(l: any) => { setLimit(l); setCurrentPage(1); }} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
@@ -729,7 +744,7 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const LIMIT = 15;
+  const [limit, setLimit] = useState(15);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -751,7 +766,7 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
     if (res && res.success) load();
   };
 
-  const paginated = data.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
+  const paginated = data.slice((currentPage - 1) * limit, currentPage * limit);
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold flex items-center gap-2"><Upload size={18} className="text-gray-500" /> Submit Kitab (File)</div>
@@ -793,7 +808,7 @@ const SubmissionsView = ({ token, onLogout }: { token: string, onLogout: () => v
       </>
       )}
     
-      <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
+      <Pagination page={currentPage} total={data.length} limit={limit} onLimitChange={(l: any) => { setLimit(l); setCurrentPage(1); }} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
@@ -818,7 +833,7 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const LIMIT = 20;
+  const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -832,7 +847,7 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
     load();
   }, [token, type]);
 
-  const paginated = data.slice((currentPage - 1) * LIMIT, currentPage * LIMIT);
+  const paginated = data.slice((currentPage - 1) * limit, currentPage * limit);
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold text-gray-800">{title}</div>
@@ -893,7 +908,7 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
         </table>
       </div>
     
-      <Pagination page={currentPage} total={data.length} limit={LIMIT} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
+      <Pagination page={currentPage} total={data.length} limit={limit} onLimitChange={(l: any) => { setLimit(l); setCurrentPage(1); }} onChange={(p: number) => setCurrentPage(p)} loading={loading} />
     </div>
   );
 };
