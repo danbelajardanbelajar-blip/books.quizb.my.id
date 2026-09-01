@@ -142,6 +142,22 @@ try {
           );
 
           
+          -- Migrate logs to add ip and user_agent if not exists
+          ALTER TABLE search_logs ADD COLUMN ip TEXT;
+          ALTER TABLE search_logs ADD COLUMN user_agent TEXT;
+        } catch(e) {}
+        try { ALTER TABLE download_logs ADD COLUMN ip TEXT; } catch(e) {}
+        try { ALTER TABLE download_logs ADD COLUMN user_agent TEXT; } catch(e) {}
+        try { ALTER TABLE visit_logs ADD COLUMN ip TEXT; } catch(e) {}
+        try { ALTER TABLE visit_logs ADD COLUMN user_agent TEXT; } catch(e) {}
+        try { ALTER TABLE quran_logs ADD COLUMN ip TEXT; } catch(e) {}
+        try { ALTER TABLE quran_logs ADD COLUMN user_agent TEXT; } catch(e) {}
+        try { ALTER TABLE rowa_logs ADD COLUMN ip TEXT; } catch(e) {}
+        try { ALTER TABLE rowa_logs ADD COLUMN user_agent TEXT; } catch(e) {}
+        try { ALTER TABLE ask_logs ADD COLUMN ip TEXT; } catch(e) {}
+        try { ALTER TABLE ask_logs ADD COLUMN user_agent TEXT; } catch(e) {}
+        
+        try {
           CREATE TABLE IF NOT EXISTS admin_tokens (
             token TEXT PRIMARY KEY,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -404,7 +420,7 @@ app.post('/api/log/download', (req, res) => {
     if (!db) return res.status(500).json({ error: 'Database not loaded' });
     try {
         const { book_id, book_title } = req.body;
-        db.prepare("INSERT INTO download_logs (book_id, book_title) VALUES (?, ?)").run(book_id || null, book_title || 'Unknown');
+        db.prepare("INSERT INTO download_logs (book_id, book_title, ip, user_agent) VALUES (?, ?, ?, ?)").run(book_id || null, book_title || 'Unknown', req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']);
         res.json({ success: true });
     } catch(err) {
         res.status(500).json({ error: err.message });
@@ -416,7 +432,7 @@ app.post('/api/log/visit', (req, res) => {
     try {
         const { path } = req.body;
         if (path) {
-            db.prepare("INSERT INTO visit_logs (path) VALUES (?)").run(path);
+            db.prepare("INSERT INTO visit_logs (path, ip, user_agent) VALUES (?, ?, ?)").run(path, req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']);
         }
         res.json({ success: true });
     } catch(err) {
@@ -758,7 +774,7 @@ app.get('/api/search', (req, res) => {
 
     // Log pencarian (hanya ke main database)
     if (page === 1 && query && query.length >= 3) {
-        try { db.prepare("INSERT INTO main.search_logs (query) VALUES (?)").run(query); } catch(e) {}
+        try { db.prepare("INSERT INTO main.search_logs (query, ip, user_agent) VALUES (?, ?, ?)").run(query, req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']); } catch(e) {}
     }
 
     let cat_ids = [];
@@ -977,7 +993,7 @@ app.get('/api/download/:id', async (req, res) => {
         const bookStmt = db.prepare(`SELECT bk as title FROM books_meta WHERE bkid = ?`);
         const book = bookStmt.get(bookId);
         if (book) {
-            db.prepare("INSERT INTO download_logs (book_id, book_title) VALUES (?, ?)").run(bookId, book.title);
+            db.prepare("INSERT INTO download_logs (book_id, book_title, ip, user_agent) VALUES (?, ?, ?, ?)").run(bookId, book.title, req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']);
         }
     } catch(e) {}
     if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
@@ -1217,7 +1233,7 @@ app.get('/api/quran/surahs', (req, res) => {
 
 app.get('/api/quran/surah/:id', (req, res) => {
     try {
-        db.prepare("INSERT INTO quran_logs (surah_id) VALUES (?)").run(parseInt(req.params.id));
+        db.prepare("INSERT INTO quran_logs (surah_id, ip, user_agent) VALUES (?, ?, ?)").run(parseInt(req.params.id), req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']);
     } catch(e) {}
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
   try {
@@ -1259,7 +1275,7 @@ app.get('/api/rowa/:id', (req, res) => {
         const rowaStmt = db.prepare(`SELECT name FROM rowa WHERE id = ?`);
         const rowa = rowaStmt.get(rowaId);
         if (rowa) {
-            db.prepare("INSERT INTO rowa_logs (rowa_id, rowa_name) VALUES (?, ?)").run(rowaId, rowa.name);
+            db.prepare("INSERT INTO rowa_logs (rowa_id, rowa_name, ip, user_agent) VALUES (?, ?, ?, ?)").run(rowaId, rowa.name, req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']);
         }
     } catch(e) {}
   if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
@@ -1584,7 +1600,7 @@ app.post('/api/ask', express.json(), async (req, res) => {
       
       // Simpan ke db
       try {
-          db.prepare("INSERT INTO ask_logs (question, response) VALUES (?, ?)").run(question, aiResponse);
+          db.prepare("INSERT INTO ask_logs (question, response, ip, user_agent) VALUES (?, ?, ?, ?)").run(question, aiResponse, req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']);
       } catch(e) {}
 
       // Jika cache terlalu besar, hapus entry pertama (FIFO)

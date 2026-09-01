@@ -374,9 +374,9 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={3} className="p-8 text-center text-gray-400">Memuat...</td></tr>
+              <tr><td colSpan={6} className="p-8 text-center text-gray-400">Memuat...</td></tr>
             ) : books.length === 0 ? (
-              <tr><td colSpan={3} className="p-8 text-center text-gray-400">Tidak ada kitab</td></tr>
+              <tr><td colSpan={5} className="p-8 text-center text-gray-400">Tidak ada kitab</td></tr>
             ) : books.map(book => (
               <tr key={book.bkid} className="hover:bg-gray-50/50">
                 <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.bkid === book.bkid)} onChange={(e) => toggleOne(e, book)} onClick={(e) => e.stopPropagation()} /></td>
@@ -861,11 +861,13 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
               <th className="p-3 w-16">ID</th>
               <th className="p-3 w-48">Waktu</th>
               <th className="p-3">Data</th>
+              <th className="p-3 w-32">IP Address</th>
+              <th className="p-3 w-48 hidden md:table-cell">Perangkat / Browser</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {loading ? <tr><td colSpan={3} className="p-8 text-center text-gray-400">Memuat...</td></tr> : 
-              data.length === 0 ? <tr><td colSpan={3} className="p-8 text-center text-gray-400">Belum ada log</td></tr> :
+            {loading ? <tr><td colSpan={6} className="p-8 text-center text-gray-400">Memuat...</td></tr> : 
+              data.length === 0 ? <tr><td colSpan={6} className="p-8 text-center text-gray-400">Belum ada log</td></tr> :
               paginated.map(d => (
                 <tr key={d.id} className="hover:bg-gray-50">
                 <td className="p-3 text-center"><input type="checkbox" checked={!!selected.find(s => s.id === d.id)} onChange={(e) => toggleOne(e, d)} onClick={(e) => e.stopPropagation()} /></td>
@@ -900,6 +902,10 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
                     {type === 'visit' && <span>Path: {d.path}</span>}
                     {type === 'quran' && <span>Surah ID: {d.surah_id}</span>}
                     {type === 'rowa' && <span>{d.rowa_name} (ID: {d.rowa_id})</span>}
+                  </td>
+                  <td className="p-3 text-xs text-gray-500">{d.ip || '-'}</td>
+                  <td className="p-3 text-xs text-gray-500 max-w-[200px] truncate hidden md:table-cell" title={d.user_agent || ''}>
+                    {d.user_agent || '-'}
                   </td>
                 </tr>
               ))
