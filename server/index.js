@@ -781,6 +781,7 @@ app.get('/api/search', (req, res) => {
     if (req.query.cat_id) {
       cat_ids = req.query.cat_id.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
     }
+    const targetBookId = req.query.book_id ? parseInt(req.query.book_id) : null;
 
     let exactPhrase = '';
     let andMatch = '';
@@ -825,6 +826,9 @@ app.get('/api/search', (req, res) => {
         if (cat_ids.length > 0) {
           const placeholders = cat_ids.map(() => '?').join(',');
           sql += ` AND b.cat IN (${placeholders})`;
+        }
+        if (targetBookId) {
+          sql += ` AND p.book_id = ${targetBookId}`;
         }
         if (!isCount) {
           sql += ` LIMIT ? OFFSET ?`;
@@ -1668,6 +1672,7 @@ app.get('/api/search_titles', (req, res) => {
     if (req.query.cat_id) {
       cat_ids = req.query.cat_id.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
     }
+    const targetBookId = req.query.book_id ? parseInt(req.query.book_id) : null;
 
     if (!query) {
        return res.json({ data: [], total: 0, page, limit });

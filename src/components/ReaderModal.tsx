@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { webAPI } from '../api';
-import { ChevronLeft, ChevronRight, X, BookOpen, Heart, Bookmark, Download , ChevronsLeft, ChevronsRight, SkipBack, SkipForward} from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, BookOpen, Heart, Bookmark, Download , ChevronsLeft, ChevronsRight, SkipBack, SkipForward, Menu, Search, List} from 'lucide-react';
 
 export interface ReaderModalProps {
   bookId: number;
@@ -66,6 +66,40 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
   const [showUi, setShowUi] = useState(false);
   const [slideDir, setSlideDir] = useState<'left'|'right'|''>('');
   const [pageKey, setPageKey] = useState(0);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<'toc'|'search'>('toc');
+  const [toc, setToc] = useState<any[]>([]);
+  const [tocLoaded, setTocLoaded] = useState(false);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [localHighlight, setLocalHighlight] = useState(highlightQuery);
+
+  const loadToc = async () => {
+    if (tocLoaded) return;
+    try {
+      const res = await fetch(`/api/toc/${bookId}`).then(r => r.json());
+      if (res.data) {
+        setToc(res.data);
+        setTocLoaded(true);
+      }
+    } catch(e) {}
+  };
+
+  const handleBookSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&book_id=${bookId}`).then(r => r.json());
+      if (res.results) {
+        setSearchResults(res.results);
+      }
+    } catch(e) {}
+    setSearchLoading(false);
+  };
+
 
   // Split screen states
   const [relatedPage, setRelatedPage] = useState<any>(null);
@@ -324,6 +358,13 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
             <a href={`/api/download/${bookId}`} target="_blank" className="p-1 md:p-2 rounded-full hover:bg-green-50 text-gray-500 hover:text-green-600 transition-colors" title="Download Word" onClick={e => e.stopPropagation()}>
               <Download size={20} />
             </a>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowSidebar(!showSidebar); loadToc(); }} 
+              className="p-1 md:p-2 rounded-full hover:bg-blue-50 text-gray-500 transition-colors" 
+              title="Daftar Isi & Pencarian"
+            >
+              <Menu size={20} />
+            </button>
           </div>
         </div>
         
@@ -334,6 +375,66 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
         </div>
       </div>
 
+      {/* Sidebar for TOC and Search */}
+      <div className={`absolute right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-40 transform transition-transform duration-300 flex flex-col ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex bg-gray-100 p-2 gap-2 mt-16 md:mt-20">
+          <button onClick={() => setSidebarTab('toc')} className={`flex-1 py-2 text-sm font-bold rounded-lg flex items-center justify-center gap-2 ${sidebarTab === 'toc' ? 'bg-white shadow text-[#8d6e63]' : 'text-gray-500 hover:bg-gray-200'}`}><List size={16}/> Daftar Isi</button>
+          <button onClick={() => setSidebarTab('search')} className={`flex-1 py-2 text-sm font-bold rounded-lg flex items-center justify-center gap-2 ${sidebarTab === 'search' ? 'bg-white shadow text-[#8d6e63]' : 'text-gray-500 hover:bg-gray-200'}`}><Search size={16}/> Cari</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col">
+          {sidebarTab === 'toc' ? (
+            <div className="flex flex-col gap-1">
+              {!tocLoaded ? <div className="text-center text-gray-400 p-4">Memuat daftar isi...</div> :
+               toc.length === 0 ? <div className="text-center text-gray-400 p-4">Tidak ada daftar isi untuk kitab ini.</div> :
+               toc.map(item => (
+                 <button 
+                   key={item.id} 
+                   onClick={() => { setCurrentPageId(item.id); setShowSidebar(false); }}
+                   className={`text-right p-2 hover:bg-[#8d6e63]/10 rounded text-sm font-medium ${item.lvl === 1 ? 'font-bold text-[#5d4037]' : item.lvl === 2 ? 'pr-4 text-[#8d6e63]' : 'pr-8 text-gray-600'}`}
+                   dir="auto"
+                   style={{ fontFamily: 'var(--arabic-font)' }}
+                 >
+                   {item.tit}
+                 </button>
+               ))
+              }
+            </div>
+          ) : (
+            <div className="flex flex-col h-full">
+              <form onSubmit={handleBookSearch} className="flex mb-4">
+                <input 
+                  type="text" 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  placeholder="Cari dalam kitab ini..." 
+                  className="flex-1 border border-gray-300 rounded-l-lg px-3 py-2 text-sm outline-none focus:border-[#8d6e63]"
+                  dir="auto"
+                />
+                <button type="submit" disabled={searchLoading} className="bg-[#8d6e63] text-white px-3 rounded-r-lg disabled:opacity-50"><Search size={18}/></button>
+              </form>
+              <div className="flex-1 overflow-y-auto flex flex-col gap-3">
+                {searchLoading ? <div className="text-center text-gray-400">Mencari...</div> :
+                 searchResults.length === 0 ? (searchQuery ? <div className="text-center text-gray-400">Belum ada hasil pencarian.</div> : null) :
+                 searchResults.map((res, i) => (
+                   <div 
+                     key={i} 
+                     onClick={() => { setLocalHighlight(searchQuery); setCurrentPageId(res.page_id); setShowSidebar(false); }}
+                     className="bg-gray-50 p-3 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100"
+                   >
+                     <div className="text-xs text-gray-500 mb-1 flex justify-between">
+                        <span>Juz {res.part}</span>
+                        <span>Hal {res.page}</span>
+                     </div>
+                     <div className="text-right text-sm text-gray-800 leading-relaxed" dir="rtl" dangerouslySetInnerHTML={{__html: res.snippet}} style={{fontFamily: 'var(--arabic-font)'}}></div>
+                   </div>
+                 ))
+                }
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      
       {/* Content Area - Like physical pages on a desk */}
       <div 
         className={`flex-1 flex ${showSplit ? 'flex-col lg:flex-row' : 'flex-col'} overflow-hidden relative cursor-pointer lg:cursor-auto`}
@@ -364,7 +465,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                         dir="auto" 
                         className="whitespace-pre-wrap text-justify" 
                         style={{ minHeight: line.trim() === '' ? '1.5em' : 'auto', wordBreak: 'break-word' }}
-                        dangerouslySetInnerHTML={{ __html: highlightText(line, highlightQuery) }} 
+                        dangerouslySetInnerHTML={{ __html: highlightText(line, localHighlight) }} 
                       />
                     ))}
                   </div>
@@ -397,7 +498,7 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
                           dir="auto" 
                           className="whitespace-pre-wrap text-justify" 
                           style={{ minHeight: line.trim() === '' ? '1.5em' : 'auto', wordBreak: 'break-word' }}
-                          dangerouslySetInnerHTML={{ __html: highlightText(line, highlightQuery) }} 
+                          dangerouslySetInnerHTML={{ __html: highlightText(line, localHighlight) }} 
                         />
                       ))}
                     </div>
