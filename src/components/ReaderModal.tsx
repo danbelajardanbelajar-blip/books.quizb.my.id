@@ -375,8 +375,16 @@ const ReaderModal: React.FC<ReaderModalProps> = ({ bookId, initialPageId, highli
         </div>
       </div>
 
+      {/* Sidebar Overlay */}
+      {showSidebar && (
+        <div 
+          className="absolute inset-0 bg-black/20 z-[35] transition-opacity" 
+          onClick={(e) => { e.stopPropagation(); setShowSidebar(false); }}
+        />
+      )}
+
       {/* Sidebar for TOC and Search */}
-      <div className={`absolute right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-40 transform transition-transform duration-300 flex flex-col ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl z-[40] transform transition-transform duration-300 flex flex-col ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex bg-gray-100 p-2 gap-2 mt-16 md:mt-20">
           <button onClick={() => setSidebarTab('toc')} className={`flex-1 py-2 text-sm font-bold rounded-lg flex items-center justify-center gap-2 ${sidebarTab === 'toc' ? 'bg-white shadow text-[#8d6e63]' : 'text-gray-500 hover:bg-gray-200'}`}><List size={16}/> Daftar Isi</button>
           <button onClick={() => setSidebarTab('search')} className={`flex-1 py-2 text-sm font-bold rounded-lg flex items-center justify-center gap-2 ${sidebarTab === 'search' ? 'bg-white shadow text-[#8d6e63]' : 'text-gray-500 hover:bg-gray-200'}`}><Search size={16}/> Cari</button>
