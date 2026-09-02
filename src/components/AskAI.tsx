@@ -8,6 +8,65 @@ interface Message {
   references?: Array<{bkid: number, title: string, juz: number | string, page: number | string}>;
 }
 
+// ── Lightweight Markdown renderer (no external lib needed) ──────────────────
+function renderMarkdown(text: string): string {
+  if (!text) return '';
+
+  // Escape HTML first to prevent XSS
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Process block elements line by line
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inOrderedList = false;
+  let inUnorderedList = false;
+
+  const closeListsIfOpen = () => {
+    if (inOrderedList)   { result.push('</ol>');  inOrderedList = false; }
+    if (inUnorderedList) { result.push('</ul>');  inUnorderedList = false; }
+  };
+
+  for (let line of lines) {
+    // Numbered list: lines starting with "1.", "2.", etc.
+    const olMatch = line.match(/^(\d+)\.\s+(.+)/);
+    // Bullet list: lines starting with -, *, or •
+    const ulMatch = line.match(/^[-*•]\s+(.+)/);
+
+    if (olMatch) {
+      if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+      if (!inOrderedList)  { result.push('<ol class="list-decimal list-inside space-y-1 my-2 pl-1">'); inOrderedList = true; }
+      result.push(`<li>${inlineMarkdown(olMatch[2])}</li>`);
+    } else if (ulMatch) {
+      if (inOrderedList)   { result.push('</ol>'); inOrderedList = false; }
+      if (!inUnorderedList){ result.push('<ul class="list-disc list-inside space-y-1 my-2 pl-1">'); inUnorderedList = true; }
+      result.push(`<li>${inlineMarkdown(ulMatch[1])}</li>`);
+    } else {
+      closeListsIfOpen();
+      if (line.trim() === '') {
+        result.push('<br/>');
+      } else {
+        result.push(`<p class="mb-1">${inlineMarkdown(line)}</p>`);
+      }
+    }
+  }
+  closeListsIfOpen();
+
+  return result.join('\n');
+}
+
+// Process inline elements: **bold**, *italic*, `code`
+function inlineMarkdown(text: string): string {
+  return text
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code class="bg-gray-100 text-gray-700 px-1 rounded text-sm font-mono">$1</code>');
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 export default function AskAI({ openBook }: { openBook: (id: number) => void }) {
   const [messages, setMessages] = useState<Message[]>([
     { role: "ai", content: "Assalamu'alaikum. Saya Maktabah Bot, asisten AI Anda. Tanyakan apa saja seputar ilmu agama, dan saya akan mencarikannya di dalam ribuan kitab database ini." }
@@ -72,9 +131,12 @@ export default function AskAI({ openBook }: { openBook: (id: number) => void }) 
             </div>
             
             <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${m.role === 'user' ? 'bg-[var(--app-primary)] text-white rounded-tr-none' : m.role === 'error' ? 'bg-red-50 border border-red-100 text-red-700 rounded-tl-none' : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'}`}>
-              <div className="whitespace-pre-wrap leading-relaxed text-[15px]" dir="auto" style={m.role !== 'user' ? { fontFamily: 'var(--arabic-font)' } : {}}>
-                {m.content}
-              </div>
+              <div
+                className="leading-relaxed text-[15px] prose prose-sm max-w-none"
+                dir="auto"
+                style={m.role !== 'user' ? { fontFamily: 'var(--arabic-font)' } : {}}
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
+              />
               
               {m.references && m.references.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
