@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Search, User, BookOpen, Users, GraduationCap, ChevronLeft, ChevronRight, X, AlertCircle, Info } from 'lucide-react';
+import { Search, User, BookOpen, Users, GraduationCap, ChevronLeft, ChevronRight, X, AlertCircle, Info, ExternalLink } from 'lucide-react';
 import { webAPI } from '../api';
 
 // ============================================================
@@ -8,6 +8,9 @@ import { webAPI } from '../api';
 interface RowaResult {
   id: number;
   Name: string;
+  A_esm?: string;
+  A_kona?: string;
+  kutub?: string;
   ROTBA?: string;
   R_ZAHBI?: string;
   birth?: string | number;
@@ -15,9 +18,7 @@ interface RowaResult {
 }
 
 interface RowaDetail extends RowaResult {
-  A_esm?: string;
   A_nasab?: string;
-  A_kona?: string;
   sheok?: string;
   telmez?: string;
   [key: string]: any;
@@ -33,7 +34,7 @@ interface SearchResponse {
 }
 
 // ============================================================
-// HELPER FUNCTIONS
+// HELPERS
 // ============================================================
 const parseList = (text: string | undefined): string[] => {
   if (!text || text.trim() === '' || text.trim() === '-') return [];
@@ -43,16 +44,42 @@ const parseList = (text: string | undefined): string[] => {
     .filter(t => t.length > 0 && t !== 'A' && t !== 'B' && t !== '-');
 };
 
+// Parse kutub (books) field — biasanya dipisah dengan # atau koma
+const parseKutub = (text: string | undefined): string[] => {
+  if (!text || text.trim() === '' || text.trim() === '-') return [];
+  const sep = text.includes('#') ? '#' : ',';
+  return text
+    .split(sep)
+    .map(t => t.trim())
+    .filter(t => t.length > 0 && t !== '-');
+};
+
 const formatYear = (y: string | number | undefined): string => {
   if (!y || y === 0 || y === '0') return '?';
   return String(y);
+};
+
+// Warna badge per nama kitab terkenal
+const KITAB_COLORS: Record<string, string> = {
+  'بخاري': 'bg-amber-100 text-amber-800 border-amber-200',
+  'مسلم': 'bg-green-100 text-green-800 border-green-200',
+  'أبو داود': 'bg-blue-100 text-blue-800 border-blue-200',
+  'ترمذي': 'bg-purple-100 text-purple-800 border-purple-200',
+  'نسائي': 'bg-pink-100 text-pink-800 border-pink-200',
+  'ابن ماجه': 'bg-orange-100 text-orange-800 border-orange-200',
+};
+
+const getKitabColor = (name: string): string => {
+  for (const [key, color] of Object.entries(KITAB_COLORS)) {
+    if (name.includes(key)) return color;
+  }
+  return 'bg-gray-100 text-gray-600 border-gray-200';
 };
 
 // ============================================================
 // SUB-COMPONENTS
 // ============================================================
 
-// Skeleton card for loading state
 const SkeletonCard = () => (
   <div className="bg-white rounded-xl border border-gray-100 p-5 animate-pulse">
     <div className="flex justify-between items-start gap-4">
@@ -66,7 +93,6 @@ const SkeletonCard = () => (
   </div>
 );
 
-// Badge component for derajat
 const DerajatBadge = ({ text, color }: { text?: string; color: string }) => {
   if (!text || text.trim() === '' || text.trim() === '-') return null;
   const colorMap: Record<string, string> = {
@@ -74,13 +100,12 @@ const DerajatBadge = ({ text, color }: { text?: string; color: string }) => {
     blue: 'bg-blue-50 text-blue-800 border-blue-200',
   };
   return (
-    <span className={`inline-block text-sm px-3 py-1 rounded-full border font-medium ${colorMap[color] || colorMap.green}`} dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+    <span className={`inline-block text-xs px-2.5 py-1 rounded-full border font-medium leading-snug ${colorMap[color] || colorMap.green}`} dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
       {text}
     </span>
   );
 };
 
-// Empty state
 const EmptyState = ({ message }: { message: string }) => (
   <div className="text-center py-16 text-gray-400">
     <Search className="mx-auto mb-4 opacity-30" size={48} />
@@ -88,7 +113,6 @@ const EmptyState = ({ message }: { message: string }) => (
   </div>
 );
 
-// Error banner
 const ErrorBanner = ({ message }: { message: string }) => (
   <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mt-4">
     <AlertCircle className="shrink-0 mt-0.5" size={18} />
@@ -97,14 +121,13 @@ const ErrorBanner = ({ message }: { message: string }) => (
       <p className="text-sm mt-1">{message}</p>
       {message.includes('tidak tersedia') && (
         <p className="text-xs mt-2 text-red-500">
-          Database perawi hanya tersedia di server produksi. Fitur ini tidak dapat diuji secara lokal.
+          Database perawi hanya tersedia di server produksi.
         </p>
       )}
     </div>
   </div>
 );
 
-// Info Banner (for db not available locally)
 const InfoBanner = () => (
   <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mt-4">
     <Info className="shrink-0 mt-0.5" size={18} />
@@ -117,9 +140,40 @@ const InfoBanner = () => (
 // ============================================================
 // PROFILE MODAL
 // ============================================================
-const ProfileModal = ({ rowa, onClose }: { rowa: RowaDetail; onClose: () => void }) => {
+const ProfileModal = ({
+  rowa,
+  onClose,
+  onSearchName,
+}: {
+  rowa: RowaDetail;
+  onClose: () => void;
+  onSearchName: (name: string) => void;
+}) => {
   const guruList = parseList(rowa.sheok);
   const muridList = parseList(rowa.telmez);
+  const kutubList = parseKutub(rowa.kutub);
+
+  const handleNameClick = (name: string) => {
+    onClose();
+    onSearchName(name);
+  };
+
+  const NameLink = ({ name }: { name: string }) => (
+    <button
+      onClick={() => handleNameClick(name)}
+      className="w-full text-right flex items-center justify-between group gap-2 py-1.5 border-b border-gray-100 last:border-0 hover:text-[var(--app-primary)] transition-colors"
+      title={`Cari "${name}"`}
+    >
+      <span
+        className="text-sm text-gray-700 group-hover:text-[var(--app-primary)] leading-snug"
+        dir="rtl"
+        style={{ fontFamily: 'var(--arabic-font)' }}
+      >
+        {name}
+      </span>
+      <ExternalLink size={12} className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity text-[var(--app-primary)]" />
+    </button>
+  );
 
   return (
     <div
@@ -132,13 +186,22 @@ const ProfileModal = ({ rowa, onClose }: { rowa: RowaDetail; onClose: () => void
       >
         {/* Header */}
         <div className="bg-[var(--app-primary)] text-white p-5 flex justify-between items-start gap-3 shrink-0">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold leading-snug" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+          <div className="min-w-0">
+            <h2
+              className="text-2xl sm:text-3xl font-bold leading-snug"
+              dir="rtl"
+              style={{ fontFamily: 'var(--arabic-font)' }}
+            >
               {rowa.Name}
             </h2>
             {rowa.A_esm && rowa.A_esm !== rowa.Name && (
-              <p className="text-sm mt-1 text-white/80" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+              <p className="text-sm mt-1 text-white/80 leading-snug" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
                 {rowa.A_esm}
+              </p>
+            )}
+            {rowa.A_kona && (
+              <p className="text-xs mt-1 text-white/70" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                كنيته: {rowa.A_kona}
               </p>
             )}
           </div>
@@ -159,17 +222,38 @@ const ProfileModal = ({ rowa, onClose }: { rowa: RowaDetail; onClose: () => void
             {[
               { label: 'Nasab', val: rowa.A_nasab },
               { label: 'Kunyah', val: rowa.A_kona },
-              { label: 'Tahun Lahir', val: formatYear(rowa.birth) },
-              { label: 'Tahun Wafat', val: formatYear(rowa.death) },
-            ].map((item) => item.val && item.val !== '?' ? (
+              { label: 'Tahun Lahir', val: formatYear(rowa.birth) !== '?' ? `${formatYear(rowa.birth)} H` : null },
+              { label: 'Tahun Wafat', val: formatYear(rowa.death) !== '?' ? `${formatYear(rowa.death)} H` : null },
+            ].filter(item => item.val).map((item) => (
               <div key={item.label} className="bg-gray-50 rounded-xl p-3">
                 <span className="block text-xs text-gray-400 font-semibold mb-1 uppercase tracking-wide">{item.label}</span>
                 <div className="text-sm font-bold text-gray-800 leading-snug" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>
                   {item.val}
                 </div>
               </div>
-            ) : null)}
+            ))}
           </div>
+
+          {/* Nama Kitab */}
+          {kutubList.length > 0 && (
+            <div>
+              <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <BookOpen size={15} className="text-[var(--app-primary)]" /> Kitab yang Meriwayatkan
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {kutubList.map((k, i) => (
+                  <span
+                    key={i}
+                    className={`text-xs px-3 py-1 rounded-full border font-medium ${getKitabColor(k)}`}
+                    dir="rtl"
+                    style={{ fontFamily: 'var(--arabic-font)' }}
+                  >
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Derajat */}
           {(rowa.ROTBA || rowa.R_ZAHBI) && (
@@ -181,16 +265,16 @@ const ProfileModal = ({ rowa, onClose }: { rowa: RowaDetail; onClose: () => void
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {rowa.ROTBA && (
                   <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-                    <span className="block text-xs text-green-600 font-bold mb-2 uppercase">Derajat (Ibnu Hajar / Taqrib)</span>
-                    <p className="text-lg text-green-900 leading-relaxed" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                    <span className="block text-xs text-green-600 font-bold mb-2 uppercase">Ibnu Hajar (Taqrib)</span>
+                    <p className="text-base text-green-900 leading-relaxed" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
                       {rowa.ROTBA}
                     </p>
                   </div>
                 )}
                 {rowa.R_ZAHBI && (
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                    <span className="block text-xs text-blue-600 font-bold mb-2 uppercase">Derajat (Adh-Dhahabi)</span>
-                    <p className="text-lg text-blue-900 leading-relaxed" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                    <span className="block text-xs text-blue-600 font-bold mb-2 uppercase">Adh-Dhahabi</span>
+                    <p className="text-base text-blue-900 leading-relaxed" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
                       {rowa.R_ZAHBI}
                     </p>
                   </div>
@@ -204,47 +288,55 @@ const ProfileModal = ({ rowa, onClose }: { rowa: RowaDetail; onClose: () => void
             {/* Guru */}
             <div>
               <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
-                <GraduationCap size={16} className="text-[var(--app-primary)]" /> Guru-guru (Syuyukh)
+                <GraduationCap size={15} className="text-[var(--app-primary)]" />
+                Guru-guru (Syuyukh)
                 {guruList.length > 0 && (
                   <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{guruList.length}</span>
                 )}
               </h4>
               <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 max-h-64 overflow-y-auto">
                 {guruList.length > 0 ? (
-                  <ul className="space-y-1.5">
+                  <div className="space-y-0">
                     {guruList.map((g, idx) => (
-                      <li key={idx} className="text-sm text-gray-700 pb-1.5 border-b border-gray-100 last:border-0 last:pb-0" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
-                        {g}
-                      </li>
+                      <NameLink key={idx} name={g} />
                     ))}
-                  </ul>
+                  </div>
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-4">Tidak ada data</p>
                 )}
               </div>
+              {guruList.length > 0 && (
+                <p className="text-xs text-gray-400 mt-1 text-center">
+                  Klik nama untuk mencari profil guru
+                </p>
+              )}
             </div>
 
             {/* Murid */}
             <div>
               <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
-                <Users size={16} className="text-[var(--app-primary)]" /> Murid-murid (Talamidz)
+                <Users size={15} className="text-[var(--app-primary)]" />
+                Murid-murid (Talamidz)
                 {muridList.length > 0 && (
                   <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{muridList.length}</span>
                 )}
               </h4>
               <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 max-h-64 overflow-y-auto">
                 {muridList.length > 0 ? (
-                  <ul className="space-y-1.5">
+                  <div className="space-y-0">
                     {muridList.map((m, idx) => (
-                      <li key={idx} className="text-sm text-gray-700 pb-1.5 border-b border-gray-100 last:border-0 last:pb-0" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
-                        {m}
-                      </li>
+                      <NameLink key={idx} name={m} />
                     ))}
-                  </ul>
+                  </div>
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-4">Tidak ada data</p>
                 )}
               </div>
+              {muridList.length > 0 && (
+                <p className="text-xs text-gray-400 mt-1 text-center">
+                  Klik nama untuk mencari profil murid
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -339,6 +431,15 @@ const RowaDictionary: React.FC = () => {
     setLoadingProfile(null);
   };
 
+  // Dipanggil saat klik nama guru/murid dari dalam modal
+  const handleSearchFromModal = (name: string) => {
+    setInputValue(name);
+    setQuery(name);
+    setPage(1);
+    doSearch(name, 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleClear = () => {
     setInputValue('');
     setQuery('');
@@ -422,46 +523,99 @@ const RowaDictionary: React.FC = () => {
       {/* Results list */}
       {!loading && results.length > 0 && (
         <div className="space-y-3">
-          {results.map((r) => (
-            <div
-              key={r.id}
-              className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 hover:border-[var(--app-primary)]/30 hover:shadow-sm transition-all"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <h3
-                    className="text-xl font-bold text-gray-900 truncate mb-1"
-                    dir="rtl"
-                    style={{ fontFamily: 'var(--arabic-font)' }}
-                  >
-                    {r.Name}
-                  </h3>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {r.ROTBA && <DerajatBadge text={r.ROTBA} color="green" />}
-                    {!r.ROTBA && r.R_ZAHBI && <DerajatBadge text={r.R_ZAHBI} color="blue" />}
-                    {!r.ROTBA && !r.R_ZAHBI && (
-                      <span className="text-xs text-gray-400 italic">Tidak ada penilaian derajat</span>
+          {results.map((r) => {
+            const kutubList = parseKutub(r.kutub);
+            // Tampilkan A_esm hanya jika berbeda dari Name
+            const showFullName = r.A_esm && r.A_esm.trim() !== '' && r.A_esm !== r.Name;
+
+            return (
+              <div
+                key={r.id}
+                className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 hover:border-[var(--app-primary)]/30 hover:shadow-sm transition-all"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    {/* Nama utama (Name field) */}
+                    <h3
+                      className="text-xl font-bold text-gray-900 mb-0.5 leading-snug"
+                      dir="rtl"
+                      style={{ fontFamily: 'var(--arabic-font)' }}
+                    >
+                      {r.Name}
+                    </h3>
+
+                    {/* Nama lengkap (A_esm) jika berbeda */}
+                    {showFullName && (
+                      <p
+                        className="text-sm text-gray-500 mb-1 leading-snug"
+                        dir="rtl"
+                        style={{ fontFamily: 'var(--arabic-font)' }}
+                      >
+                        {r.A_esm}
+                      </p>
                     )}
+
+                    {/* Kunyah */}
+                    {r.A_kona && (
+                      <p className="text-xs text-gray-400 mb-2" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                        {r.A_kona}
+                      </p>
+                    )}
+
+                    {/* Derajat badges */}
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {r.ROTBA && <DerajatBadge text={r.ROTBA} color="green" />}
+                      {r.R_ZAHBI && !r.ROTBA && <DerajatBadge text={r.R_ZAHBI} color="blue" />}
+                      {!r.ROTBA && !r.R_ZAHBI && (
+                        <span className="text-xs text-gray-300 italic">–</span>
+                      )}
+                    </div>
+
+                    {/* Nama Kitab */}
+                    {kutubList.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {kutubList.slice(0, 6).map((k, i) => (
+                          <span
+                            key={i}
+                            className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${getKitabColor(k)}`}
+                            dir="rtl"
+                            style={{ fontFamily: 'var(--arabic-font)' }}
+                          >
+                            {k}
+                          </span>
+                        ))}
+                        {kutubList.length > 6 && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+                            +{kutubList.length - 6}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tahun Lahir/Wafat */}
+                    <p className="text-xs text-gray-400">
+                      Lahir: <strong>{formatYear(r.birth)}</strong> H &nbsp;|&nbsp;
+                      Wafat: <strong>{formatYear(r.death)}</strong> H
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-400">
-                    Lahir: <strong>{formatYear(r.birth)}</strong> H &nbsp;|&nbsp; Wafat: <strong>{formatYear(r.death)}</strong> H
-                  </p>
+
+                  {/* Tombol Lihat Profil */}
+                  <button
+                    onClick={() => openProfile(r.id)}
+                    disabled={loadingProfile === r.id}
+                    className="shrink-0 bg-[var(--app-primary)] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2 w-full sm:w-auto justify-center"
+                  >
+                    {loadingProfile === r.id ? (
+                      <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <User size={15} />
+                    )}
+                    {loadingProfile === r.id ? 'Memuat...' : 'Lihat Profil'}
+                  </button>
                 </div>
-                <button
-                  onClick={() => openProfile(r.id)}
-                  disabled={loadingProfile === r.id}
-                  className="shrink-0 bg-[var(--app-primary)] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2 w-full sm:w-auto justify-center"
-                >
-                  {loadingProfile === r.id ? (
-                    <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                  ) : (
-                    <User size={15} />
-                  )}
-                  {loadingProfile === r.id ? 'Memuat...' : 'Lihat Profil'}
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -522,7 +676,11 @@ const RowaDictionary: React.FC = () => {
 
       {/* Profile Modal */}
       {selectedRowa && (
-        <ProfileModal rowa={selectedRowa} onClose={() => setSelectedRowa(null)} />
+        <ProfileModal
+          rowa={selectedRowa}
+          onClose={() => setSelectedRowa(null)}
+          onSearchName={handleSearchFromModal}
+        />
       )}
     </div>
   );

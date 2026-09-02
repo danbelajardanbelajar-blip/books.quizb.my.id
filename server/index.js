@@ -1285,7 +1285,6 @@ app.get('/api/quran/surah/:id', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 app.get('/api/rowa/search', (req, res) => {
   if (!db) return res.status(500).json({ data: [], total: 0, error: 'Database not loaded' });
   try {
@@ -1304,41 +1303,48 @@ app.get('/api/rowa/search', (req, res) => {
       return res.status(503).json({ data: [], total: 0, error: 'Tabel data perawi tidak tersedia di database ini.' });
     }
 
+    // Cek kolom apa saja yang tersedia
+    const cols = db.prepare("PRAGMA table_info(rowa)").all().map(c => c.name);
+    const hasKutub = cols.includes('kutub') || cols.includes('Kutub') || cols.includes('books');
+    const kutubCol = cols.includes('kutub') ? 'kutub' : cols.includes('Kutub') ? 'Kutub' : cols.includes('books') ? 'books' : null;
+    const kutubSel = kutubCol ? `, r.${kutubCol} as kutub` : '';
+
     const stripped = stripHarakat(queryStr);
     let data = [];
     let total = 0;
+    let usedFts = false;
 
     // Coba FTS dulu, fallback ke LIKE jika FTS tidak tersedia
     const ftsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rowa_fts'").get();
 
     if (ftsExists) {
       try {
-        const sanitized = stripped.replace(/['"*?]/g, ' ').trim();
+        const sanitized = stripped.replace(/['\"*?]/g, ' ').trim();
         const ftsQuery = sanitized.split(/\s+/).filter(Boolean).map(w => `"${w}"*`).join(' ');
         const countRow = db.prepare(`
           SELECT COUNT(*) as c FROM rowa_fts f JOIN rowa r ON f.rowid = r.id WHERE rowa_fts MATCH ?
         `).get(ftsQuery);
         total = countRow ? countRow.c : 0;
         data = db.prepare(`
-          SELECT r.id, r.Name, r.ROTBA, r.R_ZAHBI, r.birth, r.death
+          SELECT r.id, r.Name, r.A_esm, r.A_kona, r.ROTBA, r.R_ZAHBI, r.birth, r.death${kutubSel}
           FROM rowa_fts f
           JOIN rowa r ON f.rowid = r.id
           WHERE rowa_fts MATCH ?
           LIMIT ? OFFSET ?
         `).all(ftsQuery, limit, offset);
+        usedFts = true;
       } catch(ftsErr) {
         // FTS gagal, fallback ke LIKE
-        ftsExists = null;
       }
     }
 
-    if (!ftsExists) {
+    if (!usedFts) {
       // LIKE search (lebih lambat tapi selalu berfungsi)
       const likeQ = `%${stripped}%`;
       const countRow = db.prepare(`SELECT COUNT(*) as c FROM rowa WHERE Name LIKE ? OR A_esm LIKE ?`).get(likeQ, likeQ);
       total = countRow ? countRow.c : 0;
       data = db.prepare(`
-        SELECT id, Name, ROTBA, R_ZAHBI, birth, death
+        SELECT id, Name, A_esm, A_kona, ROTBA, R_ZAHBI, birth, death${kutubSel ? kutubSel.replace('r.', '') : ''}
         FROM rowa
         WHERE Name LIKE ? OR A_esm LIKE ?
         ORDER BY id ASC
