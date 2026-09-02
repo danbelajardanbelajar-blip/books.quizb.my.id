@@ -213,12 +213,6 @@ export const webAPI = {
   getQuranAyahs: async (surahId: number) => {
     return fetchAPI(`/quran/surah/${surahId}`);
   },
-  searchRowa: async (query: string) => {
-    return fetchAPI(`/rowa/search?q=${encodeURIComponent(query)}`);
-  },
-  getRowaInfo: async (rowaId: number) => {
-    return fetchAPI(`/rowa/${rowaId}`);
-  },
   getCategories: async () => {
     return fetchAPI(`/categories`);
   },
@@ -272,6 +266,23 @@ export const webAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path })
     });
+    if (!res.ok) throw new Error(`${res.status}`);
+    return res.json();
+  },
+
+  // ===== KAMUS PERAWI =====
+  searchRowa: async (q: string, page = 1, limit = 20) => {
+    const res = await fetch(`${API_BASE}/rowa/search?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`);
+    if (!res.ok) {
+      let errText = `${res.status}`;
+      try { const o = await res.clone().json(); errText = o.error || errText; } catch(e) {}
+      throw new Error(errText);
+    }
+    return res.json();
+  },
+
+  getRowaInfo: async (id: number) => {
+    const res = await fetch(`${API_BASE}/rowa/${id}`);
     if (!res.ok) throw new Error(`${res.status}`);
     return res.json();
   },

@@ -1287,45 +1287,97 @@ app.get('/api/quran/surah/:id', (req, res) => {
 });
 
 app.get('/api/rowa/search', (req, res) => {
-  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
+  if (!db) return res.status(500).json({ data: [], total: 0, error: 'Database not loaded' });
   try {
-    const queryStr = stripHarakat(req.query.q || '');
-    if (!queryStr || typeof queryStr !== 'string' || queryStr.trim() === '') {
-      return res.status(400).json({ data: [], error: 'Query is empty' });
-    }
-    const sanitizedQuery = queryStr.replace(/"/g, '""');
-    const ftsQuery = `"${sanitizedQuery}"`;
+    const queryStr = (req.query.q || '').toString().trim();
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
 
-    const data = db.prepare(`
-      SELECT 
-        r.id, r.Name, r.ROTBA, r.R_ZAHBI, r.birth, r.death
-      FROM rowa_fts f
-      JOIN rowa r ON f.rowid = r.id
-      WHERE rowa_fts MATCH ?
-      LIMIT 100
-    `).all(ftsQuery);
-    res.json({ data, error: null });
+    if (!queryStr) {
+      return res.json({ data: [], total: 0, page, limit, error: null });
+    }
+
+    // Cek apakah tabel rowa ada
+    const rowaExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rowa'").get();
+    if (!rowaExists) {
+      return res.status(503).json({ data: [], total: 0, error: 'Tabel data perawi tidak tersedia di database ini.' });
+    }
+
+    const stripped = stripHarakat(queryStr);
+    let data = [];
+    let total = 0;
+
+    // Coba FTS dulu, fallback ke LIKE jika FTS tidak tersedia
+    const ftsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rowa_fts'").get();
+
+    if (ftsExists) {
+      try {
+        const sanitized = stripped.replace(/['"*?]/g, ' ').trim();
+        const ftsQuery = sanitized.split(/\s+/).filter(Boolean).map(w => `"${w}"*`).join(' ');
+        const countRow = db.prepare(`
+          SELECT COUNT(*) as c FROM rowa_fts f JOIN rowa r ON f.rowid = r.id WHERE rowa_fts MATCH ?
+        `).get(ftsQuery);
+        total = countRow ? countRow.c : 0;
+        data = db.prepare(`
+          SELECT r.id, r.Name, r.ROTBA, r.R_ZAHBI, r.birth, r.death
+          FROM rowa_fts f
+          JOIN rowa r ON f.rowid = r.id
+          WHERE rowa_fts MATCH ?
+          LIMIT ? OFFSET ?
+        `).all(ftsQuery, limit, offset);
+      } catch(ftsErr) {
+        // FTS gagal, fallback ke LIKE
+        ftsExists = null;
+      }
+    }
+
+    if (!ftsExists) {
+      // LIKE search (lebih lambat tapi selalu berfungsi)
+      const likeQ = `%${stripped}%`;
+      const countRow = db.prepare(`SELECT COUNT(*) as c FROM rowa WHERE Name LIKE ? OR A_esm LIKE ?`).get(likeQ, likeQ);
+      total = countRow ? countRow.c : 0;
+      data = db.prepare(`
+        SELECT id, Name, ROTBA, R_ZAHBI, birth, death
+        FROM rowa
+        WHERE Name LIKE ? OR A_esm LIKE ?
+        ORDER BY id ASC
+        LIMIT ? OFFSET ?
+      `).all(likeQ, likeQ, limit, offset);
+    }
+
+    res.json({ data, total, page, limit, totalPages: Math.ceil(total / limit), error: null });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('/api/rowa/search error:', error.message);
+    res.status(500).json({ data: [], total: 0, error: error.message });
   }
 });
 
 app.get('/api/rowa/:id', (req, res) => {
-    try {
-        const rowaId = parseInt(req.params.id);
-        const rowaStmt = db.prepare(`SELECT name FROM rowa WHERE id = ?`);
-        const rowa = rowaStmt.get(rowaId);
-        if (rowa) {
-            db.prepare("INSERT INTO rowa_logs (rowa_id, rowa_name, ip, user_agent) VALUES (?, ?, ?, ?)").run(rowaId, rowa.name, req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']);
-        }
-    } catch(e) {}
-  if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
+  if (!db) return res.status(500).json({ data: null, error: 'Database not loaded' });
   try {
     const rowaId = parseInt(req.params.id);
+    if (isNaN(rowaId)) return res.status(400).json({ data: null, error: 'ID tidak valid' });
+
+    // Cek tabel rowa
+    const rowaExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rowa'").get();
+    if (!rowaExists) return res.status(503).json({ data: null, error: 'Tabel data perawi tidak tersedia' });
+
     const data = db.prepare(`SELECT * FROM rowa WHERE id = ?`).get(rowaId);
+
+    if (!data) return res.status(404).json({ data: null, error: 'Perawi tidak ditemukan' });
+
+    // Log kunjungan (non-blocking)
+    try {
+      db.prepare("INSERT INTO rowa_logs (rowa_id, rowa_name, ip, user_agent) VALUES (?, ?, ?, ?)").run(
+        rowaId, data.Name || data.name || '', req.ip || req.headers['x-forwarded-for'], req.headers['user-agent']
+      );
+    } catch(e) {}
+
     res.json({ data, error: null });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('/api/rowa/:id error:', error.message);
+    res.status(500).json({ data: null, error: error.message });
   }
 });
 

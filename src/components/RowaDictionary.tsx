@@ -1,183 +1,529 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import { Search, User, BookOpen, Users, GraduationCap, ChevronLeft, ChevronRight, X, AlertCircle, Info } from 'lucide-react';
 import { webAPI } from '../api';
 
-const RowaDictionary: React.FC = () => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [selectedRowa, setSelectedRowa] = useState<any | null>(null);
+// ============================================================
+// TYPES
+// ============================================================
+interface RowaResult {
+  id: number;
+  Name: string;
+  ROTBA?: string;
+  R_ZAHBI?: string;
+  birth?: string | number;
+  death?: string | number;
+}
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    
-    setLoading(true);
-    setError('');
-    
-    try {
-      // @ts-ignore
-      const res = await webAPI.searchRowa(query);
-      if (res.error) {
-        setError(res.error);
-      } else {
-        setResults(res.data || []);
-      }
-    } catch (err: any) {
-      setError(err.message);
-    }
-    
-    setLoading(false);
-  };
+interface RowaDetail extends RowaResult {
+  A_esm?: string;
+  A_nasab?: string;
+  A_kona?: string;
+  sheok?: string;
+  telmez?: string;
+  [key: string]: any;
+}
 
-  const openProfile = async (id: number) => {
-    try {
-      // @ts-ignore
-      const res = await webAPI.getRowaInfo(id);
-      if (res.data) {
-        setSelectedRowa(res.data);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+interface SearchResponse {
+  data: RowaResult[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  error: string | null;
+}
 
-  const parseList = (text: string) => {
-    if (!text) return [];
-    // Pisahkan berdasarkan # dan bersihkan spasi
-    return text.split('#')
-      .map(t => t.trim())
-      .filter(t => t.length > 0 && t !== 'A' && t !== 'B'); 
-      // A dan B kadang muncul di awal data asli sebagai penanda
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+const parseList = (text: string | undefined): string[] => {
+  if (!text || text.trim() === '' || text.trim() === '-') return [];
+  return text
+    .split('#')
+    .map(t => t.trim())
+    .filter(t => t.length > 0 && t !== 'A' && t !== 'B' && t !== '-');
+};
+
+const formatYear = (y: string | number | undefined): string => {
+  if (!y || y === 0 || y === '0') return '?';
+  return String(y);
+};
+
+// ============================================================
+// SUB-COMPONENTS
+// ============================================================
+
+// Skeleton card for loading state
+const SkeletonCard = () => (
+  <div className="bg-white rounded-xl border border-gray-100 p-5 animate-pulse">
+    <div className="flex justify-between items-start gap-4">
+      <div className="flex-1 space-y-3">
+        <div className="h-6 bg-gray-200 rounded w-3/4" />
+        <div className="h-4 bg-gray-100 rounded w-1/2" />
+        <div className="h-3 bg-gray-100 rounded w-1/3" />
+      </div>
+      <div className="h-10 w-28 bg-gray-200 rounded-lg shrink-0" />
+    </div>
+  </div>
+);
+
+// Badge component for derajat
+const DerajatBadge = ({ text, color }: { text?: string; color: string }) => {
+  if (!text || text.trim() === '' || text.trim() === '-') return null;
+  const colorMap: Record<string, string> = {
+    green: 'bg-green-50 text-green-800 border-green-200',
+    blue: 'bg-blue-50 text-blue-800 border-blue-200',
   };
+  return (
+    <span className={`inline-block text-sm px-3 py-1 rounded-full border font-medium ${colorMap[color] || colorMap.green}`} dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+      {text}
+    </span>
+  );
+};
+
+// Empty state
+const EmptyState = ({ message }: { message: string }) => (
+  <div className="text-center py-16 text-gray-400">
+    <Search className="mx-auto mb-4 opacity-30" size={48} />
+    <p className="text-lg">{message}</p>
+  </div>
+);
+
+// Error banner
+const ErrorBanner = ({ message }: { message: string }) => (
+  <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mt-4">
+    <AlertCircle className="shrink-0 mt-0.5" size={18} />
+    <div>
+      <p className="font-semibold">Terjadi Kesalahan</p>
+      <p className="text-sm mt-1">{message}</p>
+      {message.includes('tidak tersedia') && (
+        <p className="text-xs mt-2 text-red-500">
+          Database perawi hanya tersedia di server produksi. Fitur ini tidak dapat diuji secara lokal.
+        </p>
+      )}
+    </div>
+  </div>
+);
+
+// Info Banner (for db not available locally)
+const InfoBanner = () => (
+  <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mt-4">
+    <Info className="shrink-0 mt-0.5" size={18} />
+    <p className="text-sm">
+      Data kamus perawi tersedia di server. Silakan cari nama perawi dalam huruf Arab maupun latin.
+    </p>
+  </div>
+);
+
+// ============================================================
+// PROFILE MODAL
+// ============================================================
+const ProfileModal = ({ rowa, onClose }: { rowa: RowaDetail; onClose: () => void }) => {
+  const guruList = parseList(rowa.sheok);
+  const muridList = parseList(rowa.telmez);
 
   return (
-    <div className="w-full font-serif" dir="auto">
-      <div className="bg-[#fffdf7] p-8 rounded-xl shadow-md border border-[#d7ccc8] mb-8">
-        <h2 className="text-3xl font-bold text-[#3e2723] mb-6 text-center border-b pb-4">
-          Kamus Biografi Perawi
-        </h2>
-        
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-          <input 
-            type="text" 
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Masukkan nama perawi (contoh: مالك بن أنس)..." 
-            className="flex-1 p-4 rounded-lg border-2 border-[#8d6e63] text-xl focus:outline-none focus:border-[#4e342e] bg-white shadow-inner"
-          />
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="bg-[#5d4037] text-white px-8 py-4 rounded-lg text-xl font-bold hover:bg-[#4e342e] transition-colors whitespace-nowrap shadow-md disabled:bg-gray-400"
-          >
-            {loading ? '...' : 'Cari'}
-          </button>
-        </form>
-        {error && <div className="mt-4 text-red-600 bg-red-100 p-3 rounded">{error}</div>}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        {results.map((r, i) => (
-          <div key={i} className="bg-white p-5 rounded-lg shadow border border-[#e0e0e0] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-gray-50 transition-colors">
-            <div className="flex-1 w-full">
-              <h3 className="text-2xl font-bold text-[#4e342e] mb-2" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{r.Name}</h3>
-              <p className="text-[#795548] text-lg" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>
-                <span className="font-bold" style={{ fontFamily: 'var(--latin-font)' }}>Derajat: </span> 
-                {r.ROTBA || r.R_ZAHBI || 'Tidak ada info derajat'}
+    <div
+      className="fixed inset-0 bg-black/60 flex justify-center items-end sm:items-center p-0 sm:p-4 z-[100]"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-[var(--app-primary)] text-white p-5 flex justify-between items-start gap-3 shrink-0">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold leading-snug" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+              {rowa.Name}
+            </h2>
+            {rowa.A_esm && rowa.A_esm !== rowa.Name && (
+              <p className="text-sm mt-1 text-white/80" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                {rowa.A_esm}
               </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Lahir: {r.birth || '?'} | Wafat: {r.death || '?'}
-              </p>
-            </div>
-            <button 
-              onClick={() => openProfile(r.id)}
-              className="bg-[#8d6e63] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#5d4037] transition-colors w-full sm:w-auto mt-2 sm:mt-0"
-            >
-              Lihat Profil
-            </button>
+            )}
           </div>
-        ))}
-        {!loading && results.length === 0 && query && !error && (
-          <p className="text-center text-gray-500 bg-white p-8 rounded-lg">Tidak ada perawi yang ditemukan.</p>
-        )}
-      </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            aria-label="Tutup"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-      {/* Profil Modal */}
-      {selectedRowa && (
-        <div className="fixed inset-0 bg-black/70 flex justify-center items-center p-4 z-50">
-          <div className="bg-[#fffdf7] rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-[#d7ccc8]">
-            
-            <div className="bg-[#5d4037] text-white p-5 flex justify-between items-center">
-              <h2 className="text-3xl font-bold">{selectedRowa.Name}</h2>
-              <button onClick={() => setSelectedRowa(null)} className="text-white hover:text-red-200 text-3xl px-2">&times;</button>
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+
+          {/* Info Dasar */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { label: 'Nasab', val: rowa.A_nasab },
+              { label: 'Kunyah', val: rowa.A_kona },
+              { label: 'Tahun Lahir', val: formatYear(rowa.birth) },
+              { label: 'Tahun Wafat', val: formatYear(rowa.death) },
+            ].map((item) => item.val && item.val !== '?' ? (
+              <div key={item.label} className="bg-gray-50 rounded-xl p-3">
+                <span className="block text-xs text-gray-400 font-semibold mb-1 uppercase tracking-wide">{item.label}</span>
+                <div className="text-sm font-bold text-gray-800 leading-snug" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>
+                  {item.val}
+                </div>
+              </div>
+            ) : null)}
+          </div>
+
+          {/* Derajat */}
+          {(rowa.ROTBA || rowa.R_ZAHBI) && (
+            <div className="space-y-3">
+              <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                <span className="w-5 h-5 bg-[var(--app-primary)] text-white rounded-full flex items-center justify-center text-xs">★</span>
+                Penilaian Ulama
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {rowa.ROTBA && (
+                  <div className="bg-green-50 border border-green-100 rounded-xl p-4">
+                    <span className="block text-xs text-green-600 font-bold mb-2 uppercase">Derajat (Ibnu Hajar / Taqrib)</span>
+                    <p className="text-lg text-green-900 leading-relaxed" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                      {rowa.ROTBA}
+                    </p>
+                  </div>
+                )}
+                {rowa.R_ZAHBI && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                    <span className="block text-xs text-blue-600 font-bold mb-2 uppercase">Derajat (Adh-Dhahabi)</span>
+                    <p className="text-lg text-blue-900 leading-relaxed" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                      {rowa.R_ZAHBI}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-            
-            <div className="overflow-y-auto p-8 space-y-8 text-right">
-              
-              {/* Info Dasar */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#f4ebd0] p-6 rounded-lg border border-[#e0d6b8]">
-                <div>
-                  <span className="block text-sm text-[#795548] font-bold mb-1">Nama Lengkap (Esm):</span>
-                  <div className="text-xl font-bold text-[#3e2723]" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_esm || '-'}</div>
-                </div>
-                <div>
-                  <span className="block text-sm text-[#795548] font-bold mb-1">Nasab:</span>
-                  <div className="text-xl font-bold text-[#3e2723]" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_nasab || '-'}</div>
-                </div>
-                <div>
-                  <span className="block text-sm text-[#795548] font-bold mb-1">Kunyah:</span>
-                  <div className="text-xl font-bold text-[#3e2723]" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.A_kona || '-'}</div>
-                </div>
-                <div>
-                  <span className="block text-sm text-[#795548] font-bold mb-1">Lahir - Wafat:</span>
-                  <div className="text-xl font-bold text-[#3e2723]">{selectedRowa.birth || '?'} - {selectedRowa.death || '?'}</div>
-                </div>
-              </div>
+          )}
 
-              {/* Derajat */}
-              <div className="space-y-4">
-                <div className="bg-white p-5 rounded-lg border-l-4 border-[#4CAF50] shadow-sm">
-                  <span className="block text-lg text-[#2E7D32] font-bold mb-2">Derajat Perawi (Ibnu Hajar/Taqrib):</span>
-                  <p className="text-2xl text-[#1b5e20] leading-relaxed" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.ROTBA || '-'}</p>
-                </div>
-                <div className="bg-white p-5 rounded-lg border-l-4 border-[#2196F3] shadow-sm">
-                  <span className="block text-lg text-[#1565C0] font-bold mb-2">Derajat (menurut Adh-Dhahabi):</span>
-                  <p className="text-2xl text-[#0d47a1] leading-relaxed" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{selectedRowa.R_ZAHBI || '-'}</p>
-                </div>
+          {/* Guru & Murid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Guru */}
+            <div>
+              <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <GraduationCap size={16} className="text-[var(--app-primary)]" /> Guru-guru (Syuyukh)
+                {guruList.length > 0 && (
+                  <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{guruList.length}</span>
+                )}
+              </h4>
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 max-h-64 overflow-y-auto">
+                {guruList.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {guruList.map((g, idx) => (
+                      <li key={idx} className="text-sm text-gray-700 pb-1.5 border-b border-gray-100 last:border-0 last:pb-0" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                        {g}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-4">Tidak ada data</p>
+                )}
               </div>
+            </div>
 
-              {/* Guru & Murid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-xl font-bold text-[#4e342e] mb-3 flex items-center gap-2">👨‍🏫 Guru-guru (Syuyukh)</h4>
-                  <div className="bg-white border border-[#e0e0e0] rounded-lg p-4 max-h-80 overflow-y-auto">
-                    <ul className="list-disc list-inside space-y-2">
-                      {parseList(selectedRowa.sheok).map((g, idx) => (
-                        <li key={idx} className="text-lg text-[#5d4037] pb-1 border-b border-gray-100 last:border-0" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{g}</li>
-                      ))}
-                    </ul>
-                    {parseList(selectedRowa.sheok).length === 0 && <span className="text-gray-400">Tidak ada data.</span>}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-[#4e342e] mb-3 flex items-center gap-2">👨‍🎓 Murid-murid (Talamidz)</h4>
-                  <div className="bg-white border border-[#e0e0e0] rounded-lg p-4 max-h-80 overflow-y-auto">
-                    <ul className="list-disc list-inside space-y-2">
-                      {parseList(selectedRowa.telmez).map((m, idx) => (
-                        <li key={idx} className="text-lg text-[#5d4037] pb-1 border-b border-gray-100 last:border-0" dir="auto" style={{ fontFamily: 'var(--arabic-font)' }}>{m}</li>
-                      ))}
-                    </ul>
-                    {parseList(selectedRowa.telmez).length === 0 && <span className="text-gray-400">Tidak ada data.</span>}
-                  </div>
-                </div>
+            {/* Murid */}
+            <div>
+              <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <Users size={16} className="text-[var(--app-primary)]" /> Murid-murid (Talamidz)
+                {muridList.length > 0 && (
+                  <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{muridList.length}</span>
+                )}
+              </h4>
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 max-h-64 overflow-y-auto">
+                {muridList.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {muridList.map((m, idx) => (
+                      <li key={idx} className="text-sm text-gray-700 pb-1.5 border-b border-gray-100 last:border-0 last:pb-0" dir="rtl" style={{ fontFamily: 'var(--arabic-font)' }}>
+                        {m}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-4">Tidak ada data</p>
+                )}
               </div>
-
             </div>
           </div>
         </div>
+
+        {/* Footer */}
+        <div className="border-t px-5 py-3 flex justify-end shrink-0">
+          <button
+            onClick={onClose}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg text-sm font-semibold transition-colors"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+const RowaDictionary: React.FC = () => {
+  const [query, setQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [results, setResults] = useState<RowaResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState<number | null>(null);
+  const [error, setError] = useState('');
+  const [selectedRowa, setSelectedRowa] = useState<RowaDetail | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [hasSearched, setHasSearched] = useState(false);
+  const LIMIT = 20;
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const doSearch = useCallback(async (q: string, pg = 1) => {
+    if (!q.trim()) return;
+    setLoading(true);
+    setError('');
+    setHasSearched(true);
+    try {
+      const res = await (webAPI as any).searchRowa(q, pg, LIMIT) as SearchResponse;
+      if (res.error && !res.data?.length) {
+        setError(res.error);
+        setResults([]);
+        setTotal(0);
+        setTotalPages(0);
+      } else {
+        setResults(res.data || []);
+        setTotal(res.total || 0);
+        setTotalPages(res.totalPages || 0);
+        setPage(res.page || pg);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Terjadi kesalahan');
+      setResults([]);
+      setTotal(0);
+      setTotalPages(0);
+    }
+    setLoading(false);
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = inputValue.trim();
+    if (!q) return;
+    setQuery(q);
+    setPage(1);
+    doSearch(q, 1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    doSearch(query, newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const openProfile = async (id: number) => {
+    setLoadingProfile(id);
+    try {
+      const res = await (webAPI as any).getRowaInfo(id);
+      if (res.data) {
+        setSelectedRowa(res.data);
+      } else {
+        setError(res.error || 'Data perawi tidak ditemukan');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Gagal memuat profil');
+    }
+    setLoadingProfile(null);
+  };
+
+  const handleClear = () => {
+    setInputValue('');
+    setQuery('');
+    setResults([]);
+    setError('');
+    setHasSearched(false);
+    setTotal(0);
+    setTotalPages(0);
+    setPage(1);
+    inputRef.current?.focus();
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto" dir="auto">
+
+      {/* Search Box */}
+      <div className="bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm p-6 mb-6">
+        <div className="flex items-center gap-3 mb-5">
+          <BookOpen className="text-[var(--app-primary)]" size={22} />
+          <h2 className="text-xl font-bold text-gray-800">Kamus Biografi Perawi</h2>
+        </div>
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              placeholder="Cari nama perawi... (contoh: مالك بن أنس atau Malik)"
+              className="w-full pl-4 pr-10 py-3 rounded-xl border-2 border-gray-200 focus:border-[var(--app-primary)] focus:outline-none text-base bg-white transition-colors"
+              dir="auto"
+              autoComplete="off"
+            />
+            {inputValue && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !inputValue.trim()}
+            className="bg-[var(--app-primary)] text-white px-5 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 shrink-0"
+          >
+            <Search size={18} />
+            <span className="hidden sm:inline">Cari</span>
+          </button>
+        </form>
+        <InfoBanner />
+      </div>
+
+      {/* Error */}
+      {error && <ErrorBanner message={error} />}
+
+      {/* Results header */}
+      {hasSearched && !loading && !error && (
+        <div className="flex items-center justify-between mb-4 px-1">
+          <p className="text-sm text-gray-500">
+            {total > 0
+              ? <>Ditemukan <strong>{total}</strong> perawi untuk "<strong>{query}</strong>"</>
+              : <>Tidak ada perawi untuk "<strong>{query}</strong>"</>
+            }
+          </p>
+          {totalPages > 1 && (
+            <p className="text-xs text-gray-400">Hal {page} dari {totalPages}</p>
+          )}
+        </div>
       )}
 
+      {/* Loading skeletons */}
+      {loading && (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      )}
+
+      {/* Results list */}
+      {!loading && results.length > 0 && (
+        <div className="space-y-3">
+          {results.map((r) => (
+            <div
+              key={r.id}
+              className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5 hover:border-[var(--app-primary)]/30 hover:shadow-sm transition-all"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className="text-xl font-bold text-gray-900 truncate mb-1"
+                    dir="rtl"
+                    style={{ fontFamily: 'var(--arabic-font)' }}
+                  >
+                    {r.Name}
+                  </h3>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {r.ROTBA && <DerajatBadge text={r.ROTBA} color="green" />}
+                    {!r.ROTBA && r.R_ZAHBI && <DerajatBadge text={r.R_ZAHBI} color="blue" />}
+                    {!r.ROTBA && !r.R_ZAHBI && (
+                      <span className="text-xs text-gray-400 italic">Tidak ada penilaian derajat</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Lahir: <strong>{formatYear(r.birth)}</strong> H &nbsp;|&nbsp; Wafat: <strong>{formatYear(r.death)}</strong> H
+                  </p>
+                </div>
+                <button
+                  onClick={() => openProfile(r.id)}
+                  disabled={loadingProfile === r.id}
+                  className="shrink-0 bg-[var(--app-primary)] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2 w-full sm:w-auto justify-center"
+                >
+                  {loadingProfile === r.id ? (
+                    <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <User size={15} />
+                  )}
+                  {loadingProfile === r.id ? 'Memuat...' : 'Lihat Profil'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && hasSearched && results.length === 0 && !error && (
+        <EmptyState message={`Tidak ada perawi bernama "${query}"`} />
+      )}
+
+      {/* Initial empty state */}
+      {!loading && !hasSearched && (
+        <EmptyState message="Masukkan nama perawi untuk mulai mencari" />
+      )}
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page <= 1}
+            className="p-2 rounded-lg border border-gray-200 hover:border-[var(--app-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum: number;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (page <= 3) {
+              pageNum = i + 1;
+            } else if (page >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = page - 2 + i;
+            }
+            return (
+              <button
+                key={pageNum}
+                onClick={() => handlePageChange(pageNum)}
+                className={`w-9 h-9 rounded-lg text-sm font-bold transition-colors ${
+                  pageNum === page
+                    ? 'bg-[var(--app-primary)] text-white'
+                    : 'border border-gray-200 hover:border-[var(--app-primary)] text-gray-600'
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page >= totalPages}
+            className="p-2 rounded-lg border border-gray-200 hover:border-[var(--app-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Profile Modal */}
+      {selectedRowa && (
+        <ProfileModal rowa={selectedRowa} onClose={() => setSelectedRowa(null)} />
+      )}
     </div>
   );
 };
