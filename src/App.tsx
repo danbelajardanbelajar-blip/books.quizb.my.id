@@ -571,7 +571,7 @@ function App() {
                     <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><Search size={18} /> Pencarian Terakhir (Personal)</h3>
                     {recentSearches.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
-                        {recentSearches.map((rs, idx) => (
+                        {recentSearches.slice(0, 5).map((rs, idx) => (
                           <button 
                             key={idx}
                             onClick={() => { setQuery(rs.query); executeSearch(rs.query, 1); }}
@@ -592,7 +592,7 @@ function App() {
                     <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><Search size={18} /> Pencarian Terbanyak (Global)</h3>
                     {popularSearches.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
-                        {popularSearches.map((rs, idx) => (
+                        {popularSearches.slice(0, 5).map((rs, idx) => (
                           <button 
                             key={idx}
                             onClick={() => { setQuery(rs.query); executeSearch(rs.query, 1); }}
@@ -615,7 +615,7 @@ function App() {
                     <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><BookOpen size={18} /> Terakhir Dibuka (Personal)</h3>
                     {recentBooks.length > 0 ? (
                       <div className="flex flex-col gap-2">
-                        {recentBooks.map((rb: any, idx: number) => (
+                        {recentBooks.slice(0, 5).map((rb: any, idx: number) => (
                           <div 
                             key={idx}
                             onClick={() => openReader({ bookId: rb.bkid })}
@@ -637,7 +637,7 @@ function App() {
                     <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><BookOpen size={18} /> Sering Dibuka (Global)</h3>
                     {popularBooks.length > 0 ? (
                       <div className="flex flex-col gap-2">
-                        {popularBooks.map((rb, idx) => (
+                        {popularBooks.slice(0, 5).map((rb, idx) => (
                           <div 
                             key={idx}
                             onClick={() => openReader({ bookId: rb.bkid })}
