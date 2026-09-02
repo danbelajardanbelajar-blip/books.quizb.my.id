@@ -3,7 +3,7 @@ import { webAPI } from '../api';
 import { LogIn, Edit2, Trash2, Save, X, Search, ChevronLeft, ChevronRight, LogOut, FolderOpen, BookOpen, FileText, ArrowLeft, Eye, AlertTriangle, MessageSquare, BookPlus, Upload , Download, FolderSync } from 'lucide-react';
 
 // ==================== TYPES ====================
-type AdminView = 'categories' | 'books' | 'pages' | 'edit_page' | 'feedback' | 'requests' | 'submissions' | 'log_search' | 'log_download' | 'log_visit' | 'log_quran' | 'log_rowa';
+type AdminView = 'categories' | 'books' | 'pages' | 'edit_page' | 'feedback' | 'requests' | 'submissions' | 'log_search' | 'log_download' | 'log_visit' | 'log_quran' | 'log_rowa' | 'log_ask';
 interface Category { id: number; name: string; catord: number; lvl: number; book_count: number; }
 interface Book { bkid: number; bk: string; cat: number; cat_name: string; }
 interface PageRow { id: number; book_id: number; part: number; page: number; preview: string; }
@@ -902,6 +902,12 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
                     {type === 'visit' && <span>Path: {d.path}</span>}
                     {type === 'quran' && <span>Surah ID: {d.surah_id}</span>}
                     {type === 'rowa' && <span>{d.rowa_name} (ID: {d.rowa_id})</span>}
+                    {type === 'ask' && (
+                      <div className="flex flex-col gap-1">
+                        <span className="font-semibold text-blue-600">Q: {d.question}</span>
+                        <span className="text-gray-500 text-xs truncate max-w-md">A: {d.response}</span>
+                      </div>
+                    )}
                   </td>
                   <td className="p-3 text-xs text-gray-500">{d.ip || '-'}</td>
                   <td className="p-3 text-xs text-gray-500 max-w-[200px] truncate hidden md:table-cell" title={d.user_agent || ''}>
@@ -992,6 +998,7 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
         <button onClick={() => { setView('log_visit'); }} className={`py-3 font-semibold text-sm border-b-2 flex items-center whitespace-nowrap transition-colors ${view === 'log_visit' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Kunjungan {stats.log_visit !== undefined && <span className={`ml-1.5 text-[10px] px-2 py-0.5 rounded-full ${ view === 'log_visit' ? 'bg-[var(--app-primary)] text-white' : 'bg-gray-100 text-gray-600' }`}>{stats.log_visit}</span>}</button>
         <button onClick={() => { setView('log_quran'); }} className={`py-3 font-semibold text-sm border-b-2 flex items-center whitespace-nowrap transition-colors ${view === 'log_quran' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Qur'an {stats.log_quran !== undefined && <span className={`ml-1.5 text-[10px] px-2 py-0.5 rounded-full ${ view === 'log_quran' ? 'bg-[var(--app-primary)] text-white' : 'bg-gray-100 text-gray-600' }`}>{stats.log_quran}</span>}</button>
         <button onClick={() => { setView('log_rowa'); }} className={`py-3 font-semibold text-sm border-b-2 flex items-center whitespace-nowrap transition-colors ${view === 'log_rowa' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Perawi {stats.log_rowa !== undefined && <span className={`ml-1.5 text-[10px] px-2 py-0.5 rounded-full ${ view === 'log_rowa' ? 'bg-[var(--app-primary)] text-white' : 'bg-gray-100 text-gray-600' }`}>{stats.log_rowa}</span>}</button>
+        <button onClick={() => { setView('log_ask'); }} className={`py-3 font-semibold text-sm border-b-2 flex items-center whitespace-nowrap transition-colors ${view === 'log_ask' ? 'border-[var(--app-primary)] text-[var(--app-primary)]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>Log Tanya AI {stats.log_ask !== undefined && <span className={`ml-1.5 text-[10px] px-2 py-0.5 rounded-full ${ view === 'log_ask' ? 'bg-[var(--app-primary)] text-white' : 'bg-gray-100 text-gray-600' }`}>{stats.log_ask}</span>}</button>
       </div>
 
       {/* Content */}
@@ -1017,6 +1024,7 @@ const AdminDashboard = ({ token, onLogout, onClose }: { token: string, onLogout:
           {view === 'log_visit' && <LogsView token={token} onLogout={onLogout} type="visit" title="Log Kunjungan Halaman" />}
           {view === 'log_quran' && <LogsView token={token} onLogout={onLogout} type="quran" title="Log Penggunaan Al Qur'an" />}
           {view === 'log_rowa' && <LogsView token={token} onLogout={onLogout} type="rowa" title="Log Kamus Perawi" />}
+          {view === 'log_ask' && <LogsView token={token} onLogout={onLogout} type="ask" title="Log Tanya AI" />}
         </div>
       </div>
     </div>

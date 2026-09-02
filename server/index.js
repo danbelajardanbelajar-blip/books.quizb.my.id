@@ -287,6 +287,36 @@ app.get('/api/recent-searches', (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/popular-searches', (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        const data = db.prepare("SELECT query, COUNT(*) as count FROM search_logs WHERE length(trim(query)) >= 3 GROUP BY LOWER(trim(query)) ORDER BY count DESC LIMIT ?").all(limit);
+        res.json({ data });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/popular-books', (req, res) => {
+    if (!db) return res.status(500).json({ error: 'Database not loaded' });
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        // Kita anggap download_logs mewakili interaksi buku untuk saat ini
+        // Cari dari visit_logs dan download_logs gabungan. Karena rumit, kita ambil dari visit_logs saja yang prefixnya /book/
+        const data = db.prepare(`
+          SELECT 
+            CAST(SUBSTR(path, 7, INSTR(SUBSTR(path, 7), ' ') - 1) AS INTEGER) as bkid,
+            SUBSTR(path, INSTR(path, ' - ') + 3) as bk,
+            COUNT(*) as count
+          FROM visit_logs
+          WHERE path LIKE '/book/%'
+          GROUP BY bkid
+          ORDER BY count DESC
+          LIMIT ?
+        `).all(limit);
+        res.json({ data });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/recent-questions', (req, res) => {
     if (!db) return res.status(500).json({ error: 'Database not loaded. Reason: ' + (dbError || 'Not found at ' + dbPath) });
     try {
@@ -453,7 +483,8 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
             log_download: db.prepare("SELECT COUNT(*) as c FROM download_logs").get().c,
             log_visit: db.prepare("SELECT COUNT(*) as c FROM visit_logs").get().c,
             log_quran: db.prepare("SELECT COUNT(*) as c FROM quran_logs").get().c,
-            log_rowa: db.prepare("SELECT COUNT(*) as c FROM rowa_logs").get().c
+            log_rowa: db.prepare("SELECT COUNT(*) as c FROM rowa_logs").get().c,
+            log_ask: db.prepare("SELECT COUNT(*) as c FROM ask_logs").get().c
         };
         res.json({ success: true, data: stats });
     } catch(err) {
@@ -471,6 +502,7 @@ app.get('/api/admin/logs/:type', requireAdmin, (req, res) => {
         else if (type === 'visit') query = "SELECT * FROM visit_logs ORDER BY id DESC LIMIT 500";
         else if (type === 'quran') query = "SELECT * FROM quran_logs ORDER BY id DESC LIMIT 500";
         else if (type === 'rowa') query = "SELECT * FROM rowa_logs ORDER BY id DESC LIMIT 500";
+        else if (type === 'ask') query = "SELECT * FROM ask_logs ORDER BY id DESC LIMIT 500";
         else return res.status(400).json({ error: 'Invalid log type' });
 
         const data = db.prepare(query).all();
@@ -1086,6 +1118,13 @@ app.get('/api/book/:id', (req, res) => {
     const data = stmt.get(bookId);
 
     if (data) {
+      try {
+        db.prepare("INSERT INTO visit_logs (path, ip, user_agent) VALUES (?, ?, ?)").run(
+          `/book/${bookId} - ${data.bk}`, 
+          req.ip || req.headers['x-forwarded-for'], 
+          req.headers['user-agent']
+        );
+      } catch(e) {}
       // Hitung halaman dari UNION pages
       const countStmt = db.prepare(`SELECT COUNT(*) as total_pages FROM ${pagesUnion()} p WHERE p.book_id = ?`);
       const totalRow = countStmt.get(bookId);
