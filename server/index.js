@@ -303,12 +303,23 @@ app.get('/api/popular-books', (req, res) => {
         // Kita anggap download_logs mewakili interaksi buku untuk saat ini
         // Cari dari visit_logs dan download_logs gabungan. Karena rumit, kita ambil dari visit_logs saja yang prefixnya /book/
         const data = db.prepare(`
-          SELECT 
-            CAST(SUBSTR(path, 7, INSTR(SUBSTR(path, 7), ' ') - 1) AS INTEGER) as bkid,
-            SUBSTR(path, INSTR(path, ' - ') + 3) as bk,
-            COUNT(*) as count
-          FROM visit_logs
-          WHERE path LIKE '/book/%'
+          SELECT bkid, bk, SUM(count) as count FROM (
+            SELECT 
+              CAST(SUBSTR(path, 7, INSTR(SUBSTR(path, 7), ' ') - 1) AS INTEGER) as bkid,
+              SUBSTR(path, INSTR(path, ' - ') + 3) as bk,
+              1 as count
+            FROM visit_logs
+            WHERE path LIKE '/book/%'
+
+            UNION ALL
+
+            SELECT 
+              book_id as bkid,
+              book_title as bk,
+              1 as count
+            FROM download_logs
+            WHERE book_id IS NOT NULL
+          )
           GROUP BY bkid
           ORDER BY count DESC
           LIMIT ?
