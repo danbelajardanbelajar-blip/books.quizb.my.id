@@ -45,6 +45,8 @@ function App() {
       .catch(err => console.error("Failed to load stats:", err));
   }, []);
   const [recentSearches, setRecentSearches] = useState<{query:string}[]>([]);
+  const [popularSearches, setPopularSearches] = useState<{query:string, count:number}[]>([]);
+  const [popularBooks, setPopularBooks] = useState<{bkid:number, bk:string, count:number}[]>([]);
   const [recentBooks, setRecentBooks] = useState<any[]>(() => {
     try { return JSON.parse(localStorage.getItem('recentBooks') || '[]'); } catch { return []; }
   });
@@ -161,6 +163,12 @@ function App() {
     webAPI.getRecentSearches().then(res => {
       if (res.data) setRecentSearches(res.data);
     }).catch(console.error);
+    fetch('/api/popular-searches').then(r => r.json()).then(res => {
+      if (res && res.data) setPopularSearches(res.data);
+    }).catch(()=>{});
+    fetch('/api/popular-books').then(r => r.json()).then(res => {
+      if (res && res.data) setPopularBooks(res.data);
+    }).catch(()=>{});
   }, []);
 
   const executeSearch = async (searchQuery: string, page: number, mode = searchMode) => {
@@ -556,47 +564,95 @@ function App() {
 
             {results.length === 0 && !loading && query.trim() === '' && (
               <div className="space-y-6 mb-8">
-                {/* Pencarian Terakhir */}
-                <div className="p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
-                  <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><Search size={18} /> Pencarian Terakhir</h3>
-                  {recentSearches.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {recentSearches.map((rs, idx) => (
-                        <button 
-                          key={idx}
-                          onClick={() => { setQuery(rs.query); executeSearch(rs.query, 1); }}
-                          className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-600 px-4 py-2 rounded-full text-sm transition-all shadow-sm"
-                          dir="auto"
-                        >
-                          {rs.query}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-400 italic">Belum ada riwayat pencarian. Riwayat pencarian pengguna akan muncul di sini.</p>
-                  )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Pencarian Terakhir */}
+                  <div className="p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
+                    <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><Search size={18} /> Pencarian Terakhir (Personal)</h3>
+                    {recentSearches.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {recentSearches.map((rs, idx) => (
+                          <button 
+                            key={idx}
+                            onClick={() => { setQuery(rs.query); executeSearch(rs.query, 1); }}
+                            className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-600 px-4 py-2 rounded-full text-sm transition-all shadow-sm"
+                            dir="auto"
+                          >
+                            {rs.query}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Belum ada riwayat pencarian.</p>
+                    )}
+                  </div>
+
+                  {/* Pencarian Terbanyak */}
+                  <div className="p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
+                    <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><Search size={18} /> Pencarian Terbanyak (Global)</h3>
+                    {popularSearches.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {popularSearches.map((rs, idx) => (
+                          <button 
+                            key={idx}
+                            onClick={() => { setQuery(rs.query); executeSearch(rs.query, 1); }}
+                            className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-600 px-4 py-2 rounded-full text-sm transition-all shadow-sm flex items-center gap-2"
+                            dir="auto"
+                          >
+                            {rs.query} <span className="bg-gray-100 text-xs px-2 py-0.5 rounded-full text-gray-500">{rs.count}x</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Belum ada data pencarian terbanyak.</p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Baru Saja Dibuka */}
-                <div className="p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
-                  <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><BookOpen size={18} /> Baru Saja Dibuka</h3>
-                  {recentBooks.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      {recentBooks.map((rb: any, idx: number) => (
-                        <div 
-                          key={idx}
-                          onClick={() => openReader({ bookId: rb.bkid })}
-                          className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-700 px-4 py-3 rounded-xl text-sm transition-all shadow-sm cursor-pointer flex justify-between items-center"
-                          dir="auto"
-                        >
-                          <span className="font-bold" style={{ fontFamily: 'var(--arabic-font)' }}>{rb.bk}</span>
-                          <span className="text-xs text-gray-400">{rb.author}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-400 italic">Belum ada kitab yang baru saja dibuka.</p>
-                  )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Baru Saja Dibuka */}
+                  <div className="p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
+                    <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><BookOpen size={18} /> Terakhir Dibuka (Personal)</h3>
+                    {recentBooks.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {recentBooks.map((rb: any, idx: number) => (
+                          <div 
+                            key={idx}
+                            onClick={() => openReader({ bookId: rb.bkid })}
+                            className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-700 px-4 py-3 rounded-xl text-sm transition-all shadow-sm cursor-pointer flex justify-between items-center"
+                            dir="auto"
+                          >
+                            <span className="font-bold truncate" style={{ fontFamily: 'var(--arabic-font)' }}>{rb.bk}</span>
+                            <span className="text-xs text-gray-400 ml-2 shrink-0">{rb.author}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Belum ada kitab yang baru saja dibuka.</p>
+                    )}
+                  </div>
+
+                  {/* Paling Sering Dibuka */}
+                  <div className="p-6 bg-[var(--reader-bg)] rounded-2xl border border-black/5 shadow-sm">
+                    <h3 className="text-gray-500 font-semibold mb-4 flex items-center gap-2"><BookOpen size={18} /> Sering Dibuka (Global)</h3>
+                    {popularBooks.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {popularBooks.map((rb, idx) => (
+                          <div 
+                            key={idx}
+                            onClick={() => openReader({ bookId: rb.bkid })}
+                            className="bg-white border border-gray-200 hover:border-[var(--app-primary)] hover:text-[var(--app-primary)] text-gray-700 px-4 py-3 rounded-xl text-sm transition-all shadow-sm cursor-pointer flex justify-between items-center"
+                            dir="auto"
+                          >
+                            <span className="font-bold truncate" style={{ fontFamily: 'var(--arabic-font)' }}>{rb.bk}</span>
+                            <span className="bg-gray-100 text-xs px-2 py-0.5 rounded-full text-gray-500 ml-2 shrink-0">{rb.count}x</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Belum ada data kitab paling sering dibuka.</p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Submit, Request, Feedback Cards */}
