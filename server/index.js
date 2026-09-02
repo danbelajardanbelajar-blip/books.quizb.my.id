@@ -110,7 +110,6 @@ try {
             query TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
-          
           CREATE TABLE IF NOT EXISTS download_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             book_id INTEGER,
@@ -133,31 +132,12 @@ try {
             rowa_name TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
-
           CREATE TABLE IF NOT EXISTS ask_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             question TEXT NOT NULL,
             response TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
-
-          
-          -- Migrate logs to add ip and user_agent if not exists
-          ALTER TABLE search_logs ADD COLUMN ip TEXT;
-          ALTER TABLE search_logs ADD COLUMN user_agent TEXT;
-        } catch(e) {}
-        try { ALTER TABLE download_logs ADD COLUMN ip TEXT; } catch(e) {}
-        try { ALTER TABLE download_logs ADD COLUMN user_agent TEXT; } catch(e) {}
-        try { ALTER TABLE visit_logs ADD COLUMN ip TEXT; } catch(e) {}
-        try { ALTER TABLE visit_logs ADD COLUMN user_agent TEXT; } catch(e) {}
-        try { ALTER TABLE quran_logs ADD COLUMN ip TEXT; } catch(e) {}
-        try { ALTER TABLE quran_logs ADD COLUMN user_agent TEXT; } catch(e) {}
-        try { ALTER TABLE rowa_logs ADD COLUMN ip TEXT; } catch(e) {}
-        try { ALTER TABLE rowa_logs ADD COLUMN user_agent TEXT; } catch(e) {}
-        try { ALTER TABLE ask_logs ADD COLUMN ip TEXT; } catch(e) {}
-        try { ALTER TABLE ask_logs ADD COLUMN user_agent TEXT; } catch(e) {}
-        
-        try {
           CREATE TABLE IF NOT EXISTS admin_tokens (
             token TEXT PRIMARY KEY,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -194,8 +174,14 @@ try {
             status TEXT DEFAULT 'pending',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
-
         `);
+        
+        // Migrate logs to add ip and user_agent if not exists
+        const logTables = ['search_logs', 'download_logs', 'visit_logs', 'quran_logs', 'rowa_logs', 'ask_logs'];
+        for (const tbl of logTables) {
+            try { db.exec(`ALTER TABLE ${tbl} ADD COLUMN ip TEXT;`); } catch(e) {}
+            try { db.exec(`ALTER TABLE ${tbl} ADD COLUMN user_agent TEXT;`); } catch(e) {}
+        }
     } catch(e) { console.error("Gagal membuat tabel log:", e.message); }
   } else {
     console.log("Database not found at:", dbPath);
