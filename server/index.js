@@ -25,6 +25,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const stripHarakat = (text) => text ? text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '') : '';
 const app = express();
+app.set('trust proxy', true);
 const port = process.env.PORT || 3000;
 
 app.use(cors());
