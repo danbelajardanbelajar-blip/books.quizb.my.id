@@ -64,8 +64,8 @@ export const webAPI = {
   deleteBookSubmission: async (token: string, id: number) => { const r = await fetch(`${API_BASE}/admin/book-submission/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); return r.json(); },
 
   // ===== ADMIN BOOKS =====
-  getAdminBooks: async (token: string, page = 1, query = '', catId?: number) => {
-    let url = `${API_BASE}/admin/books?page=${page}`;
+  getAdminBooks: async (token: string, page = 1, query = '', catId?: number, limit = 30) => {
+    let url = `${API_BASE}/admin/books?page=${page}&limit=${limit}`;
     if (query) url += `&q=${encodeURIComponent(query)}`;
     if (catId) url += `&cat=${catId}`;
     const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -108,8 +108,8 @@ export const webAPI = {
   },
 
   // ===== ADMIN PAGES =====
-  getAdminBookPages: async (token: string, bookId: number, page = 1) => {
-    const res = await fetch(`${API_BASE}/admin/book/${bookId}/pages?page=${page}`, { headers: { 'Authorization': `Bearer ${token}` } });
+  getAdminBookPages: async (token: string, bookId: number, page = 1, limit = 20) => {
+    const res = await fetch(`${API_BASE}/admin/book/${bookId}/pages?page=${page}&limit=${limit}`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (!res.ok) throw new Error(`${res.status}`);
     return res.json();
   },

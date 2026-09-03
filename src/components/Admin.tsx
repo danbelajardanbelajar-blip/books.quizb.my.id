@@ -62,7 +62,9 @@ const Pagination = ({ page, total, limit, onChange, loading, onLimitChange }: an
             className="text-sm border border-gray-300 rounded-md py-1 px-2 bg-white outline-none cursor-pointer"
           >
             <option value={15}>15 per hal</option>
+            <option value={20}>20 per hal</option>
             <option value={25}>25 per hal</option>
+            <option value={30}>30 per hal</option>
             <option value={50}>50 per hal</option>
             <option value={100}>100 per hal</option>
             <option value={500}>500 per hal</option>
@@ -307,16 +309,16 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(30);
 
-  const load = useCallback(async (p = 1, q = query) => {
+  const load = useCallback(async (p = 1, q = query, l = limit) => {
     setLoading(true);
-    const res = await adminFetch(token, () => webAPI.getAdminBooks(token, p, q, category.id), onLogout, setError);
+    const res = await adminFetch(token, () => webAPI.getAdminBooks(token, p, q, category.id, l), onLogout, setError);
     if (res) { setBooks(res.data); setTotal(res.total); setPage(res.page); }
     setLoading(false);
-  }, [token, category.id]);
+  }, [token, category.id, query, limit]);
 
-  useEffect(() => { load(1, ''); }, [category.id]);
+  useEffect(() => { load(1, '', limit); }, [category.id]);
 
-  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); load(1, query); };
+  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); load(1, query, limit); };
 
   const handleEdit = async (book: Book) => {
     if (editingId === book.bkid) {
@@ -413,7 +415,7 @@ const BooksView = ({ token, onLogout, category, onSelectBook }: { token: string,
           </tbody>
         </table>
       </div>
-      <Pagination page={page} total={total} limit={limit} onLimitChange={(l: any) => { setLimit(l); setPage(1); }} onChange={(p: number) => load(p)} loading={loading} />
+      <Pagination page={page} total={total} limit={limit} onLimitChange={(l: any) => { setLimit(l); setPage(1); load(1, query, l); }} onChange={(p: number) => load(p, query, limit)} loading={loading} />
     </div>
   );
 };
@@ -442,14 +444,14 @@ const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLog
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(20);
 
-  const load = useCallback(async (p = 1) => {
+  const load = useCallback(async (p = 1, l = limit) => {
     setLoading(true);
-    const res = await adminFetch(token, () => webAPI.getAdminBookPages(token, book.bkid, p), onLogout, setError);
+    const res = await adminFetch(token, () => webAPI.getAdminBookPages(token, book.bkid, p, l), onLogout, setError);
     if (res) { setPages(res.data); setTotal(res.total); setPage(res.page); }
     setLoading(false);
-  }, [token, book.bkid]);
+  }, [token, book.bkid, limit]);
 
-  useEffect(() => { load(1); }, [book.bkid]);
+  useEffect(() => { load(1, limit); }, [book.bkid]);
 
   const handleDeletePage = async (pg: PageRow) => {
     if (!confirm(`Hapus halaman Juz ${pg.part} Hal ${pg.page}?`)) return;
@@ -500,7 +502,7 @@ const PagesView = ({ token, onLogout, book, onEditPage }: { token: string, onLog
           </tbody>
         </table>
       </div>
-      <Pagination page={page} total={total} limit={limit} onLimitChange={(l: any) => { setLimit(l); setPage(1); }} onChange={(p: number) => load(p)} loading={loading} />
+      <Pagination page={page} total={total} limit={limit} onLimitChange={(l: any) => { setLimit(l); setPage(1); load(1, l); }} onChange={(p: number) => load(p, limit)} loading={loading} />
     </div>
   );
 };
