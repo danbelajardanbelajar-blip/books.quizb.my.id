@@ -435,7 +435,7 @@ app.delete('/api/admin/books/bulk-delete', requireAdmin, (req, res) => {
     try {
         const placeholders = bookIds.map(() => '?').join(',');
         db.prepare(`DELETE FROM books_meta WHERE bkid IN (${placeholders})`).run(...bookIds);
-        db.prepare(`DELETE FROM pages WHERE bkid IN (${placeholders})`).run(...bookIds);
+        db.prepare(`DELETE FROM pages WHERE book_id IN (${placeholders})`).run(...bookIds);
         res.json({success: true});
     } catch(e) { res.status(500).json({error: e.message}); }
 });
