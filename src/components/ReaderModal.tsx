@@ -33,8 +33,9 @@ const buildArabicRegex = (word: string) => {
 const highlightText = (text: string, query?: string) => {
   if (!query || !text) return text;
   
-  // Clean query from its own diacritics
-  const cleanQuery = query.replace(/[\u064B-\u065F\u0670\u0654\u0655]/g, '').trim();
+  // Clean query from its own diacritics and quotes
+  let cleanQuery = query.replace(/[\u064B-\u065F\u0670\u0654\u0655]/g, '').trim();
+  cleanQuery = cleanQuery.replace(/['"]/g, '');
   if (!cleanQuery) return text;
 
   const words = cleanQuery.split(/\s+/).filter(w => w.length > 0);
