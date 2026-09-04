@@ -24,6 +24,94 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const stripHarakat = (text) => text ? text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '') : '';
+
+const generateWordVariations = (word) => {
+    if (!word) return [''];
+    const chars = word.split('');
+    const alefs = ['ا', 'أ', 'إ', 'آ'];
+    const ya = ['ي', 'ى'];
+    const ha = ['ه', 'ة'];
+    
+    let current = [''];
+    for (let i = 0; i < chars.length; i++) {
+        let c = chars[i];
+        let options = [c];
+        if (alefs.includes(c)) options = alefs;
+        else if (i === chars.length - 1) {
+            if (ya.includes(c)) options = ya;
+            else if (ha.includes(c)) options = ha;
+        }
+        
+        let next = [];
+        for (let prefix of current) {
+            for (let opt of options) {
+                next.push(prefix + opt);
+            }
+        }
+        current = next;
+    }
+    return current;
+};
+
+const buildFtsMatch = (query) => {
+    const cleanQuery = stripHarakat(query);
+    const isQuoted = cleanQuery.includes('"');
+    const safeQuery = cleanQuery.replace(/"/g, '');
+    const words = safeQuery.split(/\s+/).filter(w => w.length > 0);
+    
+    if (words.length === 0) return { exactPhrase: '', andMatch: '', cleanQuery };
+
+    const getPhraseVariations = (wordsArr) => {
+        let current = [''];
+        for (let word of wordsArr) {
+            const vars = generateWordVariations(word);
+            let next = [];
+            for (let prefix of current) {
+                for (let v of vars) {
+                    next.push(prefix ? prefix + ' ' + v : v);
+                }
+            }
+            current = next;
+            if (current.length > 128) return []; // Fallback jika terlalu banyak kombinasi
+        }
+        return current;
+    };
+
+    let exactPhrase = '';
+    let andMatch = '';
+
+    if (isQuoted || words.length === 1) {
+        const phrases = getPhraseVariations(words);
+        if (phrases.length > 0) {
+            exactPhrase = '(' + phrases.map(p => '"' + p + '"').join(' OR ') + ')';
+        } else {
+            exactPhrase = '"' + safeQuery + '"';
+        }
+    } else {
+        const phrases = getPhraseVariations(words);
+        if (phrases.length > 0 && phrases.length <= 64) {
+            exactPhrase = '(' + phrases.map(p => '"' + p + '"').join(' OR ') + ')';
+        } else {
+            exactPhrase = '"' + safeQuery + '"';
+        }
+
+        const andParts = words.map(w => {
+            const vars = generateWordVariations(w);
+            return '(' + vars.map(v => '"' + v + '"').join(' OR ') + ')';
+        });
+        andMatch = '(' + andParts.join(' AND ') + ') NOT ' + exactPhrase;
+    }
+    
+    return { exactPhrase, andMatch, cleanQuery };
+};
+
+const buildLikeMatch = (query) => {
+    let clean = stripHarakat(query);
+    clean = clean.replace(/[اأإآ]/g, '_');
+    clean = clean.replace(/[يى](?=\s|$)/g, '_');
+    clean = clean.replace(/[هة](?=\s|$)/g, '_');
+    return clean;
+};
 const app = express();
 app.set('trust proxy', true);
 const port = process.env.PORT || 3000;
@@ -813,24 +901,7 @@ app.get('/api/search', (req, res) => {
     }
     const targetBookId = req.query.book_id ? parseInt(req.query.book_id) : null;
 
-    let exactPhrase = '';
-    let andMatch = '';
-    const cleanQuery = stripHarakat(query);
-    const words = cleanQuery.split(/\s+/).filter(w => w.length > 0);
-
-    if (words.length > 1 && !cleanQuery.includes('"')) {
-      const safeQuery = cleanQuery.replace(/"/g, '');
-      exactPhrase = '"' + safeQuery + '"';
-      const quotedWords = words.map(w => `"${w.replace(/"/g, '')}"`);
-      andMatch = '(' + quotedWords.join(' AND ') + ') NOT ' + exactPhrase;
-    } else {
-      if (!cleanQuery.includes('"')) {
-          exactPhrase = '"' + cleanQuery.replace(/"/g, '') + '"';
-      } else {
-          exactPhrase = cleanQuery;
-      }
-      andMatch = '';
-    }
+    const { exactPhrase, andMatch, cleanQuery } = buildFtsMatch(query);
 
     let total = 0;
     let results = [];
@@ -1309,7 +1380,8 @@ app.get('/api/rowa/search', (req, res) => {
     const kutubCol = cols.includes('kutub') ? 'kutub' : cols.includes('Kutub') ? 'Kutub' : cols.includes('books') ? 'books' : null;
     const kutubSel = kutubCol ? `, r.${kutubCol} as kutub` : '';
 
-    const stripped = stripHarakat(queryStr);
+    const { exactPhrase, andMatch } = buildFtsMatch(queryStr);
+    const likeQuery = buildLikeMatch(queryStr);
     let data = [];
     let total = 0;
     let usedFts = false;
@@ -1317,10 +1389,9 @@ app.get('/api/rowa/search', (req, res) => {
     // Coba FTS dulu, fallback ke LIKE jika FTS tidak tersedia
     const ftsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rowa_fts'").get();
 
-    if (ftsExists) {
+    if (ftsExists && (exactPhrase || andMatch)) {
       try {
-        const sanitized = stripped.replace(/['\"*?]/g, ' ').trim();
-        const ftsQuery = sanitized.split(/\s+/).filter(Boolean).map(w => `"${w}"*`).join(' ');
+        const ftsQuery = andMatch || exactPhrase;
         const countRow = db.prepare(`
           SELECT COUNT(*) as c FROM rowa_fts f JOIN rowa r ON f.rowid = r.id WHERE rowa_fts MATCH ?
         `).get(ftsQuery);
@@ -1340,7 +1411,7 @@ app.get('/api/rowa/search', (req, res) => {
 
     if (!usedFts) {
       // LIKE search (lebih lambat tapi selalu berfungsi)
-      const likeQ = `%${stripped}%`;
+      const likeQ = `%${likeQuery}%`;
       const countRow = db.prepare(`SELECT COUNT(*) as c FROM rowa WHERE Name LIKE ? OR A_esm LIKE ?`).get(likeQ, likeQ);
       total = countRow ? countRow.c : 0;
       data = db.prepare(`
@@ -1774,7 +1845,8 @@ app.get('/api/search_titles', (req, res) => {
     }
 
     let whereClause = "WHERE b.bk LIKE ?";
-    let params = [`%${query}%`];
+    let likeQuery = buildLikeMatch(req.query.q || '');
+    let params = [`%${likeQuery}%`];
 
     if (cat_ids.length > 0) {
       const placeholders = cat_ids.map(() => '?').join(',');
