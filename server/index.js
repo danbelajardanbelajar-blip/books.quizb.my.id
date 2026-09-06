@@ -117,8 +117,8 @@ app.set('trust proxy', true);
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '60mb' }));
-app.use(express.urlencoded({ limit: '60mb', extended: true }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 let db;
 // Gunakan variabel environment DB_PATH, atau fallback ke alamat PC
@@ -260,6 +260,7 @@ try {
             notes TEXT,
             file_name TEXT,
             file_path TEXT,
+            file_type TEXT,
             status TEXT DEFAULT 'pending',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
@@ -271,6 +272,10 @@ try {
             try { db.exec(`ALTER TABLE ${tbl} ADD COLUMN ip TEXT;`); } catch(e) {}
             try { db.exec(`ALTER TABLE ${tbl} ADD COLUMN user_agent TEXT;`); } catch(e) {}
         }
+        
+        // Migrate book_submissions to add file_type
+        try { db.exec(`ALTER TABLE book_submissions ADD COLUMN file_type TEXT;`); } catch(e) {}
+        
     } catch(e) { console.error("Gagal membuat tabel log:", e.message); }
   } else {
     console.log("Database not found at:", dbPath);
@@ -749,15 +754,16 @@ app.post('/api/book-submit', (req, res) => {
     let finalFileName = null;
 
     if (file_data && file_name) {
-       const matches = file_data.match(/^data:(.+);base64,(.+)$/);
-       if (matches && matches.length === 3) {
+       const commaIndex = file_data.indexOf(',');
+       if (commaIndex !== -1) {
            const ext = path.extname(file_name).toLowerCase();
            if (!['.pdf', '.docx', '.doc'].includes(ext)) {
                return res.status(400).json({ error: 'Hanya file PDF dan DOCX yang diizinkan' });
            }
            fileType = ext;
            finalFileName = file_name;
-           const buffer = Buffer.from(matches[2], 'base64');
+           const base64Str = file_data.substring(commaIndex + 1);
+           const buffer = Buffer.from(base64Str, 'base64');
            const safeFileName = Date.now() + '_' + Math.random().toString(36).slice(2) + ext;
            savedFilePath = path.join(uploadDir, safeFileName);
            fs.writeFileSync(savedFilePath, buffer);
