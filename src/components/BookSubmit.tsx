@@ -13,7 +13,7 @@ export default function BookSubmit() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/categories/list`)
+    fetch(`${API_BASE}/categories`)
       .then(r => r.json())
       .then(d => setCategories(d.data || []))
       .catch(() => {});
