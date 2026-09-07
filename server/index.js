@@ -1949,13 +1949,18 @@ app.get('/api/quran/tafsir-page/:bookId/:pageId', (req, res) => {
 app.get('/api/search_scholarium', async (req, res) => {
   try {
     const q = req.query.q || '';
-    const page = req.query.page || 1;
-    const url = `https://maktabah.quizb.my.id/api.php?action=search_scholarium_pdfs&q=${encodeURIComponent(q)}&page=${page}`;
+    // The new API endpoint at scholarium.quizb.my.id
+    const url = `https://scholarium.quizb.my.id/index.php?ajax_search=${encodeURIComponent(q)}`;
     
     // We use dynamic import for node-fetch or native fetch in node 18+
     const response = await fetch(url);
-    const data = await response.json();
-    res.json(data);
+    const dataArray = await response.json();
+    
+    // The new API returns an array directly, but frontend expects { data, total }
+    res.json({
+      data: Array.isArray(dataArray) ? dataArray : [],
+      total: Array.isArray(dataArray) ? dataArray.length : 0
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
