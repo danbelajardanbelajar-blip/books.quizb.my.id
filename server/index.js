@@ -1956,10 +1956,12 @@ app.get('/api/search_scholarium', async (req, res) => {
     const response = await fetch(url);
     const dataArray = await response.json();
     
+    let validData = Array.isArray(dataArray) ? dataArray.filter(item => item && item.link) : [];
+    
     // The new API returns an array directly, but frontend expects { data, total }
     res.json({
-      data: Array.isArray(dataArray) ? dataArray : [],
-      total: Array.isArray(dataArray) ? dataArray.length : 0
+      data: validData,
+      total: validData.length
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
