@@ -844,17 +844,19 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
   useEffect(() => {
     if (data && data.length > 0) {
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay()); 
+      // Reset time to 00:00:00 for accurate local date boundaries
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
       let d = 0, w = 0, m = 0;
       data.forEach(item => {
         const itemDateStr = (item.created_at || '').replace(' ', 'T');
         if (!itemDateStr) return;
+        // Parse as UTC (database format) to local Date object
         const itemDate = new Date(itemDateStr + 'Z');
-        if (itemDate.toISOString().split('T')[0] === todayStr) d++;
+        
+        if (itemDate >= startOfToday) d++;
         if (itemDate >= startOfWeek) w++;
         if (itemDate >= startOfMonth) m++;
       });
