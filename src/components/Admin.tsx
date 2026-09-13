@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { webAPI } from '../api';
-import { LogIn, Edit2, Trash2, Save, X, Search, ChevronLeft, ChevronRight, LogOut, FolderOpen, BookOpen, FileText, ArrowLeft, Eye, AlertTriangle, MessageSquare, BookPlus, Upload , Download, FolderSync } from 'lucide-react';
+import { LogIn, Edit2, Trash2, Save, X, Search, ChevronLeft, ChevronRight, LogOut, FolderOpen, BookOpen, FileText, ArrowLeft, Eye, AlertTriangle, MessageSquare, BookPlus, Upload , Download, FolderSync, Activity, Calendar, BarChart2 } from 'lucide-react';
 
 // ==================== TYPES ====================
 type AdminView = 'categories' | 'books' | 'pages' | 'edit_page' | 'feedback' | 'requests' | 'submissions' | 'log_search' | 'log_download' | 'log_visit' | 'log_quran' | 'log_rowa' | 'log_ask';
@@ -838,6 +838,31 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
   const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  const [stats, setStats] = useState({ daily: 0, weekly: 0, monthly: 0 });
+
+  useEffect(() => {
+    if (data && data.length > 0) {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); 
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      let d = 0, w = 0, m = 0;
+      data.forEach(item => {
+        const itemDateStr = (item.created_at || '').replace(' ', 'T');
+        if (!itemDateStr) return;
+        const itemDate = new Date(itemDateStr + 'Z');
+        if (itemDate.toISOString().split('T')[0] === todayStr) d++;
+        if (itemDate >= startOfWeek) w++;
+        if (itemDate >= startOfMonth) m++;
+      });
+      setStats({ daily: d, weekly: w, monthly: m });
+    } else {
+      setStats({ daily: 0, weekly: 0, monthly: 0 });
+    }
+  }, [data]);
 
   useEffect(() => {
     const load = async () => {
@@ -853,6 +878,23 @@ const LogsView = ({ token, onLogout, type, title }: { token: string, onLogout: (
   return (
     <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div className="p-4 border-b bg-gray-50 font-bold text-gray-800">{title}</div>
+      
+      {/* Infografis Statistik */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border-b bg-white">
+        <div className="flex items-center gap-4 p-4 rounded-xl border shadow-sm bg-blue-50/50">
+          <div className="p-3 bg-blue-100 text-blue-600 rounded-lg"><Activity size={24} /></div>
+          <div><div className="text-sm text-gray-500 font-medium">Hari Ini</div><div className="text-2xl font-bold text-gray-800">{stats.daily}</div></div>
+        </div>
+        <div className="flex items-center gap-4 p-4 rounded-xl border shadow-sm bg-green-50/50">
+          <div className="p-3 bg-green-100 text-green-600 rounded-lg"><Calendar size={24} /></div>
+          <div><div className="text-sm text-gray-500 font-medium">Minggu Ini</div><div className="text-2xl font-bold text-gray-800">{stats.weekly}</div></div>
+        </div>
+        <div className="flex items-center gap-4 p-4 rounded-xl border shadow-sm bg-purple-50/50">
+          <div className="p-3 bg-purple-100 text-purple-600 rounded-lg"><BarChart2 size={24} /></div>
+          <div><div className="text-sm text-gray-500 font-medium">Bulan Ini</div><div className="text-2xl font-bold text-gray-800">{stats.monthly}</div></div>
+        </div>
+      </div>
+
       {error && <div className="p-4"><ErrorBanner msg={error} onClose={() => setError('')} /></div>}
       
       <SelectionBar count={selected.length} onDownload={() => downloadCSV(selected, 'logsview_export.csv')} />
